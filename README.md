@@ -25,7 +25,7 @@ The folder for a given version follows this structure:
 +README.txt
 ```
 
-- [images/images.json](https://github.com/platybrowser/pymmb#imagesjson): json which maps the avaialable image data to viewer options
+- [images/images.json](https://github.com/platybrowser/pymmb#imagesjson): json which lists the avaialable image data and associated display options
 - [images/local](https://github.com/platybrowser/pymmb#supported-data-formats): metadata for the locally stored image data, stored in bdv.xml data format
 - [images/remote](https://github.com/platybrowser/pymmb#supported-data-formats): metadata for the remotely stored image data, stored in bdv.xml data format
 - misc: miscellaneous data, including [bookmarks](https://github.com/platybrowser/pymmb#bookmarksjson)
