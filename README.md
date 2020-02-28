@@ -10,7 +10,7 @@ We recommend to version data for the MMB according to a scheme inspired by [sema
 The entry point for the MMB is a root folder, that contains the version folders and the file `versions.json` listing the available versions.
 
 See [platy-data](https://github.com/platybrowser/pymmb/tree/master/platy-data) for an example of 
-the MMB data layout, using a small subset of the data in the full PlatyBrowser. You can check out the complete PlatyBrowser layout [here](https://github.com/platybrowser/pymmb/tree/master/platy-data)
+the MMB data layout, using a small subset of the data in the full PlatyBrowser. You can check out the complete PlatyBrowser layout [here](https://github.com/platybrowser/pymmb/tree/master/platy-data).
 
 ### Version folder
 
@@ -25,11 +25,11 @@ The folder for a given version follows this structure:
 +README.txt
 ```
 
-- [images/images.json](): json which maps the avaialable image data to viewer options
-- [images/local](): metadata for the locally stored image data, stored in bdv.xml data format
-- [images/remote](): metadata for the remotely stored image data, stored in bdv.xml data format
-- misc: miscellaneous data, including [bookmarks]()
-- [tables](): tabular data associated with image data that has object ids, e.g. segmentations
+- [images/images.json](https://github.com/platybrowser/pymmb#imagesjson): json which maps the avaialable image data to viewer options
+- [images/local](https://github.com/platybrowser/pymmb#supported-data-formats): metadata for the locally stored image data, stored in bdv.xml data format
+- [images/remote](https://github.com/platybrowser/pymmb#supported-data-formats): metadata for the remotely stored image data, stored in bdv.xml data format
+- misc: miscellaneous data, including [bookmarks](https://github.com/platybrowser/pymmb#bookmarksjson)
+- [tables](https://github.com/platybrowser/pymmb#supported-data-formats): tabular data associated with image data that has object ids, e.g. segmentations
 - README.txt: description of this version, optional
 
 
