@@ -4,7 +4,7 @@ Python helper functions and minimal example of the data layout for the [MultiMod
 
 Making the MMB available for custom data is work in progress; any feedback or suggestions are welcome!
 
-## Data layout & Usage
+## Data layout
 
 We recommend to store data for the MMB in a versioning structur similar to [semantic versioning](https://semver.org/): a version is named `X.Y.Z` where `X` (major version number) is increased if a new data modality is added, `Y` (minor version number) is increased if new data for a given modality is added and `Z` (patch version number) is increased if existing data is updated.
 The entry point for the MMB is a root folder that contains the version folders and the file `versions.json` listing the available versions.
@@ -56,11 +56,45 @@ TODO describe images.json
 TODO describe bookmarks.json
 
 
-### CustomBrowser
+## Usage
+
+### Fiji: CustomBrowser
 
 Any data stored in the layout described above can be loaded with the MMB by [selecting the `CustomBrowser` option](https://github.com/platybrowser/mmb-fiji#advanced-options).
 For both `Image Data Location` and `Table Data Location` either a local file path or a githost webaddress can be given.
 E.g. `https://raw.githubusercontent.com/platybrowser/pymmb/master/platy-data` for accessing the example data in this repository.
+
+### Python: Helper library
+
+In addition to example data, this repository also contains a small python library `mmb` to help set up the data structure for the platy browser.
+
+You can set up (and activate) a conda environment with all dependencies from `environment.yaml`:
+```sh
+$ conda env create -f environment.yaml
+$ conda activate mmb
+```
+and  install the library via
+```sh
+$ python setup.py install
+```
+
+For now, we provide two helper functions to create and copy the mmmb data layout (more to come!):
+```python
+import mmb
+
+# root folder for the mmb data layout
+mmb_root = '/path/to/data-root'
+
+# make initial data layout structure.
+# the first version name will default to '0.1.0', but can be
+# specified by passing it as second argument
+mmb.make_initial_layout(mmb_root)
+
+# copy (and validate) all relevant meta-data from version folder
+# to a new version folder; make links to all actual data
+mmb.copy_version_folder(mmb_root, '0.1.0', '0.1.1')
+```
+
 
 ## Current limitations
 
