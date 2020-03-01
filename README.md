@@ -45,8 +45,6 @@ Tables are stored as `tab separated values` and can be read from the filesystem 
 For each image with associated tables, the tables are stored in `tables/<IMAGE-NAME>/`.
 This folder must contain a table called `default.csv`, it can contain additional tables listed in a file `additional_tables.txt`. All tables must contain the column `label_id` linking its rows to objects in the image.
 
-We are looking into supporting tables hosted via [CouchDB](https://couchdb.apache.org/) as well.
-
 
 ### images.json
 
@@ -68,8 +66,8 @@ E.g. `https://raw.githubusercontent.com/platybrowser/pymmb/master/platy-data` fo
 
 There are a few limitations to use the MMB for custom data, we will try to fix this as soon as possible!
 
-- Image data cannot be loaded from webaddress in `MMB->CustomBrowser`, [see this issue](https://github.com/platybrowser/mmb-fiji/issues/75).
 - The modality names are hard-coded to `sbem-6dpf-1-whole` and `prospr-6dpf-1-whole`, which are the names for the modalities currently available in the PlatyBrowser.
+- Tables are only supported as `tab seperated values` and need to be loaded fully into memory. We are looking into supporting tables hosted via [CouchDB](https://couchdb.apache.org/).
 
 <!---
 ## Installation
