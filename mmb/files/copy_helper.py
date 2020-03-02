@@ -103,21 +103,22 @@ def copy_image_data(src_folder, dst_folder, exclude_prefixes=[]):
 
 
 def copy_misc_data(src_folder, dst_folder):
-    # copy the aux gene data
-    prospr_prefix = 'prospr-6dpf-1-whole'
-    aux_name = '%s_meds_all_genes.xml' % prospr_prefix
-    copy_file(os.path.join(src_folder, 'misc', aux_name),
-              os.path.join(dst_folder, 'misc', aux_name))
-
     # copy the bookmarks
     bkmrk_in = os.path.join(src_folder, 'misc', 'bookmarks.json')
     if os.path.exists(bkmrk_in):
         shutil.copyfile(bkmrk_in,
                         os.path.join(dst_folder, 'misc', 'bookmarks.json'))
 
-    # copy the dynamic segmentation dict
-    shutil.copyfile(os.path.join(src_folder, 'misc', 'dynamic_segmentations.json'),
-                    os.path.join(dst_folder, 'misc', 'dynamic_segmentations.json'))
+    # TODO take care of additional data in the misc folder
+    # # copy the dynamic segmentation dict
+    # shutil.copyfile(os.path.join(src_folder, 'misc', 'dynamic_segmentations.json'),
+    #                 os.path.join(dst_folder, 'misc', 'dynamic_segmentations.json'))
+
+    # # copy the aux gene data
+    # prospr_prefix = 'prospr-6dpf-1-whole'
+    # aux_name = '%s_meds_all_genes.xml' % prospr_prefix
+    # copy_file(os.path.join(src_folder, 'misc', aux_name),
+    #           os.path.join(dst_folder, 'misc', aux_name))
 
 
 def copy_segmentation(src_folder, dst_folder, name, properties):
