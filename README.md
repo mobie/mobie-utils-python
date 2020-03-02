@@ -103,6 +103,7 @@ There are a few limitations to use the MMB for custom data, we will try to fix t
 
 - The modality names are hard-coded to `sbem-6dpf-1-whole` and `prospr-6dpf-1-whole`, which are the names for the modalities currently available in the PlatyBrowser.
 - Tables are only supported as `tab seperated values` and need to be loaded fully into memory. We are looking into supporting tables hosted via [CouchDB](https://couchdb.apache.org/).
+- The local image data search (button `p`) is currently hard-coded to prospr data.
 
 
 ## Citation
