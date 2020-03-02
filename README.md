@@ -60,6 +60,7 @@ TODO describe bookmarks.json
 
 ### Fiji: CustomBrowser
 
+Set-up and usage for the MMB Fiji plugin is decribed [here](https://github.com/platybrowser/mmb-fiji#mmb-fiji).
 Any data stored in the layout described above can be loaded with the MMB by [selecting the `CustomBrowser` option](https://github.com/platybrowser/mmb-fiji#advanced-options).
 For both `Image Data Location` and `Table Data Location` either a local file path or a githost webaddress can be given.
 E.g. `https://raw.githubusercontent.com/platybrowser/pymmb/master/platy-data` for accessing the example data in this repository.
@@ -103,9 +104,6 @@ There are a few limitations to use the MMB for custom data, we will try to fix t
 - The modality names are hard-coded to `sbem-6dpf-1-whole` and `prospr-6dpf-1-whole`, which are the names for the modalities currently available in the PlatyBrowser.
 - Tables are only supported as `tab seperated values` and need to be loaded fully into memory. We are looking into supporting tables hosted via [CouchDB](https://couchdb.apache.org/).
 
-<!---
-## Installation
--->
 
 ## Citation
 
