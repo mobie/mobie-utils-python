@@ -1,4 +1,4 @@
-# MMB-Python
+# MoBIE-Python
 
 Python helper functions and minimal example of the data layout for the [MultiModalBrowser](https://github.com/platybrowser/mmb-fiji) (MMB), a Fiji plugin for exploring large multi-modal datasets. Check out [this repository](https://github.com/platybrowser/platybrowser-backend) for the full data underlying the [PlatyBrowser](https://www.biorxiv.org/content/10.1101/2020.02.26.961037v1), the resource for which the MMB was initially developed.
 
