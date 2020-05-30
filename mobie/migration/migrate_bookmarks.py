@@ -3,7 +3,7 @@ import os
 import subprocess
 from glob import glob
 
-from utils import to_lower
+from .utils import to_lower
 
 
 def update_layers(layers):
