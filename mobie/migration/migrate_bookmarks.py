@@ -41,7 +41,7 @@ def update_bookmarks(bookmarks):
     return new_bookmarks
 
 
-def migrate_bookmarks(misc_folder):
+def migrate_bookmarks(misc_folder, old_bookmark_name='manuscript_bookmarks'):
     bookmark_folder = os.path.join(misc_folder, 'bookmarks')
     os.makedirs(bookmark_folder, exist_ok=True)
 
@@ -66,10 +66,12 @@ def migrate_bookmarks(misc_folder):
 
     with open(old_bookmark_path) as f:
         bookmarks = json.load(f)
+    if len(bookmarks) == 0:
+        return
 
     bookmarks = update_bookmarks(bookmarks)
 
-    new_bookmark_path = os.path.join(bookmark_folder, 'manuscript_bookmarks.json')
+    new_bookmark_path = os.path.join(bookmark_folder, f'{old_bookmark_name}.json')
     with open(new_bookmark_path, 'w') as f:
         json.dump(bookmarks, f, indent=2, sort_keys=True)
 
