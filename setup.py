@@ -12,6 +12,9 @@ setup(
     url="https://github.com/platybrowser/mobie-utils-python",
     license='MIT',
     entry_points={
-        "console_scripts": ["migrate_to_mobie = mobie.migration.migrate:main"]
+        "console_scripts": [
+            "migrate_to_mobie = mobie.migration.migrate:main",
+            "migrate_dataset_to_mobie = mobie.migration.migrate_dataset:main",
+        ]
     },
 )

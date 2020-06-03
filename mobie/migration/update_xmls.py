@@ -15,10 +15,14 @@ def add_authentication_field(xml_path, anon):
     tree.write(xml_path)
 
 
+def update_xmls(folder, anon):
+    xml_folder = os.path.join(folder, 'images', 'remote')
+    xmls = glob(os.path.join(xml_folder, '*.xml'))
+    for xml in xmls:
+        add_authentication_field(xml, anon)
+
+
 def update_all_xmls(root, pattern, anon):
     folders = glob(os.path.join(root, pattern))
     for folder in folders:
-        xml_folder = os.path.join(folder, 'images', 'remote')
-        xmls = glob(os.path.join(xml_folder, '*.xml'))
-        for xml in xmls:
-            add_authentication_field(xml, anon)
+        update_xmls(folder, anon)
