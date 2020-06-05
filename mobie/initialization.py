@@ -22,8 +22,11 @@ def initialize_dataset(input_path, input_key,
 
     if tmp_folder is None:
         tmp_folder = f'tmp_{dataset_name}'
+
+    data_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.xml')
-    import_raw_volume(input_path, input_key, xml_path,
+
+    import_raw_volume(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
 
@@ -54,7 +57,7 @@ def add_dataset(root, dataset_name, is_default):
     try:
         with open(path) as f:
             datasets = json.load(f)
-    except (FileNotFoundError, json.JsonDecodeError):
+    except (FileNotFoundError, ValueError):
         datasets = {}
         datasets['datasets'] = []
 
