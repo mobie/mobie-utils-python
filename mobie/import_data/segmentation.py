@@ -2,25 +2,43 @@ import os
 import json
 import luigi
 
-import elf.parallel as parallel
 from cluster_tools.downscaling import DownscalingWorkflow
+from cluster_tools.statistics import DataStatisticsWorkflow
 from elf.io import open_file
 
 
-def add_max_id(in_path, in_key, out_path, out_key):
-    with open_file(out_path, 'a') as f_out, open_file(in_path, 'r') as f:
-        attrs = f_out[out_key].attrs
-        if 'maxId' in attrs:
+def compute_max_id(path, key, tmp_folder, target, max_jobs):
+    task = DataStatisticsWorkflow
+
+    stat_path = os.path.join(tmp_folder, 'statistics.json')
+    t = task(tmp_folder=tmp_folder, config_dir=os.path.join(tmp_folder, 'configs'),
+             target=target, max_jobs=max_jobs,
+             path=path, key=key, output_path=stat_path)
+    ret = luigi.build([t], local_scheduler=True)
+    assert ret, "Computing max id failed"
+
+    with open(stat_path) as f:
+        stats = json.load(f)
+
+    return stats['max']
+
+
+def add_max_id(in_path, in_key, out_path, out_key,
+               tmp_folder, target, max_jobs):
+    with open_file(out_path, 'r') as f_out:
+        ds_out = f_out[out_key]
+        if 'maxId' in ds_out.attrs:
             return
 
-        ds_in = f[in_key]
-        max_id = ds_in.attrs.get('maxId', None)
+    with open_file(in_path, 'r') as f:
+        max_id = f[in_key].attrs.get('maxId', None)
 
-        # FIXME! make a cluster task so this can be safely run on the login node
-        if max_id is None:
-            max_id = parallel.max(ds_in, n_threads=16, verbose=True)
+    if max_id is None:
+        max_id = compute_max_id(out_path, out_key,
+                                tmp_folder, target, max_jobs)
 
-        attrs['maxId'] = int(max_id)
+    with open_file(out_path, 'a') as f:
+        f[out_key].attrs['maxId'] = int(max_id)
 
 
 def import_segmentation(in_path, in_key, out_path,
@@ -62,4 +80,5 @@ def import_segmentation(in_path, in_key, out_path,
     ret = luigi.build([t], local_scheduler=True)
     assert ret, "Importing segmentation failed"
 
-    add_max_id(in_path, in_key, out_path, 'setup0/timepoint0/s0')
+    add_max_id(in_path, in_key, out_path, 'setup0/timepoint0/s0',
+               tmp_folder, target, max_jobs)

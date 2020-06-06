@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from shutil import rmtree
@@ -5,6 +6,8 @@ from shutil import rmtree
 import imageio
 import h5py
 import numpy as np
+from elf.io import open_file
+from pybdv.util import get_key
 
 
 class TestInitialization(unittest.TestCase):
@@ -21,9 +24,37 @@ class TestInitialization(unittest.TestCase):
         except OSError:
             pass
 
-    # TODO proper checks
-    def check_dataset(self, dataset_folder, shape):
+    def check_dataset(self, dataset_folder, exp_shape, raw_name):
         self.assertTrue(os.path.exists(dataset_folder))
+
+        # check the folder structure
+        expected_folders = [
+            'images/remote',
+            'images/local',
+            'misc/bookmarks',
+            'tables'
+        ]
+        for exp_folder in expected_folders:
+            folder = os.path.join(dataset_folder, exp_folder)
+            self.assertTrue(os.path.exists(folder))
+
+        # check the raw data
+        raw_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.n5')
+        key = get_key(False, 0, 0, 0)
+        with open_file(raw_path, 'r') as f:
+            shape = f[key].shape
+        self.assertEqual(shape, exp_shape)
+
+        # check the bookmarks
+        default_bookmark = os.path.join(dataset_folder, 'misc', 'bookmarks', 'default.json')
+        self.assertTrue(os.path.exists(default_bookmark))
+        with open(default_bookmark) as f:
+            default_bookmark = json.load(f)
+        self.assertIn('default', default_bookmark)
+        bookmark = default_bookmark['default']
+        self.assertIn('layers', bookmark)
+        bookmark = bookmark['layers']
+        self.assertIn(raw_name, bookmark)
 
     def make_tif_data(self, im_folder, shape):
         os.makedirs(im_folder, exist_ok=True)
@@ -45,7 +76,7 @@ class TestInitialization(unittest.TestCase):
                            resolution=(0.25, 1, 1), chunks=(16, 64, 64), scale_factors=scales,
                            tmp_folder=self.tmp_folder)
 
-        self.check_dataset(os.path.join(self.root, dataset_name), shape)
+        self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
     def make_hdf5_data(self, path, key, shape):
         with h5py.File(path, 'a') as f:
@@ -66,7 +97,7 @@ class TestInitialization(unittest.TestCase):
                            resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
                            tmp_folder=self.tmp_folder)
 
-        self.check_dataset(os.path.join(self.root, dataset_name), shape)
+        self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
 
 if __name__ == '__main__':
