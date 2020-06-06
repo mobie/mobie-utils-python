@@ -86,11 +86,15 @@ def compute_default_table(seg_path, seg_key, table_path,
     attributes necessary to enable tables in the mobie-fiji-viewer.
 
     Arguments:
-        seg_path [str] -
-        seg_key [str] -
-        table_path [str] -
-        resolution [tuple[int] or list[int]] -
-        tmp_folder [str] -
+        seg_path [str] - input path to the segmentation
+        seg_key [str] - key to the segmenation
+        table_path [str] - path to the output table
+        resolution [list[folat]] - resolution of the data in microns
+        tmp_folder [str] - folder for temporary files
+        target [str] - computation target
+        max_jobs [int] - number of jobs
+        correct_anchors [bool] - whether to move the anchor points into segmentation objects.
+            Anchor points may be outside of objects in case of concave objects. (default: False)
     """
 
     # prepare cluster tools tasks
