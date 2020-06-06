@@ -7,6 +7,7 @@ import imageio
 import numpy as np
 from elf.io import open_file
 from pybdv.util import get_key
+from pybdv.downsample import sample_shape
 
 try:
     import mrcfile
@@ -26,13 +27,21 @@ class TestImportRaw(unittest.TestCase):
     def tearDown(self):
         rmtree(self.test_folder)
 
-    # TODO check scales
     def check_data(self, exp_data, scales):
         key = get_key(False, 0, 0, 0)
         with open_file(self.out_path, 'r') as f:
             data = f[key][:]
         self.assertEqual(data.shape, exp_data.shape)
         self.assertTrue(np.allclose(data, exp_data))
+
+        exp_shape = data.shape
+        for scale, scale_facor in enumerate(scales, 1):
+            key = get_key(False, 0, 0, scale)
+            with open_file(self.out_path, 'r') as f:
+                self.assertIn(key, f)
+                this_shape = f[key].shape
+            exp_shape = sample_shape(exp_shape, scale_facor)
+            self.assertEqual(this_shape, exp_shape)
 
     def test_import_tif(self):
         from mobie.import_data import import_raw_volume

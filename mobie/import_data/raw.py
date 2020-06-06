@@ -3,6 +3,7 @@ import json
 import luigi
 
 from cluster_tools.downscaling import DownscalingWorkflow
+from ..config import write_global_config
 
 
 def import_raw_volume(in_path, in_key, out_path,
@@ -11,16 +12,11 @@ def import_raw_volume(in_path, in_key, out_path,
                       block_shape=None):
     task = DownscalingWorkflow
 
+    block_shape = chunks if block_shape is None else block_shape
     config_dir = os.path.join(tmp_folder, 'configs')
-    os.makedirs(config_dir, exist_ok=True)
+    write_global_config(config_dir, block_shape=block_shape)
 
     configs = DownscalingWorkflow.get_config()
-    global_conf = configs['global']
-    block_shape = chunks if block_shape is None else block_shape
-    global_conf.update({'block_shape': block_shape})
-    with open(os.path.join(config_dir, 'global.config'), 'w') as f:
-        json.dump(global_conf, f)
-
     conf = configs['copy_volume']
     conf.update({'chunks': chunks})
     with open(os.path.join(config_dir, 'copy_volume.config'), 'w') as f:
