@@ -34,7 +34,7 @@ def validate_layer_settings(settings, layer_type):
 
 
 def add_to_image_dict(dataset_folder, layer_type, xml_path,
-                      settings=None, overwrite=False):
+                      settings=None, table_folder=None, overwrite=False):
     """ Add entry to the image dict.
 
     Arguments:
@@ -42,6 +42,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         layer_type [str] - type of the layer, 'image' or 'segmentation'
         xml_path [str] - path to the xml for the raw data of this dataset.
         settings [dict] - settings for the layer. (default: None)
+        table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: False)
     """
     if not os.path.exists(xml_path):
@@ -49,7 +50,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
     layer_name = os.path.splitext(os.path.split(xml_path)[1])[0]
 
     image_folder = os.path.join(dataset_folder, 'images')
-    image_dict_path = os.path.join(image_folder, 'image_dict.json')
+    image_dict_path = os.path.join(image_folder, 'images.json')
 
     if os.path.exists(image_dict_path):
         with open(image_dict_path) as f:
@@ -72,6 +73,15 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
             "remote": rel_path.replace("local", "remote")
         }
     })
+
+    if table_folder is not None:
+
+        if layer_type != 'segmentation':
+            msg = f"Table folder is only supported for segmentation layers, got {layer_type}"
+            raise ValueError(msg)
+        settings.update({
+            'tableFolder': os.path.relpath(dataset_folder, table_folder)
+        })
 
     image_dict[layer_name] = settings
     with open(image_dict_path, 'w') as f:

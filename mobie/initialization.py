@@ -1,10 +1,8 @@
-import json
 import multiprocessing
 import os
-import warnings
 
 from .import_data import import_raw_volume
-from .metadata import add_to_image_dict, add_bookmark
+from .metadata import add_bookmark, add_dataset, add_to_image_dict
 
 
 def clone_dataset(root, input_dataset_name, dataset_name):
@@ -66,24 +64,3 @@ def make_dataset_folders(root, dataset_name):
     os.makedirs(os.path.join(dataset_folder, 'images', 'remote'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'misc'), exist_ok=True)
     return dataset_folder
-
-
-def add_dataset(root, dataset_name, is_default):
-    path = os.path.join(root, 'datasets.json')
-    try:
-        with open(path) as f:
-            datasets = json.load(f)
-    except (FileNotFoundError, ValueError):
-        datasets = {}
-        datasets['datasets'] = []
-
-    if dataset_name in datasets['datasets']:
-        warnings.warn(f"Dataset {dataset_name} is already present!")
-    else:
-        datasets['datasets'].append(dataset_name)
-
-    if is_default:
-        datasets['defaultDataset'] = dataset_name
-
-    with open(path, 'w') as f:
-        json.dump(datasets, f, sort_keys=True, indent=2)
