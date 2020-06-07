@@ -31,9 +31,9 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
 
 
 # should be generalized and moved to pybdv at some point
-def copy_xml_as_bdv_n5_s3(in_xml, out_xml,
-                          service_endpoint, bucket_name, path_in_bucket,
-                          authentication='Anonymous', region='us-west-2'):
+def copy_xml_as_n5_s3(in_xml, out_xml,
+                      service_endpoint, bucket_name, path_in_bucket,
+                      authentication='Anonymous', region='us-west-2'):
     """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
 
     Arguments:
