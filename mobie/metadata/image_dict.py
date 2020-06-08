@@ -34,7 +34,8 @@ def validate_layer_settings(settings, layer_type):
 
 
 def add_to_image_dict(dataset_folder, layer_type, xml_path,
-                      settings=None, table_folder=None, overwrite=False):
+                      settings=None, table_folder=None, overwrite=False,
+                      add_remote=True):
     """ Add entry to the image dict.
 
     Arguments:
@@ -44,6 +45,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         settings [dict] - settings for the layer. (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: False)
+        add_remote [bool] - whether to add the remote storage entry (default: True)
     """
     if not os.path.exists(xml_path):
         raise ValueError(f"{xml_path} does not exist")
@@ -67,11 +69,11 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         validate_layer_settings(settings, layer_type)
 
     rel_path = os.path.relpath(xml_path, image_folder)
+    storage = {"local": rel_path}
+    if add_remote:
+        storage["remote"] = rel_path.replace("local", "remote")
     settings.update({
-        "storage": {
-            "local": rel_path,
-            "remote": rel_path.replace("local", "remote")
-        }
+        "storage": storage
     })
 
     if table_folder is not None:

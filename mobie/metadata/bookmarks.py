@@ -20,8 +20,6 @@ def add_bookmark(dataset_folder, bookmark_file_name,
         overwrite [bool] - whether to overwrite existing entries (default: False)
     """
     bookmark_folder = os.path.join(dataset_folder, 'misc', 'bookmarks')
-    os.makedirs(bookmark_folder, exist_ok=True)
-
     bookmark_path = os.path.join(bookmark_folder, f'{bookmark_file_name}.json')
 
     if os.path.exists(bookmark_path):

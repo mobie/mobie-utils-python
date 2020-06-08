@@ -7,6 +7,7 @@ import imageio
 import h5py
 import numpy as np
 from elf.io import open_file
+from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 
 
@@ -39,7 +40,8 @@ class TestInitialization(unittest.TestCase):
             self.assertTrue(os.path.exists(folder))
 
         # check the raw data
-        raw_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.n5')
+        xml_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.xml')
+        raw_path = get_data_path(xml_path, return_absolute_path=True)
         key = get_key(False, 0, 0, 0)
         with open_file(raw_path, 'r') as f:
             shape = f[key].shape
@@ -74,7 +76,7 @@ class TestInitialization(unittest.TestCase):
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
         initialize_dataset(im_folder, '*.tif', self.root, dataset_name, raw_name,
                            resolution=(0.25, 1, 1), chunks=(16, 64, 64), scale_factors=scales,
-                           tmp_folder=self.tmp_folder)
+                           tmp_folder=self.tmp_folder, add_remote=False)
 
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
@@ -82,22 +84,36 @@ class TestInitialization(unittest.TestCase):
         with h5py.File(path, 'a') as f:
             f.create_dataset(key, data=np.random.rand(*shape))
 
-    def test_init_from_hdf5(self):
+    def init_h5_dataset(self, dataset_name, raw_name, shape):
         from mobie import initialize_dataset
-        shape = (128, 128, 128)
 
         data_path = os.path.join(self.test_folder, 'data.h5')
         data_key = 'data'
         self.make_hdf5_data(data_path, data_key, shape)
 
-        dataset_name = 'test'
-        raw_name = 'test-raw'
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
         initialize_dataset(data_path, data_key, self.root, dataset_name, raw_name,
                            resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                           tmp_folder=self.tmp_folder)
+                           tmp_folder=self.tmp_folder, add_remote=False)
 
+    def test_init_from_hdf5(self):
+        dataset_name = 'test'
+        raw_name = 'test-raw'
+        shape = (128, 128, 128)
+        self.init_h5_dataset(dataset_name, raw_name, shape)
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
+
+    def test_clone_dataset(self):
+        from mobie import clone_dataset
+
+        ds1 = 'test'
+        raw_name = 'test-raw'
+        shape = (128, 128, 128)
+        self.init_h5_dataset(ds1, raw_name, shape)
+
+        ds2 = 'test-clone'
+        clone_dataset(self.root, ds1, ds2)
+        self.check_dataset(os.path.join(self.root, ds2), shape, raw_name)
 
 
 if __name__ == '__main__':
