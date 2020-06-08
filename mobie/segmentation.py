@@ -1,10 +1,12 @@
+import argparse
+import json
 import multiprocessing
 import os
 
 from pybdv.metadata import get_key
-from .import_data import import_segmentation
-from .metadata import add_to_image_dict, have_dataset
-from .tables import compute_default_table
+from mobie.import_data import import_segmentation
+from mobie.metadata import add_to_image_dict, have_dataset
+from mobie.tables import compute_default_table
 
 
 def add_segmentation(input_path, input_key,
@@ -60,3 +62,46 @@ def add_segmentation(input_path, input_key,
     # add the segmentation to the image dict
     add_to_image_dict(dataset_folder, 'segmentation', xml_path,
                       table_folder=table_folder)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Add image data to MoBIE dataset")
+    parser.add_argument('input_path', type=str,
+                        help="path to the input segmentation")
+    parser.add_argument('input_key', type=str,
+                        help="key for the input segmentation, e.g. internal path for h5/n5 data")
+    parser.add_argument('root', type=str,
+                        help="root folder of the MoBIE project")
+    parser.add_argument('dataset_name', type=str,
+                        help="name of the dataset to which the image data is added")
+    parser.add_argument('segmentation_name', type=str,
+                        help="name of the image data that is added")
+
+    parser.add_argument('resolution', type=str,
+                        help="resolution of the data in micrometer, json-encoded")
+    parser.add_argument('scale_factors', type=str,
+                        help="factors used for downscaling the data, json-encoded")
+    parser.add_argument('chunks', type=str,
+                        help="chunks of the data that is added, json-encoded")
+
+    parser.add_argument('--add_default_table', type=int, default=1,
+                        help="whether to add the default table")
+    parser.add_argument('--tmp_folder', type=str, default=None,
+                        help="folder for temporary computation files")
+    parser.add_argument('--target', type=str, default='local',
+                        help="computation target")
+    parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count(),
+                        help="number of jobs")
+
+    args = parser.parse_args()
+
+    # resolution, scale_factors and chunks need to be json encoded
+    resolution = json.loads(args.resolution)
+    scale_factors = json.loads(args.scale_factors)
+    chunks = json.loads(args.chunks)
+
+    add_segmentation(args.input_path, args.input_key,
+                     args.root, args.dataset_name, args.segmentation_name,
+                     resolution=resolution, add_default_table=bool(args.add_default_table),
+                     scale_factors=scale_factors, chunks=chunks,
+                     tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs)
