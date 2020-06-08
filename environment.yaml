@@ -1,5 +1,5 @@
 name:
-    mmb
+    mobie
 channels:
     - conda-forge
     - cpape
