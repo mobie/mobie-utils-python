@@ -40,6 +40,16 @@ def add_dataset(root, dataset_name, is_default):
         json.dump(datasets, f, sort_keys=True, indent=2)
 
 
+def get_datasets(root):
+    path = os.path.join(root, 'datasets.json')
+    datasets = _load_datasets(path)
+    return datasets['datasets']
+
+
+#
+# functionalty to copy a dataset folder
+#
+
 def make_squashed_link(src_file, dst_file, override=False):
 
     if os.path.exists(dst_file):
