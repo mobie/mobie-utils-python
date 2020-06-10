@@ -20,11 +20,22 @@ def default_segmentation_layer_settings():
     return settings
 
 
+def default_mask_layer_settings():
+    settings = {
+         "color": "white",
+         "contrastLimits": [0., 1.],
+         "type": "mask"
+     }
+    return settings
+
+
 def default_layer_setting(layer_type):
     if layer_type == 'image':
         return default_image_layer_settings()
     elif layer_type == 'segmentation':
         return default_segmentation_layer_settings()
+    elif layer_type == 'mask':
+        return default_mask_layer_settings()
     raise ValueError(f"Invalid layer type: {layer_type}")
 
 
