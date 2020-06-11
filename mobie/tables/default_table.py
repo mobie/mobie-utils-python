@@ -114,5 +114,7 @@ def compute_default_table(seg_path, seg_key, table_path,
         anchors = None
 
     # write output to csv
+    table_folder = os.path.split(table_path)[0]
+    os.makedirs(table_folder, exist_ok=True)
     label_ids = to_csv(tmp_path, tmp_key, table_path, resolution, anchors)
     return label_ids

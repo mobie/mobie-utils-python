@@ -3,9 +3,8 @@ import json
 import multiprocessing
 import os
 
-from pybdv.metadata import get_key
-from mobie.import_data import import_mask
 from mobie.metadata import add_to_image_dict, have_dataset
+from mobie.import_data import import_segmentation
 
 
 def add_mask(input_path, input_key,

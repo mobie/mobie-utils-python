@@ -13,10 +13,11 @@ setup(
     license='MIT',
     entry_points={
         "console_scripts": [
+            "add_image_data = mobie.image_data:main",
+            "add_mask = mobie.mask:main",
+            "add_segmentation = mobie.segmentation:main",
             "migrate_to_mobie = mobie.migration.migrate:main",
             "migrate_dataset_to_mobie = mobie.migration.migrate_dataset:main",
-            "add_segmentation = mobie.segmentation:main",
-            "add_image_data = mobie.image_data:main"
         ]
     },
 )
