@@ -65,7 +65,7 @@ def add_segmentation(input_path, input_key,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Add image data to MoBIE dataset")
+    parser = argparse.ArgumentParser(description="Add segmentation to MoBIE dataset")
     parser.add_argument('input_path', type=str,
                         help="path to the input segmentation")
     parser.add_argument('input_key', type=str,
@@ -73,9 +73,9 @@ def main():
     parser.add_argument('root', type=str,
                         help="root folder of the MoBIE project")
     parser.add_argument('dataset_name', type=str,
-                        help="name of the dataset to which the image data is added")
+                        help="name of the dataset to which the segmentation is added")
     parser.add_argument('segmentation_name', type=str,
-                        help="name of the image data that is added")
+                        help="name of the segmentation that is added")
 
     parser.add_argument('resolution', type=str,
                         help="resolution of the data in micrometer, json-encoded")
