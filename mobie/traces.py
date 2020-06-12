@@ -19,7 +19,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                seg_infos={}):
     """ Add traces to an existing MoBIE dataset.
 
-    Currently only supports nmx format, more formats like swc will follow.
+    Currently supports nmx and swc format.
 
     Arguments:
         input_folder [str] - input folder with trace files.
@@ -51,8 +51,10 @@ def add_traces(input_folder, root, dataset_name, traces_name,
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{traces_name}.xml')
     import_traces(input_folder, data_path,
                   reference_path, reference_scale,
-                  resolution, scale_factors, chunks,
-                  n_jobs=max_jobs)
+                  resolution=resolution,
+                  scale_factors=scale_factors,
+                  chunks=chunks,
+                  max_jobs=max_jobs)
 
     # compute the default segmentation table
     if add_default_table:

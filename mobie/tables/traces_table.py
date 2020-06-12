@@ -7,7 +7,7 @@ from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 from tqdm import tqdm
 
-from ..image_data.traces import parse_traces, vals_to_coords
+from ..import_data.traces import parse_traces, vals_to_coords
 
 
 def compute_trace_default_table(input_folder, table_path, resolution, seg_infos={}):
@@ -15,7 +15,7 @@ def compute_trace_default_table(input_folder, table_path, resolution, seg_infos=
     attributes necessary to enable tables in the mobie-fiji-viewer.
 
     Arguments:
-        input_folder [str] - folder with the traces in nmx format.
+        input_folder [str] - folder with the traces in nmx or swc format.
         table_path [str] - where to save the table
         resolution [list[float]] - resolution of the traces in microns
         seg_infos [dict] - additional segmentations included in the table computation (defalt: {})

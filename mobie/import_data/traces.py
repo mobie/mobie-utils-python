@@ -37,13 +37,12 @@ def vals_to_coords(vals, res):
     return coords
 
 
-# TODO support other formats, csv
-def parse_traces(trace_folder):
+def parse_traces_from_nmx(trace_folder):
     """Extract all traced neurons stored in nmx format and return as dict.
     """
     trace_files = glob(os.path.join(trace_folder, "*.nmx"))
     if not trace_files:
-        raise RuntimeError("Did not find any traces in %s" % trace_folder)
+        raise ValueError("Did not find any traces in %s" % trace_folder)
     coords = {}
     for path in trace_files:
         skel = skio.read_nml(path)
@@ -73,6 +72,36 @@ def parse_traces(trace_folder):
             else:
                 coords[n_id] = c
     return coords
+
+
+# TODO enable passing the 'parse_id' function
+def parse_traces_from_swc(trace_folder, parse_id=None):
+    trace_files = glob(os.path.join(trace_folder, "*.swc"))
+    if not trace_files:
+        raise ValueError("Did not find any traces in %s" % trace_folder)
+    coords = {}
+    for n_id, path in enumerate(trace_files, 1):
+        if parse_id is not None:
+            n_id = parse_id(path)
+        _, skel_coords, _ = skio.read_swc(path)
+        coords[n_id] = skel_coords
+    return coords
+
+
+def parse_traces(trace_folder):
+    have_nmx = len(glob(os.path.join(trace_folder, "*.nmx"))) > 0
+    have_swc = len(glob(os.path.join(trace_folder, "*.swc"))) > 0
+
+    if have_nmx and have_swc:
+        raise ValueError(f"Found a mix of swc and nmx traces in {trace_folder}")
+
+    if (not have_nmx) and (not have_swc):
+        raise ValueError(f"Did not find any traces in {trace_folder}")
+
+    if have_nmx:
+        return parse_traces_from_nmx(trace_folder)
+    else:
+        return parse_traces_from_swc(trace_folder)
 
 
 def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
@@ -113,7 +142,7 @@ def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
 def import_traces(input_folder, out_path,
                   reference_path, reference_scale,
                   resolution, scale_factors,
-                  radius=2, chunks=None, n_threads=8):
+                  radius=2, chunks=None, max_jobs=8):
     """ Import trace data into the mobie format.
 
     input_folder [str] - folder with traces to be imported.
@@ -124,7 +153,7 @@ def import_traces(input_folder, out_path,
     scale_factors [list[list[int]]] - scale factors for down-sampling
     radius [int] - radius to write for the traces
     chunks [list[int]] - chunks for the traces volume
-    n_threads [int] - number of threads to use for down-samling
+    max_jobs [int] - number of threads to use for down-samling
     """
 
     traces = parse_traces(input_folder)
@@ -136,21 +165,21 @@ def import_traces(input_folder, out_path,
         raise RuntimeError("Can't export id %i > %i" % (max_trace_id, max_id))
 
     is_h5 = is_h5py(reference_path)
-    ref_key = get_key(is_h5, time_point=0, setup_id=0, scale=reference_scale)
+    ref_key = get_key(is_h5, timepoint=0, setup_id=0, scale=reference_scale)
     with open_file(reference_path, 'r') as f:
         ds = f[ref_key]
         shape = ds.shape
         if chunks is None:
             chunks = ds.chunks
 
-    key0 = get_key(is_h5, time_point=0, setup_id=0, scale=0)
+    key0 = get_key(is_h5, timepoint=0, setup_id=0, scale=0)
     print("Writing traces ...")
-    traces_to_volume(traces, out_path, key0, shape, resolution, chunks, radius, n_threads)
+    traces_to_volume(traces, out_path, key0, shape, resolution, chunks, radius, max_jobs)
 
     print("Downscaling traces ...")
     make_scales(out_path, scale_factors, downscale_mode='max',
                 ndim=3, setup_id=0, is_h5=is_h5,
-                chunks=chunks, n_threads=n_threads)
+                chunks=chunks, n_threads=max_jobs)
 
     xml_path = os.path.splitext(out_path)[0] + '.xml'
     # we assume that the resolution is in nanometer, but want to write in microns for bdv
@@ -158,7 +187,7 @@ def import_traces(input_folder, out_path,
     unit = 'micrometer'
     write_xml_metadata(xml_path, out_path, unit, bdv_res, is_h5,
                        setup_id=0, timepoint=0, setup_name=None,
-                       affine=None, attributes={'channel_id': 0},
+                       affine=None, attributes={'channel': {'id': 0}},
                        overwrite=False, overwrite_data=False, enforce_consistency=False)
     bdv_scale_factors = [[1, 1, 1]] + scale_factors
     if is_h5:
