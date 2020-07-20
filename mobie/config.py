@@ -15,17 +15,17 @@ def write_global_config(config_folder, block_shape=None, roi_begin=None, roi_end
 
     if block_shape is not None:
         if len(block_shape) != 3:
-            raise ValueError("Invalid block_shape given")
+            raise ValueError(f"Invalid block_shape given: {block_shape}")
         global_config['block_shape'] = block_shape
 
     if roi_begin is not None:
-        if len(block_shape) != 3:
-            raise ValueError("Invalid roi_begin given")
+        if len(roi_begin) != 3:
+            raise ValueError(f"Invalid roi_begin given: {roi_begin}")
         global_config['roi_begin'] = roi_begin
 
     if roi_end is not None:
-        if len(block_shape) != 3:
-            raise ValueError("Invalid roi_end given")
+        if len(roi_end) != 3:
+            raise ValueError(f"Invalid roi_end given: {roi_end}")
         global_config['roi_end'] = roi_end
 
     if qos is not None:

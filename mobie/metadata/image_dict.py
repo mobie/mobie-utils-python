@@ -92,8 +92,9 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         if layer_type != 'segmentation':
             msg = f"Table folder is only supported for segmentation layers, got {layer_type}"
             raise ValueError(msg)
+        rel_table_folder = os.path.relpath(table_folder, dataset_folder)
         settings.update({
-            'tableFolder': os.path.relpath(dataset_folder, table_folder)
+            'tableFolder': rel_table_folder
         })
 
     image_dict[layer_name] = settings
