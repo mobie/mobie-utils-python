@@ -4,8 +4,11 @@ channels:
     - conda-forge
     - cpape
 dependencies:
-    - elf >=0.2.2,<0.3
+    - cluster_tools >=0.3.3,<0.4
+    - elf >=0.2.3,<0.3
     - pandas
     - paintera_tools >=0.2.1,<0.3
-    - pybdv >=0.4.1,<0.5
+    - pip
+    - pybdv >=0.4.2,<0.5
     - s3fs
+    - z5py

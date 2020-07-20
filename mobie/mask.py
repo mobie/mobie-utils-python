@@ -42,7 +42,7 @@ def add_mask(input_path, input_key,
     import_segmentation(input_path, input_key, data_path,
                         resolution, scale_factors, chunks,
                         tmp_folder=tmp_folder, target=target,
-                        max_jobs=max_jobs)
+                        max_jobs=max_jobs, with_max_id=False)
 
     # add the mask to the image dict
     add_to_image_dict(dataset_folder, 'mask', xml_path)
