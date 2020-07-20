@@ -1,1 +1,2 @@
 from .default_table import compute_default_table
+from .traces_table import compute_trace_default_table

@@ -33,7 +33,8 @@ def add_dataset(root, dataset_name, is_default):
     else:
         datasets['datasets'].append(dataset_name)
 
-    if is_default:
+    # if this is the only dataset we set it as default
+    if is_default or len(datasets) == 1:
         datasets['defaultDataset'] = dataset_name
 
     with open(path, 'w') as f:
