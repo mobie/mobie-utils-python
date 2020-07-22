@@ -1,0 +1,1 @@
+from .apply_registration import apply_registration
