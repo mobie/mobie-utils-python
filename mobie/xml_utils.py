@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from pybdv.metadata import get_data_path, indent_xml
+from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
 
 
 def copy_xml_with_abspath(xml_in, xml_out):
@@ -9,8 +9,12 @@ def copy_xml_with_abspath(xml_in, xml_out):
 
 
 def copy_xml_with_newpath(xml_in, xml_out, data_path,
-                          path_type='relative', data_format='bdv.hdf5'):
+                          path_type='relative', data_format=None):
     assert path_type in ('absolute', 'relative')
+
+    if data_format is None:
+        data_format = get_bdv_format(xml_in)
+
     # get the path node inn the xml tree
     root = ET.parse(xml_in).getroot()
     seqdesc = root.find('SequenceDescription')

@@ -4,7 +4,9 @@ import multiprocessing
 import os
 
 from pybdv.metadata import get_key
-from mobie.import_data import import_segmentation
+from mobie.import_data import (import_segmentation,
+                               import_segmentation_from_paintera,
+                               is_paintera)
 from mobie.metadata import add_to_image_dict, have_dataset
 from mobie.tables import compute_default_table
 
@@ -14,7 +16,8 @@ def add_segmentation(input_path, input_key,
                      resolution, scale_factors, chunks,
                      tmp_folder=None, target='local',
                      max_jobs=multiprocessing.cpu_count(),
-                     add_default_table=True, settings=None):
+                     add_default_table=True, settings=None,
+                     postprocess_config=None):
     """ Add a segmentation to an existing MoBIE dataset.
 
     Arguments:
@@ -31,6 +34,8 @@ def add_segmentation(input_path, input_key,
         max_jobs [int] - number of jobs (default: number of cores)
         add_default_table [bool] - whether to add the default table (default: True)
         settings [dict] - layer settings for the segmentation (default: None)
+        postprocess_config [dict] - config for postprocessing,
+            only available for paintera dataset (default: None)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -42,10 +47,16 @@ def add_segmentation(input_path, input_key,
     dataset_folder = os.path.join(root, dataset_name)
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.xml')
-    import_segmentation(input_path, input_key, data_path,
-                        resolution, scale_factors, chunks,
-                        tmp_folder=tmp_folder, target=target,
-                        max_jobs=max_jobs)
+    if is_paintera(input_path, input_key):
+        import_segmentation_from_paintera(input_path, input_key, data_path,
+                                          resolution, scale_factors, chunks,
+                                          tmp_folder=tmp_folder, target=target,
+                                          max_jobs=max_jobs, postprocess_config=postprocess_config)
+    else:
+        import_segmentation(input_path, input_key, data_path,
+                            resolution, scale_factors, chunks,
+                            tmp_folder=tmp_folder, target=target,
+                            max_jobs=max_jobs)
 
     # compute the default segmentation table
     if add_default_table:
