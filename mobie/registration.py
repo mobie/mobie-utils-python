@@ -18,17 +18,24 @@ def add_registered_volume(input_path, input_key, transformation_file,
     """ Add a volume after registration in elastix format.
 
     Arguments:
-        input_path [str] -
-        input_key [str] -
-        transformation_file [str] -
-        root [str] -
-        dataset_name [str] -
-        data_name [str] -
+        input_path [str] - path to the data that should be added.
+        input_key [str] - key to the data that should be added.
+        transformation_file [str] - file with the transformation to be applied for registration.
+        root [str] - data root folder.
+        dataset_name [str] - name of the dataset the data should be added to.
+        data_name [str] - name of the data.
         resolution [list[float]] - resolution of the data in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
-        method [str] -
-        image_type [str] -
+        method [str] - method used to apply the registration transformation:
+            'affine': apply transformation using elf/nifty functionality.
+                only works for affine transformations or simpler.
+            'bdv': write transformation to bdv metadata so that it's applied on the fly.
+                only works for affine transformations or simpler.
+            'transformix': apply transformation using transformix
+            (default: 'affine')
+        image_type [str] - type of the data, can be either 'image', 'segmentation' or 'mask'
+            (default: 'image')
         add_default_table [bool] - whether to add the default table (default: True)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
@@ -42,9 +49,10 @@ def add_registered_volume(input_path, input_key, transformation_file,
     dataset_folder = os.path.join(root, dataset_name)
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{data_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{data_name}.xml')
+    data_key = 'setup0/timepoint0/s0'
 
     interpolation = 'linear' if image_type == 'image' else 'nearest'
-    apply_registration(input_path, input_key, data_path,
+    apply_registration(input_path, input_key, data_path, data_key,
                        transformation_file, method, interpolation,
                        fiji_executable=fiji_executable, elastix_directory=elastix_directory,
                        resolution=resolution,

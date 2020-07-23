@@ -7,6 +7,7 @@ import luigi
 import numpy as np
 
 from elf.io import open_file
+from elf.transformation import elastix_parser as trafo_parser
 from cluster_tools.copy_volume import CopyVolumeLocal, CopyVolumeSlurm
 from mobie.config import write_global_config
 from pybdv.metadata import get_resolution
@@ -15,17 +16,23 @@ from .registration_impl import (registration_affine,
                                 registration_transformix)
 
 
-def read_resolution(in_path, resolution):
-    exts = ['.n5', '.h5', '.hdf', '.hdf5']
-    for ext in exts:
-        xml_path = in_path.replace(ext, '.xml')
-        if xml_path.endswith('.xml') and os.path.exists(xml_path):
-            break
+DATA_EXTENSIONS = ['.n5', '.h5', '.hdf', '.hdf5']
 
-    if xml_path.endswith('.xml') and os.path.exists(xml_path):
-        return get_resolution(xml_path, setup_id=0)
-    else:
+
+def data_path_to_xml_path(data_path, pass_exist_check=False):
+    for ext in DATA_EXTENSIONS:
+        xml_path = data_path.replace(ext, '.xml')
+        if xml_path.endswith('.xml') and (pass_exist_check or os.path.exists(xml_path)):
+            return xml_path
+    return None
+
+
+def read_resolution(in_path, resolution):
+    xml_path = data_path_to_xml_path(in_path)
+    if xml_path is None:
         return resolution
+    else:
+        return get_resolution(xml_path, setup_id=0)
 
 
 def save_tif(data, path, fiji_executable, resolution):
@@ -82,14 +89,18 @@ def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, tar
         raise RuntimeError("Copying transformix output failed")
 
 
-def apply_registration(input_path, input_key, output_path,
+def apply_registration(input_path, input_key,
+                       output_path, output_key,
                        transformation_file, method, interpolation,
                        fiji_executable, elastix_directory,
                        resolution, chunks,
                        tmp_folder, target, max_jobs):
 
+    trafo_type = trafo_parser.get_transformation_type(transformation_file)
+    if trafo_type is None:
+        raise ValueError(f"{transformation_file} is not an elastix transformation")
+
     os.makedirs(tmp_folder, exist_ok=True)
-    output_key = 'setup0/timepoint0/s0'
 
     if method == 'transformix':
         assert fiji_executable is not None and os.path.exists(fiji_executable)
@@ -128,8 +139,17 @@ def apply_registration(input_path, input_key, output_path,
                                  chunks, tmp_folder, target, max_jobs)
 
     elif method == 'bdv':
-        xml_path = input_path.replace('.n5', '.xml')
-        registration_bdv(xml_path)
+        xml_path = data_path_to_xml_path(input_path)
+        if xml_path is None:
+            raise ValueError(f"Could not find xml path for {input_path}")
+        xml_out_path = data_path_to_xml_path(output_path, pass_exist_check=True)
+        if xml_out_path is None:
+            msg = (
+                f"Output path {output_path} for xml file format has invalid extension;"
+                f" expected one of {DATA_EXTENSIONS}"
+            )
+            raise ValueError(msg)
+        registration_bdv(xml_path, xml_out_path, transformation_file)
 
     elif method == 'affine':
         registration_affine()

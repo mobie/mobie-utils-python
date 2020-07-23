@@ -2,6 +2,9 @@ import json
 import os
 
 import luigi
+from elf.transformation.elastix_parser import get_bdv_affine_transformation
+from mobie.xml_utils import copy_xml_with_relpath
+from pybdv.metadata import write_affine
 from .transformix_registration import TransformixRegistrationLocal, TransformixRegistrationSlurm
 
 
@@ -13,12 +16,21 @@ def registration_affine(input_path, input_key,
     """
 
 
-def registration_bdv(input_path, input_key,
-                     output_path, output_key,
-                     transformation_file):
+def registration_bdv(input_path, output_path, transformation_file):
     """Apply registration by writing affine transformation to bdv.
     Only works for affine transformations.
     """
+    assert input_path.endswith('.xml')
+    assert output_path.endswith('.xml')
+
+    # get the transformation in bdv format
+    trafo = get_bdv_affine_transformation(transformation_file)
+
+    # copy the xml path and replace the file path with the correct relative filepath
+    copy_xml_with_relpath(input_path, output_path)
+
+    # replace the affine trafo in the new xml file
+    write_affine(output_path, setup_id=0, timepoint=0, affine=trafo, overwrite=True)
 
 
 def registration_transformix(input_path, output_path,
