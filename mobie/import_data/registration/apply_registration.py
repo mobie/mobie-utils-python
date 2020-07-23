@@ -7,7 +7,7 @@ import luigi
 import numpy as np
 
 from elf.io import open_file
-from elf.transformation import elastix_parser as trafo_parser
+from elf.transformation import elastix_parser
 from cluster_tools.copy_volume import CopyVolumeLocal, CopyVolumeSlurm
 from mobie.config import write_global_config
 from pybdv.metadata import get_resolution
@@ -56,7 +56,8 @@ def save_tif(data, path, fiji_executable, resolution):
 # TODO implement this as cluster task to make it run safely on login nodes
 def write_transformix_input(in_path, in_key, out_path,
                             fiji_executable, resolution,
-                            tmp_folder, target, max_jobs):
+                            tmp_folder, target, max_jobs,
+                            cast_to=None):
     # try to read the resolution from the input dataset,
     # otherwise fall back to the resolution that was given
     res = read_resolution(in_path, resolution)
@@ -65,6 +66,8 @@ def write_transformix_input(in_path, in_key, out_path,
         ds = f[in_key]
         ds.n_threads = max_jobs
         data = ds[:]
+    if cast_to is not None:
+        data = data.astype(cast_to)
 
     save_tif(data, out_path, fiji_executable, resolution=res)
 
@@ -87,78 +90,108 @@ def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, tar
         raise RuntimeError("Copying transformix output failed")
 
 
+def apply_affine(input_path, input_key,
+                 output_path, output_key,
+                 transformation, interpolation,
+                 resolution, chunks,
+                 tmp_folder, target, max_jobs):
+    os.makedirs(tmp_folder, exist_ok=True)
+    write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+    registration_affine(input_path, input_key,
+                        output_path, output_key,
+                        transformation, interpolation,
+                        resolution=resolution, chunks=chunks, tmp_folder=tmp_folder,
+                        target=target, max_jobs=max_jobs)
+
+
+def apply_bdv(input_path, output_path, transformation, resolution):
+    xml_path = data_path_to_xml_path(input_path)
+    if xml_path is None:
+        raise ValueError(f"Could not find xml path for {input_path}")
+    xml_out_path = data_path_to_xml_path(output_path, pass_exist_check=True)
+    if xml_out_path is None:
+        msg = (
+            f"Output path {output_path} for xml file format has invalid extension;"
+            f" expected one of {DATA_EXTENSIONS}"
+        )
+        raise ValueError(msg)
+    registration_bdv(xml_path, xml_out_path, transformation, resolution)
+
+
+def apply_transformix(input_path, input_key, output_path, output_key,
+                      transformation, interpolation, resolution, chunks,
+                      fiji_executable, elastix_directory,
+                      tmp_folder, target, max_jobs):
+    os.makedirs(tmp_folder, exist_ok=True)
+    write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+
+    # get the data type of the input dataset
+    with open_file(input_path, 'r') as f:
+        ds = f[input_key]
+        dtype = ds.dtype
+
+    # make sure it's in the supported datatypes and set the correct
+    # datatype name for elastix
+    cast_to = None
+    if dtype == np.dtype('uint8'):
+        dtype = 'unsigned char'
+    elif dtype == np.dtype('uint16'):
+        dtype = 'unsigned short'
+    elif np.issubdtype(np.dtype(dtype), np.integer):
+        cast_to = 'uint16'
+        dtype = 'unsigned short'
+    else:
+        msg = f"Invalid dtype {dtype} encountered, expected integer dtype"
+        raise RuntimeError(msg)
+
+    input_tmp_path = os.path.join(tmp_folder, 'input.tif')
+    output_tmp_path = os.path.join(tmp_folder, 'output')
+    write_transformix_input(input_path, input_key, input_tmp_path,
+                            fiji_executable, resolution,
+                            tmp_folder, target, max_jobs,
+                            cast_to=cast_to)
+
+    registration_transformix(input_tmp_path, output_tmp_path,
+                             transformation, fiji_executable,
+                             elastix_directory, tmp_folder,
+                             interpolation=interpolation, output_format='tif',
+                             result_dtype=dtype, target=target,
+                             n_threads=max_jobs)
+
+    output_tmp_path += '-ch0.tif'
+    write_transformix_output(output_tmp_path, output_path, output_key,
+                             chunks, tmp_folder, target, max_jobs)
+
+
 def apply_registration(input_path, input_key,
                        output_path, output_key,
-                       transformation_file, method, interpolation,
+                       transformation, method, interpolation,
                        fiji_executable, elastix_directory,
                        resolution, chunks,
                        tmp_folder, target, max_jobs):
-
-    trafo_type = trafo_parser.get_transformation_type(transformation_file)
-    if trafo_type is None:
-        raise ValueError(f"{transformation_file} is not an elastix transformation")
+    if elastix_parser.get_transformation_type(transformation) is None:
+        raise ValueError(f"{transformation} is not an elastix transformation")
 
     if method == 'transformix':
-        os.makedirs(tmp_folder, exist_ok=True)
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
-
-        assert fiji_executable is not None and os.path.exists(fiji_executable)
-        assert elastix_directory is not None and os.path.exists(elastix_directory)
-
-        # get the data type of the input dataset
-        with open_file(input_path, 'r') as f:
-            ds = f[input_key]
-            dtype = ds.dtype
-
-        # make sure it's in the supported datatypes and set the correct
-        # datatype name for elastix
-        if dtype == np.dtype('uint8'):
-            dtype = 'unsigned char'
-        elif dtype == np.dtype('uint16'):
-            dtype = 'unsigned short'
-        else:
-            msg = f"Invalid dtype {dtype} encountered, expected either uint8 or uint16"
-            raise RuntimeError(msg)
-
-        input_tmp_path = os.path.join(tmp_folder, 'input.tif')
-        output_tmp_path = os.path.join(tmp_folder, 'output')
-        write_transformix_input(input_path, input_key, input_tmp_path,
-                                fiji_executable, resolution,
-                                tmp_folder, target, max_jobs)
-
-        registration_transformix(input_tmp_path, output_tmp_path,
-                                 transformation_file, fiji_executable,
-                                 elastix_directory, tmp_folder,
-                                 interpolation=interpolation, output_format='tif',
-                                 result_dtype=dtype, target='target',
-                                 n_threads=max_jobs)
-
-        output_tmp_path += '-ch0.tif'
-        write_transformix_output(output_tmp_path, output_path, output_key,
-                                 chunks, tmp_folder, target, max_jobs)
-
-    elif method == 'bdv':
-        xml_path = data_path_to_xml_path(input_path)
-        if xml_path is None:
-            raise ValueError(f"Could not find xml path for {input_path}")
-        xml_out_path = data_path_to_xml_path(output_path, pass_exist_check=True)
-        if xml_out_path is None:
-            msg = (
-                f"Output path {output_path} for xml file format has invalid extension;"
-                f" expected one of {DATA_EXTENSIONS}"
-            )
+        if not isinstance(transformation, str):
+            msg = f"Transformix expects path to transformation of type str, got {type(transformation)} instead"
             raise ValueError(msg)
-        registration_bdv(xml_path, xml_out_path, transformation_file)
-
+        if fiji_executable is None or not os.path.exists(fiji_executable):
+            msg = f"Path to fiji {fiji_executable} is not valid"
+        if elastix_directory is None or os.path.exists(elastix_directory):
+            msg = f"Path to elastix directory {elastix_directory} is not valid"
+        apply_transformix(input_path, input_key, output_path, output_key,
+                          transformation, interpolation, resolution, chunks,
+                          fiji_executable, elastix_directory,
+                          tmp_folder, target, max_jobs)
+    elif method == 'bdv':
+        apply_bdv(input_path, output_path, transformation, resolution)
     elif method == 'affine':
-        os.makedirs(tmp_folder, exist_ok=True)
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
-        registration_affine(input_path, input_key,
-                            output_path, output_key,
-                            transformation_file, interpolation,
-                            chunks=chunks, tmp_folder=tmp_folder,
-                            target=target, max_jobs=max_jobs)
-
+        apply_affine(input_path, input_key,
+                     output_path, output_key,
+                     transformation, interpolation,
+                     resolution, chunks,
+                     tmp_folder, target, max_jobs)
     else:
         msg = (
             f"Invalid registration method {method} provided."

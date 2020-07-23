@@ -2,13 +2,24 @@ import argparse
 import multiprocessing
 import os
 
+from elf.io import open_file
 from mobie.import_data import apply_registration
 from mobie.import_data.util import downscale
 from mobie.metadata import add_to_image_dict, have_dataset
 from mobie.tables import compute_default_table
 
 
-def add_registered_volume(input_path, input_key, transformation_file,
+def copy_label_id(in_path, in_key, out_path, out_key):
+    with open_file(in_path, 'r') as f:
+        ds = f[in_key]
+        max_id = ds.attrs.get('maxId', None)
+    if max_id is not None:
+        with open_file(out_path, 'a') as f:
+            ds = f[out_key]
+            ds.attrs['maxId'] = max_id
+
+
+def add_registered_volume(input_path, input_key, transformation,
                           root, dataset_name, data_name,
                           resolution, scale_factors, chunks,
                           method='affine', image_type='image', add_default_table=True,
@@ -20,7 +31,7 @@ def add_registered_volume(input_path, input_key, transformation_file,
     Arguments:
         input_path [str] - path to the data that should be added.
         input_key [str] - key to the data that should be added.
-        transformation_file [str] - file with the transformation to be applied for registration.
+        transformation [str] - file defining elastix transformation to be applied
         root [str] - data root folder.
         dataset_name [str] - name of the dataset the data should be added to.
         data_name [str] - name of the data.
@@ -53,9 +64,9 @@ def add_registered_volume(input_path, input_key, transformation_file,
 
     interpolation = 'linear' if image_type == 'image' else 'nearest'
     apply_registration(input_path, input_key, data_path, data_key,
-                       transformation_file, method, interpolation,
+                       transformation, method, interpolation,
                        fiji_executable=fiji_executable, elastix_directory=elastix_directory,
-                       resolution=resolution,
+                       resolution=resolution, chunks=chunks,
                        tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
 
     data_key = 'setup0/timepoint0/s0'
@@ -72,10 +83,11 @@ def add_registered_volume(input_path, input_key, transformation_file,
                   resolution, scale_factors, chunks,
                   tmp_folder, target, max_jobs, block_shape=chunks,
                   library=ds_library, library_kwargs=ds_library_kwargs)
+        copy_label_id(input_path, input_key, data_path, data_key)
 
     # compute the default segmentation table
     if image_type == 'segmentation' and add_default_table:
-        if method == 'bdv':  # TODO implement this
+        if method == 'bdv':  # TODO implement this via on the fly transformation
             raise NotImplementedError
         table_folder = os.path.join(dataset_folder, 'tables', data_name)
         table_path = os.path.join(table_folder, 'default.csv')
@@ -92,6 +104,7 @@ def add_registered_volume(input_path, input_key, transformation_file,
 
 
 if __name__ == '__main__':
+    # TODO finish argument-parser
     parser = argparse.ArgumentParser()
     parser.add_argument('input_path', type=str)
     parser.add_argument('input_key', type=str)

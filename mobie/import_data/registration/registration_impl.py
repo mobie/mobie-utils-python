@@ -3,17 +3,19 @@ import os
 
 import luigi
 
-from cluster_tools.transformations import AffineTransformationWorkflow
-from elf.transformation import elastix_parser
+from cluster_tools.transformations import AffineTransformationWorkflow, TransformixTransformationWorkflow
+from elf.transformation import (affine_matrix_to_bdv_transformation,
+                                elastix_parser,
+                                elastix_transformation_to_affine_matrix)
 from mobie.xml_utils import copy_xml_with_relpath
 from pybdv.metadata import write_affine
-from .transformix_registration import TransformixRegistrationLocal, TransformixRegistrationSlurm
 
 
 def registration_affine(input_path, input_key,
                         output_path, output_key,
-                        transformation_file, interpolation,
-                        chunks, tmp_folder, target, max_jobs):
+                        transformation, interpolation,
+                        resolution, chunks,
+                        tmp_folder, target, max_jobs):
     """Apply registration by using elf/nifty affine transormation function.
     Only works for affine transformations.
     """
@@ -21,11 +23,12 @@ def registration_affine(input_path, input_key,
     config_dir = os.path.join(tmp_folder, 'configs')
 
     # load the transformation in bdv format
-    # TODO handle multiple transformations
     # either join all transformation or implement chained application on the fly
-    trafo = elastix_parser.get_bdv_affine_transformation(transformation_file)
+    trafo = elastix_transformation_to_affine_matrix(transformation, resolution,
+                                                    concatenate_transforms=True)
+    trafo = affine_matrix_to_bdv_transformation(trafo)
 
-    shape = elastix_parser.get_shape(transformation_file)
+    shape = elastix_parser.get_shape(transformation)[::-1]
     # determine appropriate values for interpolation and sigma (anti-aliasing) based on interpolation
     if interpolation == 'nearest':
         order = 0
@@ -58,16 +61,22 @@ def registration_affine(input_path, input_key,
         raise RuntimeError("Affine transformation failed")
 
 
-def registration_bdv(input_path, output_path, transformation_file):
+def registration_bdv(input_path, output_path, transformation, resolution):
     """Apply registration by writing affine transformation to bdv.
     Only works for affine transformations.
     """
     assert input_path.endswith('.xml')
     assert output_path.endswith('.xml')
 
-    # TODO handle multiple transformations
-    # get the transformation in bdv format
-    trafo = elastix_parser.get_bdv_affine_transformation(transformation_file)
+    # TODO test if concatenation of transformations actually work and then
+    # use it here as welll
+    trafo = elastix_transformation_to_affine_matrix(transformation, resolution,
+                                                    concatenate_transforms=False)
+    if isinstance(trafo, list):
+        trafo = {f'trafo-{i}': affine_matrix_to_bdv_transformation(traf)
+                 for i, traf in enumerate(trafo)}
+    else:
+        trafo = affine_matrix_to_bdv_transformation(trafo)
 
     # copy the xml path and replace the file path with the correct relative filepath
     copy_xml_with_relpath(input_path, output_path)
@@ -77,14 +86,14 @@ def registration_bdv(input_path, output_path, transformation_file):
 
 
 def registration_transformix(input_path, output_path,
-                             transformation_file, fiji_executable,
+                             transformation, fiji_executable,
                              elastix_directory, tmp_folder,
                              interpolation='nearest', output_format='tif',
                              result_dtype='unsigned char',
                              n_threads=8, target='local'):
     """Apply registration by using tranformix from the fiji elastix wrapper.
     """
-    task = TransformixRegistrationSlurm if target == 'slurm' else TransformixRegistrationLocal
+    task = TransformixTransformationWorkflow
     if result_dtype not in task.result_types:
         raise ValueError(f"Expected result_dtype to be one of {task.result_types}, got {result_dtype}")
     if interpolation not in task.interpolation_modes:
@@ -94,24 +103,25 @@ def registration_transformix(input_path, output_path,
 
     config_dir = os.path.join(tmp_folder, 'configs')
 
-    task_config = task.default_task_config()
+    task_config = task.get_config()['transformix']
     task_config.update({'mem_limit': 16, 'time_limit': 240, 'threads_per_job': n_threads,
                         'ResultImagePixelType': result_dtype})
-    with open(os.path.join(config_dir, 'apply_registration.config'), 'w') as f:
+    with open(os.path.join(config_dir, 'transformix.config'), 'w') as f:
         json.dump(task_config, f)
 
     in_file = os.path.join(tmp_folder, 'inputs.json')
     with open(in_file, 'w') as f:
-        json.dump([input_path], f)
+        json.dump([os.path.abspath(input_path)], f)
 
     out_file = os.path.join(tmp_folder, 'outputs.json')
     with open(out_file, 'w') as f:
-        json.dump([output_path], f)
+        json.dump([os.path.abspath(output_path)], f)
 
-    t = task(tmp_folder=tmp_folder, config_dir=config_dir, max_jobs=1,
+    t = task(tmp_folder=tmp_folder, config_dir=config_dir,
+             max_jobs=1, target=target,
              input_path_file=in_file, output_path_file=out_file,
              fiji_executable=fiji_executable, elastix_directory=elastix_directory,
-             transformation_file=transformation_file, output_format=output_format,
+             transformation_file=transformation, output_format=output_format,
              interpolation=interpolation)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
