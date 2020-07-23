@@ -2,7 +2,9 @@ import json
 import os
 
 import luigi
-from elf.transformation.elastix_parser import get_bdv_affine_transformation
+
+from cluster_tools.transformations import AffineTransformationWorkflow
+from elf.transformation import elastix_parser
 from mobie.xml_utils import copy_xml_with_relpath
 from pybdv.metadata import write_affine
 from .transformix_registration import TransformixRegistrationLocal, TransformixRegistrationSlurm
@@ -10,10 +12,50 @@ from .transformix_registration import TransformixRegistrationLocal, TransformixR
 
 def registration_affine(input_path, input_key,
                         output_path, output_key,
-                        transformation_file):
+                        transformation_file, interpolation,
+                        chunks, tmp_folder, target, max_jobs):
     """Apply registration by using elf/nifty affine transormation function.
     Only works for affine transformations.
     """
+    task = AffineTransformationWorkflow
+    config_dir = os.path.join(tmp_folder, 'configs')
+
+    # load the transformation in bdv format
+    # TODO handle multiple transformations
+    # either join all transformation or implement chained application on the fly
+    trafo = elastix_parser.get_bdv_affine_transformation(transformation_file)
+
+    shape = elastix_parser.get_shape(transformation_file)
+    # determine appropriate values for interpolation and sigma (anti-aliasing) based on interpolation
+    if interpolation == 'nearest':
+        order = 0
+        sigma = None
+    elif interpolation == 'linear':
+        order = 1
+        sigma = 1.
+    elif interpolation == 'quadratic':
+        order = 2
+        sigma = 1.
+    elif interpolation == 'cubic':
+        order = 3
+        sigma = 1.
+    else:
+        raise ValueError(f"Invalid interpolation mode {interpolation}")
+
+    config = task.get_config()['affine']
+    config.update({'chunks': chunks, 'sigma_anti_aliasing': sigma})
+
+    with open(os.path.join(config_dir, 'affine.config'), 'w') as f:
+        json.dump(config, f)
+
+    t = task(tmp_folder=tmp_folder, config_dir=config_dir,
+             target=target, max_jobs=max_jobs,
+             input_path=input_path, input_key=input_key,
+             output_path=output_path, output_key=output_key,
+             transformation=trafo, shape=shape, order=order)
+    ret = luigi.build([t], local_scheduler=True)
+    if not ret:
+        raise RuntimeError("Affine transformation failed")
 
 
 def registration_bdv(input_path, output_path, transformation_file):
@@ -23,8 +65,9 @@ def registration_bdv(input_path, output_path, transformation_file):
     assert input_path.endswith('.xml')
     assert output_path.endswith('.xml')
 
+    # TODO handle multiple transformations
     # get the transformation in bdv format
-    trafo = get_bdv_affine_transformation(transformation_file)
+    trafo = elastix_parser.get_bdv_affine_transformation(transformation_file)
 
     # copy the xml path and replace the file path with the correct relative filepath
     copy_xml_with_relpath(input_path, output_path)
@@ -50,7 +93,6 @@ def registration_transformix(input_path, output_path,
         raise ValueError(f"Expected output_format to be one of {task.formats}, got {output_format}")
 
     config_dir = os.path.join(tmp_folder, 'configs')
-    os.makedirs(config_dir, exist_ok=True)
 
     task_config = task.default_task_config()
     task_config.update({'mem_limit': 16, 'time_limit': 240, 'threads_per_job': n_threads,

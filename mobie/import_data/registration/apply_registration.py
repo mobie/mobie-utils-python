@@ -71,9 +71,7 @@ def write_transformix_input(in_path, in_key, out_path,
 
 def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, target, max_jobs):
     task = CopyVolumeSlurm if target == 'slurm' else CopyVolumeLocal
-
     config_dir = os.path.join(tmp_folder, 'configs')
-    write_global_config(config_dir, block_shape=chunks)
 
     task_config = task.default_task_config()
     task_config.update({'chunks': chunks})
@@ -100,9 +98,10 @@ def apply_registration(input_path, input_key,
     if trafo_type is None:
         raise ValueError(f"{transformation_file} is not an elastix transformation")
 
-    os.makedirs(tmp_folder, exist_ok=True)
-
     if method == 'transformix':
+        os.makedirs(tmp_folder, exist_ok=True)
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+
         assert fiji_executable is not None and os.path.exists(fiji_executable)
         assert elastix_directory is not None and os.path.exists(elastix_directory)
 
@@ -152,7 +151,13 @@ def apply_registration(input_path, input_key,
         registration_bdv(xml_path, xml_out_path, transformation_file)
 
     elif method == 'affine':
-        registration_affine()
+        os.makedirs(tmp_folder, exist_ok=True)
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+        registration_affine(input_path, input_key,
+                            output_path, output_key,
+                            transformation_file, interpolation,
+                            chunks=chunks, tmp_folder=tmp_folder,
+                            target=target, max_jobs=max_jobs)
 
     else:
         msg = (
