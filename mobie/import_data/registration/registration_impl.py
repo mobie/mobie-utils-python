@@ -68,15 +68,8 @@ def registration_bdv(input_path, output_path, transformation, resolution):
     assert input_path.endswith('.xml')
     assert output_path.endswith('.xml')
 
-    # TODO test if concatenation of transformations actually work and then
-    # use it here as welll
-    trafo = elastix_transformation_to_affine_matrix(transformation, resolution,
-                                                    concatenate_transforms=False)
-    if isinstance(trafo, list):
-        trafo = {f'trafo-{i}': affine_matrix_to_bdv_transformation(traf)
-                 for i, traf in enumerate(trafo)}
-    else:
-        trafo = affine_matrix_to_bdv_transformation(trafo)
+    trafo = elastix_transformation_to_affine_matrix(transformation, resolution)
+    trafo = affine_matrix_to_bdv_transformation(trafo)
 
     # copy the xml path and replace the file path with the correct relative filepath
     copy_xml_with_relpath(input_path, output_path)

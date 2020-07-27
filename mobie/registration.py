@@ -13,6 +13,14 @@ def copy_label_id(in_path, in_key, out_path, out_key):
     with open_file(in_path, 'r') as f:
         ds = f[in_key]
         max_id = ds.attrs.get('maxId', None)
+
+        # try to read the max id from scale level 0
+        if max_id is None:
+            scale_key = '/'.join(out_key.split('/')[:-1] + ['s0'])
+            if scale_key in f:
+                ds = f[scale_key]
+                max_id = ds.attrs.get('maxId', None)
+
     if max_id is not None:
         with open_file(out_path, 'a') as f:
             ds = f[out_key]
@@ -63,11 +71,13 @@ def add_registered_volume(input_path, input_key, transformation,
     data_key = 'setup0/timepoint0/s0'
 
     interpolation = 'linear' if image_type == 'image' else 'nearest'
-    apply_registration(input_path, input_key, data_path, data_key,
-                       transformation, method, interpolation,
-                       fiji_executable=fiji_executable, elastix_directory=elastix_directory,
-                       resolution=resolution, chunks=chunks,
-                       tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+    # the resolution might be changed after the registration, which we need to take into account
+    # in the subsequent downscaling step
+    effective_resolution = apply_registration(input_path, input_key, data_path, data_key,
+                                              transformation, method, interpolation,
+                                              fiji_executable=fiji_executable, elastix_directory=elastix_directory,
+                                              resolution=resolution, chunks=chunks,
+                                              tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
 
     data_key = 'setup0/timepoint0/s0'
     # we only need to downscale for a method that actually copies the data
@@ -80,7 +90,7 @@ def add_registered_volume(input_path, input_key, transformation,
             ds_library = 'vigra'
             ds_library_kwargs = {'order': 0}
         downscale(data_path, data_key, data_path,
-                  resolution, scale_factors, chunks,
+                  effective_resolution, scale_factors, chunks,
                   tmp_folder, target, max_jobs, block_shape=chunks,
                   library=ds_library, library_kwargs=ds_library_kwargs)
         copy_label_id(input_path, input_key, data_path, data_key)
@@ -92,7 +102,7 @@ def add_registered_volume(input_path, input_key, transformation,
         table_folder = os.path.join(dataset_folder, 'tables', data_name)
         table_path = os.path.join(table_folder, 'default.csv')
         os.makedirs(table_folder, exist_ok=True)
-        compute_default_table(data_path, data_key, table_path, resolution,
+        compute_default_table(data_path, data_key, table_path, effective_resolution,
                               tmp_folder=tmp_folder, target=target,
                               max_jobs=max_jobs)
     else:
