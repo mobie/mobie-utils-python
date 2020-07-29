@@ -4,17 +4,30 @@ import os
 import luigi
 
 from cluster_tools.transformations import AffineTransformationWorkflow, TransformixTransformationWorkflow
-from elf.transformation import (affine_matrix_to_bdv_transformation,
-                                elastix_parser,
-                                elastix_transformation_to_affine_matrix)
+from elf.transformation import (elastix_parser,
+                                elastix_to_bdv,
+                                elastix_to_native,
+                                matrix_to_parameters)
 from mobie.xml_utils import copy_xml_with_relpath
 from pybdv.metadata import write_affine
+
+
+def determine_shape(transformation, resolution, scale_factor=1e3):
+    shape = elastix_parser.get_shape(transformation)[::-1]
+
+    resolution_elastix = elastix_parser.get_resolution(transformation)[::-1]
+    resolution_elastix = [res * scale_factor for res in resolution_elastix]
+
+    rescaling = [res_e / res for res_e, res in zip(resolution_elastix, resolution)]
+    print(rescaling)
+    shape = tuple(int(sh * res) for sh, res in zip(shape, rescaling))
+    return shape
 
 
 def registration_affine(input_path, input_key,
                         output_path, output_key,
                         transformation, interpolation,
-                        resolution, chunks,
+                        shape, resolution, chunks,
                         tmp_folder, target, max_jobs):
     """Apply registration by using elf/nifty affine transormation function.
     Only works for affine transformations.
@@ -24,24 +37,28 @@ def registration_affine(input_path, input_key,
 
     # load the transformation in bdv format
     # either join all transformation or implement chained application on the fly
-    trafo = elastix_transformation_to_affine_matrix(transformation, resolution,
-                                                    concatenate_transforms=True)
-    trafo = affine_matrix_to_bdv_transformation(trafo)
+    trafo = elastix_to_native(transformation, resolution=resolution)
+    trafo = matrix_to_parameters(trafo)
 
-    shape = elastix_parser.get_shape(transformation)[::-1]
+    if shape is None:
+        shape = determine_shape(transformation, resolution)
+
+    # nifty does not support pre-smoothing yet, so we set sigma to None for all orders
+    # once we support pre-smooting in nifty, should set it to 1 for everything but linear
+    sigma = None
     # determine appropriate values for interpolation and sigma (anti-aliasing) based on interpolation
     if interpolation == 'nearest':
         order = 0
-        sigma = None
+        # sigma= None
     elif interpolation == 'linear':
         order = 1
-        sigma = 1.
+        # sigma = 1.
     elif interpolation == 'quadratic':
         order = 2
-        sigma = 1.
+        # sigma = 1.
     elif interpolation == 'cubic':
         order = 3
-        sigma = 1.
+        # sigma = 1.
     else:
         raise ValueError(f"Invalid interpolation mode {interpolation}")
 
@@ -68,9 +85,7 @@ def registration_bdv(input_path, output_path, transformation, resolution):
     assert input_path.endswith('.xml')
     assert output_path.endswith('.xml')
 
-    trafo = elastix_transformation_to_affine_matrix(transformation, resolution)
-    trafo = affine_matrix_to_bdv_transformation(trafo)
-
+    trafo = elastix_to_bdv(transformation, resolution)
     # copy the xml path and replace the file path with the correct relative filepath
     copy_xml_with_relpath(input_path, output_path)
 

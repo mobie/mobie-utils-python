@@ -90,14 +90,15 @@ def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, tar
 def apply_affine(input_path, input_key,
                  output_path, output_key,
                  transformation, interpolation,
-                 resolution, chunks,
+                 shape, resolution, chunks,
                  tmp_folder, target, max_jobs):
     os.makedirs(tmp_folder, exist_ok=True)
     write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
     registration_affine(input_path, input_key,
                         output_path, output_key,
                         transformation, interpolation,
-                        resolution=resolution[::-1], chunks=chunks, tmp_folder=tmp_folder,
+                        shape=shape, resolution=resolution,
+                        chunks=chunks, tmp_folder=tmp_folder,
                         target=target, max_jobs=max_jobs)
 
 
@@ -112,7 +113,7 @@ def apply_bdv(input_path, output_path, transformation, resolution):
             f" expected one of {DATA_EXTENSIONS}"
         )
         raise ValueError(msg)
-    registration_bdv(xml_path, xml_out_path, transformation, resolution[::-1])
+    registration_bdv(xml_path, xml_out_path, transformation, resolution)
 
 
 def apply_transformix(input_path, input_key, output_path, output_key,
@@ -173,7 +174,7 @@ def apply_registration(input_path, input_key,
                        output_path, output_key,
                        transformation, method, interpolation,
                        fiji_executable, elastix_directory,
-                       resolution, chunks,
+                       shape, resolution, chunks,
                        tmp_folder, target, max_jobs):
     if elastix_parser.get_transformation_type(transformation) is None:
         raise ValueError(f"{transformation} is not an elastix transformation")
@@ -186,6 +187,8 @@ def apply_registration(input_path, input_key,
             msg = f"Path to fiji {fiji_executable} is not valid"
         if elastix_directory is None or os.path.exists(elastix_directory):
             msg = f"Path to elastix directory {elastix_directory} is not valid"
+        if shape is not None:
+            raise NotImplementedError
         resolution = apply_transformix(input_path, input_key, output_path, output_key,
                                        transformation, interpolation,
                                        resolution=resolution,
@@ -201,7 +204,7 @@ def apply_registration(input_path, input_key,
         apply_affine(input_path, input_key,
                      output_path, output_key,
                      transformation, interpolation,
-                     resolution, chunks,
+                     shape, resolution, chunks,
                      tmp_folder, target, max_jobs)
     else:
         msg = (

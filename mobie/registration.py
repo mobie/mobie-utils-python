@@ -29,8 +29,8 @@ def copy_label_id(in_path, in_key, out_path, out_key):
 
 def add_registered_volume(input_path, input_key, transformation,
                           root, dataset_name, data_name,
-                          resolution, scale_factors, chunks,
-                          method='affine', image_type='image', add_default_table=True,
+                          resolution, scale_factors, chunks, method,
+                          shape=None, image_type='image', add_default_table=True,
                           fiji_executable=None, elastix_directory=None,
                           tmp_folder=None, target='local',
                           max_jobs=multiprocessing.cpu_count()):
@@ -53,6 +53,8 @@ def add_registered_volume(input_path, input_key, transformation,
                 only works for affine transformations or simpler.
             'transformix': apply transformation using transformix
             (default: 'affine')
+        shape [tuple[int]] - shape of the output volume. If None, the shape specified in
+            the elastix transformation file will be used. (default: None)
         image_type [str] - type of the data, can be either 'image', 'segmentation' or 'mask'
             (default: 'image')
         add_default_table [bool] - whether to add the default table (default: True)
@@ -76,7 +78,7 @@ def add_registered_volume(input_path, input_key, transformation,
     effective_resolution = apply_registration(input_path, input_key, data_path, data_key,
                                               transformation, method, interpolation,
                                               fiji_executable=fiji_executable, elastix_directory=elastix_directory,
-                                              resolution=resolution, chunks=chunks,
+                                              shape=shape, resolution=resolution, chunks=chunks,
                                               tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
 
     data_key = 'setup0/timepoint0/s0'
