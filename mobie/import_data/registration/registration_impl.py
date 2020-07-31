@@ -19,7 +19,6 @@ def determine_shape(transformation, resolution, scale_factor=1e3):
     resolution_elastix = [res * scale_factor for res in resolution_elastix]
 
     rescaling = [res_e / res for res_e, res in zip(resolution_elastix, resolution)]
-    print(rescaling)
     shape = tuple(int(sh * res) for sh, res in zip(shape, rescaling))
     return shape
 

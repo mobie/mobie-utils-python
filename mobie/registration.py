@@ -1,4 +1,5 @@
 import argparse
+import json
 import multiprocessing
 import os
 
@@ -99,8 +100,15 @@ def add_registered_volume(input_path, input_key, transformation,
 
     # compute the default segmentation table
     if image_type == 'segmentation' and add_default_table:
-        if method == 'bdv':  # TODO implement this via on the fly transformation
-            raise NotImplementedError
+
+        # this could be implemented via passing the affine volume wrapper to the table computation
+        # but for now this requires quite a lot of changes and should be much easier once we have
+        # a more mature framework for big volume processing with better support for on the fly volume transformation
+        if method == 'bdv':
+            msg = ("Cannot compute table for segmentation registered via bdv on-the-fly transformations."
+                   "Use methd 'affine' instead to support this feature.")
+            raise NotImplementedError(msg)
+
         table_folder = os.path.join(dataset_folder, 'tables', data_name)
         table_path = os.path.join(table_folder, 'default.csv')
         os.makedirs(table_folder, exist_ok=True)
@@ -116,9 +124,29 @@ def add_registered_volume(input_path, input_key, transformation,
 
 
 if __name__ == '__main__':
-    # TODO finish argument-parser
     parser = argparse.ArgumentParser()
     parser.add_argument('input_path', type=str)
     parser.add_argument('input_key', type=str)
+    parser.add_argument('transformation', type=str)
+    parser.add_argument('root', type=str)
+    parser.add_argument('dataset_name', type=str)
+    parser.add_argument('data_name', type=str)
+    parser.add_argument('resolution', type=str)
+    parser.add_argument('scale_factors', type=str)
+    parser.add_argument('chunks', type=int, nargs=3)
+    parser.add_argument('--method', type=str, default='affine')
+    parser.add_argument('--shape', type=int, default=None, nargs=3)
+    parser.add_argument('--image_type', type=str, default='image')
+    parser.add_argument('--add_default_table', type=int, default=1)
+    parser.add_argument('--tmp_folder', type=str, default=None)
+    parser.add_argument('--target', type=str, default='local')
+    parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count())
     args = parser.parse_args()
-    add_registered_volume(args.input_path, args.input_key)
+
+    resolution = json.loads(args.resolution)
+    scale_factors = json.loads(args.scale_factors)
+    add_registered_volume(args.input_path, args.input_key, args.transformation,
+                          args.root, args.dataset_name, args.data_name,
+                          resolution, scale_factors, args.chunks, args.method,
+                          args.shape, args.image_type, bool(args.add_default_table),
+                          args.tmp_folder, args.target, args.max_jobs)
