@@ -11,7 +11,7 @@ from ..config import write_global_config
 def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs=None):
+              library='vigra', library_kwargs=None, metadata_format='bdv.n5'):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -32,7 +32,6 @@ def downscale(in_path, in_key, out_path,
         json.dump(ds_conf, f)
 
     halos = scale_factors
-    metadata_format = 'bdv.n5'
     metadata_dict = {'resolution': resolution, 'unit': 'micrometer'}
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,

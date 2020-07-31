@@ -13,14 +13,14 @@ def add_image_data(input_path, input_key,
                    tmp_folder=None, target='local',
                    max_jobs=multiprocessing.cpu_count(),
                    settings=None):
-    """ Add a segmentation to an existing MoBIE dataset.
+    """ Add an image volume to an existing MoBIE dataset.
 
     Arguments:
         input_path [str] - path to the data that should be added.
         input_key [str] - key to the data that should be added.
         root [str] - data root folder.
-        dataset_name [str] - name of the dataset the segmentation should be added to.
-        image_name [str] - name of the segmentation.
+        dataset_name [str] - name of the dataset the image data should be added to.
+        image_name [str] - name of the image data.
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.

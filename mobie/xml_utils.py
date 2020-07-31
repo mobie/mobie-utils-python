@@ -1,3 +1,4 @@
+import os
 import xml.etree.ElementTree as ET
 from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
 
@@ -6,6 +7,14 @@ def copy_xml_with_abspath(xml_in, xml_out):
     path = get_data_path(xml_in, return_absolute_path=True)
     copy_xml_with_newpath(xml_in, xml_out, path,
                           path_type='absolute')
+
+
+def copy_xml_with_relpath(xml_in, xml_out):
+    path = get_data_path(xml_in, return_absolute_path=True)
+    xml_root = os.path.split(xml_out)[0]
+    path = os.path.relpath(path, xml_root)
+    copy_xml_with_newpath(xml_in, xml_out, path,
+                          path_type='relative')
 
 
 def copy_xml_with_newpath(xml_in, xml_out, data_path,
