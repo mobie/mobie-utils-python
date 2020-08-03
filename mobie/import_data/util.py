@@ -2,6 +2,8 @@ import json
 import os
 
 import luigi
+import nifty.distributed as ndist
+
 from cluster_tools.statistics import DataStatisticsWorkflow
 from cluster_tools.downscaling import DownscalingWorkflow
 from cluster_tools.node_labels import NodeLabelWorkflow
@@ -12,7 +14,7 @@ from ..config import write_global_config
 def compute_node_labels(seg_path, seg_key,
                         input_path, input_key,
                         tmp_folder, target, max_jobs,
-                        ignore_label=None, max_overlap=True):
+                        prefix='', ignore_label=None, max_overlap=True):
     task = NodeLabelWorkflow
     config_folder = os.path.join(tmp_folder, 'configs')
 
@@ -28,7 +30,7 @@ def compute_node_labels(seg_path, seg_key,
              ignore_label=ignore_label)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
-        raise RuntimeError("Node labels for %s" % prefix)
+        raise RuntimeError("Node label computation for %s failed" % prefix)
 
     f = open_file(out_path, 'r')
     ds_out = f[out_key]
@@ -48,7 +50,8 @@ def compute_node_labels(seg_path, seg_key,
 def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs=None, metadata_format='bdv.n5'):
+              library='vigra', library_kwargs=None,
+              metadata_format='bdv.n5', out_key=''):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -76,7 +79,7 @@ def downscale(in_path, in_key, out_path,
              input_path=in_path, input_key=in_key,
              scale_factors=scale_factors, halos=halos,
              metadata_format=metadata_format, metadata_dict=metadata_dict,
-             output_path=out_path)
+             output_path=out_path, output_key_prefix=out_key)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
         raise RuntimeError("Downscaling failed")

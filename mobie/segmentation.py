@@ -5,6 +5,7 @@ import os
 
 from pybdv.metadata import get_key
 from mobie.import_data import (import_segmentation,
+                               import_segmentation_from_node_labels,
                                import_segmentation_from_paintera,
                                is_paintera)
 from mobie.metadata import add_to_image_dict, have_dataset
@@ -14,6 +15,7 @@ from mobie.tables import compute_default_table
 def add_segmentation(input_path, input_key,
                      root, dataset_name, segmentation_name,
                      resolution, scale_factors, chunks,
+                     node_label_path=None, node_label_key=None,
                      tmp_folder=None, target='local',
                      max_jobs=multiprocessing.cpu_count(),
                      add_default_table=True, settings=None,
@@ -29,6 +31,8 @@ def add_segmentation(input_path, input_key,
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
+        node_label_path [str] - path to node labels (default: None)
+        node_label_key [str] - key to node labels (default: None)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
@@ -47,11 +51,20 @@ def add_segmentation(input_path, input_key,
     dataset_folder = os.path.join(root, dataset_name)
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.xml')
-    if is_paintera(input_path, input_key):
+    if node_label_path is not None:
+        if node_label_key is None:
+            raise ValueError("Expect node_label_key if node_label_path is given")
+        import_segmentation_from_node_labels(input_path, input_key, data_path,
+                                             node_label_path, node_label_key,
+                                             resolution, scale_factors, chunks,
+                                             tmp_folder=tmp_folder, target=target,
+                                             max_jobs=max_jobs)
+    elif is_paintera(input_path, input_key):
         import_segmentation_from_paintera(input_path, input_key, data_path,
                                           resolution, scale_factors, chunks,
                                           tmp_folder=tmp_folder, target=target,
-                                          max_jobs=max_jobs, postprocess_config=postprocess_config)
+                                          max_jobs=max_jobs,
+                                          postprocess_config=postprocess_config)
     else:
         import_segmentation(input_path, input_key, data_path,
                             resolution, scale_factors, chunks,
@@ -88,6 +101,11 @@ def main():
     parser.add_argument('segmentation_name', type=str,
                         help="name of the segmentation that is added")
 
+    parser.add_argument('node_label_path', type=str, default=None,
+                        help="path to the node_labels for the segmentation")
+    parser.add_argument('node_label_key', type=str, default=None,
+                        help="key for the node labels for segmentation")
+
     parser.add_argument('resolution', type=str,
                         help="resolution of the data in micrometer, json-encoded")
     parser.add_argument('scale_factors', type=str,
@@ -113,6 +131,7 @@ def main():
 
     add_segmentation(args.input_path, args.input_key,
                      args.root, args.dataset_name, args.segmentation_name,
+                     node_label_path=args.node_label_path, node_label_key=args.node_label_key,
                      resolution=resolution, add_default_table=bool(args.add_default_table),
                      scale_factors=scale_factors, chunks=chunks,
                      tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs)
