@@ -28,19 +28,31 @@ def data_path_to_xml_path(data_path, pass_exist_check=False):
 
 
 def save_tif(data, path, fiji_executable, resolution):
+    script_root = os.path.split(__file__)[0]
     # write initial tif with imageio
-    imageio.volwrite(path, data)
+    if data.ndim == 3:
+        n_slices = data.shape[0]
+        imageio.volwrite(path, data)
+        script = os.path.join(script_root, 'set_voxel_size_3d.ijm')
 
-    # encode the arguments for the imagej macro:
+        # encode the arguments for the imagej macro:
+        arguments = "%s,%i,%f,%f,%f,%i" % (os.path.abspath(path), n_slices,
+                                           resolution[0], resolution[1], resolution[2])
+    else:
+        n_channels = data.shape[0]
+        n_slices = data.shape[1]
+        imageio.mvolwrite(path, data)
+        script = os.path.join(script_root, 'set_voxel_size_4d.ijm')
+
+        # encode the arguments for the imagej macro:
+        arguments = "%s,%i,%i,%f,%f,%f" % (os.path.abspath(path), n_slices, n_channels,
+                                           resolution[0], resolution[1], resolution[2])
+
     # imagej macros can only take a single string as argument, so we need
     # to comma seperate the individual arguments
     assert "," not in path, "Can't encode pathname containing a comma"
-    arguments = "%s,%i,%f,%f,%f" % (os.path.abspath(path), data.shape[0],
-                                    resolution[0], resolution[1], resolution[2])
 
     # call the imagej macro
-    script = os.path.split(__file__)[0]
-    script = os.path.join(script, 'set_voxel_size.ijm')
     cmd = [fiji_executable, '-batch', '--headless', script, arguments]
     subprocess.run(cmd)
 
