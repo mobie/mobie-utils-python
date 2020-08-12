@@ -36,8 +36,8 @@ def save_tif(data, path, fiji_executable, resolution):
         script = os.path.join(script_root, 'set_voxel_size_3d.ijm')
 
         # encode the arguments for the imagej macro:
-        arguments = "%s,%i,%f,%f,%f,%i" % (os.path.abspath(path), n_slices,
-                                           resolution[0], resolution[1], resolution[2])
+        arguments = "%s,%i,%f,%f,%f" % (os.path.abspath(path), n_slices,
+                                        resolution[0], resolution[1], resolution[2])
     else:
         n_channels = data.shape[0]
         n_slices = data.shape[1]
