@@ -95,6 +95,7 @@ def registration_bdv(input_path, output_path, transformation, resolution):
 def registration_transformix(input_path, output_path,
                              transformation, fiji_executable,
                              elastix_directory, tmp_folder,
+                             shape, resolution,
                              interpolation='nearest', output_format='tif',
                              result_dtype='unsigned char',
                              n_threads=8, target='local'):
@@ -124,12 +125,15 @@ def registration_transformix(input_path, output_path,
     with open(out_file, 'w') as f:
         json.dump([os.path.abspath(output_path)], f)
 
+    if shape is None:
+        shape = determine_shape(transformation, resolution)
+
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
              max_jobs=1, target=target,
              input_path_file=in_file, output_path_file=out_file,
              fiji_executable=fiji_executable, elastix_directory=elastix_directory,
              transformation_file=transformation, output_format=output_format,
-             interpolation=interpolation)
+             interpolation=interpolation, shape=shape, resolution=resolution)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
         raise RuntimeError("Apply registration failed")

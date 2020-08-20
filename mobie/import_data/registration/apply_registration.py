@@ -5,7 +5,6 @@ import subprocess
 import imageio
 import luigi
 import numpy as np
-from skimage.transform import rescale
 
 from elf.io import open_file
 from elf.transformation import elastix_parser
@@ -61,7 +60,7 @@ def save_tif(data, path, fiji_executable, resolution):
 def write_transformix_input(in_path, in_key, out_path,
                             fiji_executable, resolution,
                             tmp_folder, target, max_jobs,
-                            cast_to=None, reference_resolution=None):
+                            cast_to=None):
     with open_file(in_path, 'r') as f:
         ds = f[in_key]
         ds.n_threads = max_jobs
@@ -69,16 +68,7 @@ def write_transformix_input(in_path, in_key, out_path,
     if cast_to is not None:
         data = data.astype(cast_to)
 
-    # TODO instead of rescaling the input dataset, try to adapt the transformation
-    if reference_resolution is None or all(re == ref for re, ref in zip(resolution, reference_resolution)):
-        res = resolution
-    else:
-        scale_factor = tuple(re / ref for re, ref in zip(resolution, reference_resolution))
-        data = rescale(data, scale_factor, order=0, mode='constant', cval=0, preserve_range=True,
-                       anti_aliasing=False).astype(data.dtype)
-        res = reference_resolution
-
-    save_tif(data, out_path, fiji_executable, resolution=res)
+    save_tif(data, out_path, fiji_executable, resolution=resolution)
 
 
 def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, target, max_jobs):
@@ -130,7 +120,7 @@ def apply_bdv(input_path, output_path, transformation, resolution):
 
 def apply_transformix(input_path, input_key, output_path, output_key,
                       transformation, interpolation,
-                      resolution, chunks,
+                      shape, resolution, chunks,
                       fiji_executable, elastix_directory,
                       tmp_folder, target, max_jobs):
     os.makedirs(tmp_folder, exist_ok=True)
@@ -157,7 +147,6 @@ def apply_transformix(input_path, input_key, output_path, output_key,
 
     input_tmp_path = os.path.join(tmp_folder, 'input.tif')
     output_tmp_path = os.path.join(tmp_folder, 'output')
-    reference_resolution = elastix_parser.get_resolution(transformation, to_um=True)
 
     write_transformix_input(input_path, input_key, input_tmp_path,
                             fiji_executable,
@@ -165,21 +154,19 @@ def apply_transformix(input_path, input_key, output_path, output_key,
                             tmp_folder=tmp_folder,
                             target=target,
                             max_jobs=max_jobs,
-                            cast_to=cast_to,
-                            reference_resolution=reference_resolution)
+                            cast_to=cast_to)
 
     registration_transformix(input_tmp_path, output_tmp_path,
                              transformation, fiji_executable,
                              elastix_directory, tmp_folder,
                              interpolation=interpolation, output_format='tif',
+                             shape=shape, resolution=resolution,
                              result_dtype=dtype, target=target,
                              n_threads=max_jobs)
 
     output_tmp_path += '-ch0.tif'
     write_transformix_output(output_tmp_path, output_path, output_key,
                              chunks, tmp_folder, target, max_jobs)
-
-    return resolution if reference_resolution is None else reference_resolution
 
 
 def apply_registration(input_path, input_key,
@@ -199,17 +186,16 @@ def apply_registration(input_path, input_key,
             msg = f"Path to fiji {fiji_executable} is not valid"
         if elastix_directory is None or os.path.exists(elastix_directory):
             msg = f"Path to elastix directory {elastix_directory} is not valid"
-        if shape is not None:
-            raise NotImplementedError
-        resolution = apply_transformix(input_path, input_key, output_path, output_key,
-                                       transformation, interpolation,
-                                       resolution=resolution,
-                                       chunks=chunks,
-                                       fiji_executable=fiji_executable,
-                                       elastix_directory=elastix_directory,
-                                       tmp_folder=tmp_folder,
-                                       target=target,
-                                       max_jobs=max_jobs)
+        apply_transformix(input_path, input_key, output_path, output_key,
+                          transformation, interpolation,
+                          shape=shape,
+                          resolution=resolution,
+                          chunks=chunks,
+                          fiji_executable=fiji_executable,
+                          elastix_directory=elastix_directory,
+                          tmp_folder=tmp_folder,
+                          target=target,
+                          max_jobs=max_jobs)
     elif method == 'bdv':
         apply_bdv(input_path, output_path, transformation, resolution)
     elif method == 'affine':
