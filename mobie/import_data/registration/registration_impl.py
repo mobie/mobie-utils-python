@@ -3,7 +3,6 @@ import os
 
 import luigi
 
-from cluster_tools.transformations import AffineTransformationWorkflow, TransformixTransformationWorkflow
 from elf.transformation import (elastix_parser,
                                 elastix_to_bdv,
                                 elastix_to_native,
@@ -31,6 +30,7 @@ def registration_affine(input_path, input_key,
     """Apply registration by using elf/nifty affine transormation function.
     Only works for affine transformations.
     """
+    from cluster_tools.transformations import AffineTransformationWorkflow
     task = AffineTransformationWorkflow
     config_dir = os.path.join(tmp_folder, 'configs')
 
@@ -101,6 +101,7 @@ def registration_transformix(input_path, output_path,
                              n_threads=8, target='local'):
     """Apply registration by using tranformix from the fiji elastix wrapper.
     """
+    from cluster_tools.transformations import TransformixTransformationWorkflow
     task = TransformixTransformationWorkflow
     if result_dtype not in task.result_types:
         raise ValueError(f"Expected result_dtype to be one of {task.result_types}, got {result_dtype}")
@@ -134,6 +135,38 @@ def registration_transformix(input_path, output_path,
              fiji_executable=fiji_executable, elastix_directory=elastix_directory,
              transformation_file=transformation, output_format=output_format,
              interpolation=interpolation, shape=shape, resolution=resolution)
+    ret = luigi.build([t], local_scheduler=True)
+    if not ret:
+        raise RuntimeError("Apply registration failed")
+
+
+def registration_coordinate(input_path, input_key,
+                            output_path, output_key,
+                            transformation, elastix_directory,
+                            shape, resolution,
+                            tmp_folder, target, max_jobs):
+    """Apply registration by using tranformix from the fiji elastix wrapper.
+    """
+    from cluster_tools.transformations import TransformixCoordinateTransformationWorkflow
+    task = TransformixCoordinateTransformationWorkflow
+
+    config_dir = os.path.join(tmp_folder, 'configs')
+
+    task_config = task.get_config()['transformix_coordinate']
+    task_config.update({'mem_limit': 8, 'time_limit': 240})
+    with open(os.path.join(config_dir, 'transformix_coordinate.config'), 'w') as f:
+        json.dump(task_config, f)
+
+    if shape is None:
+        shape = determine_shape(transformation, resolution)
+
+    t = task(tmp_folder=tmp_folder, config_dir=config_dir,
+             max_jobs=max_jobs, target=target,
+             input_path=input_path, input_key=input_key,
+             output_path=output_path, output_key=output_key,
+             elastix_directory=elastix_directory,
+             transformation_file=transformation,
+             shape=shape, resolution=resolution)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
         raise RuntimeError("Apply registration failed")

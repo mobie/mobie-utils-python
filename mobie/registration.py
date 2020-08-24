@@ -34,7 +34,8 @@ def add_registered_volume(input_path, input_key, transformation,
                           shape=None, image_type='image', add_default_table=True,
                           fiji_executable=None, elastix_directory=None,
                           tmp_folder=None, target='local',
-                          max_jobs=multiprocessing.cpu_count()):
+                          max_jobs=multiprocessing.cpu_count(),
+                          bounding_box=None):
     """ Add a volume after registration in elastix format.
 
     Arguments:
@@ -53,6 +54,7 @@ def add_registered_volume(input_path, input_key, transformation,
             'bdv': write transformation to bdv metadata so that it's applied on the fly.
                 only works for affine transformations or simpler.
             'transformix': apply transformation using transformix
+            'coordinate': apply transformation based on coordinate transformation of transformix
             (default: 'affine')
         shape [tuple[int]] - shape of the output volume. If None, the shape specified in
             the elastix transformation file will be used. (default: None)
@@ -62,6 +64,8 @@ def add_registered_volume(input_path, input_key, transformation,
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
+        bounding_box [list[list[int]]] - bounding box where the registration is applied.
+            needs to be specified in the output dataset space (default: None)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -80,7 +84,8 @@ def add_registered_volume(input_path, input_key, transformation,
                                               transformation, method, interpolation,
                                               fiji_executable=fiji_executable, elastix_directory=elastix_directory,
                                               shape=shape, resolution=resolution, chunks=chunks,
-                                              tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+                                              tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
+                                              bounding_box=bounding_box)
 
     data_key = 'setup0/timepoint0/s0'
     # we only need to downscale for a method that actually copies the data

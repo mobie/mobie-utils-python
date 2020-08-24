@@ -12,6 +12,7 @@ from cluster_tools.copy_volume import CopyVolumeLocal, CopyVolumeSlurm
 from mobie.config import write_global_config
 from .registration_impl import (registration_affine,
                                 registration_bdv,
+                                registration_coordinate,
                                 registration_transformix)
 
 
@@ -93,9 +94,14 @@ def apply_affine(input_path, input_key,
                  output_path, output_key,
                  transformation, interpolation,
                  shape, resolution, chunks,
-                 tmp_folder, target, max_jobs):
+                 tmp_folder, target, max_jobs,
+                 bounding_box):
     os.makedirs(tmp_folder, exist_ok=True)
-    write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+    if bounding_box is None:
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+    else:
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks,
+                            roi_begin=bounding_box[0], roi_end=bounding_box[1])
     registration_affine(input_path, input_key,
                         output_path, output_key,
                         transformation, interpolation,
@@ -169,15 +175,52 @@ def apply_transformix(input_path, input_key, output_path, output_key,
                              chunks, tmp_folder, target, max_jobs)
 
 
+def apply_coordinate(input_path, input_key,
+                     output_path, output_key,
+                     transformation, elastix_directory,
+                     shape, resolution, chunks,
+                     tmp_folder, target, max_jobs,
+                     bounding_box):
+    os.makedirs(tmp_folder, exist_ok=True)
+    if bounding_box is None:
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
+    else:
+        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks,
+                            roi_begin=bounding_box[0], roi_end=bounding_box[1])
+    registration_coordinate(input_path, input_key,
+                            output_path, output_key,
+                            transformation=transformation,
+                            elastix_directory=elastix_directory,
+                            shape=shape, resolution=resolution,
+                            tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+
+
+def _validate_bounding_box(bounding_box):
+    # bounding box should have len 2, start and stop
+    # and then should have len 3 or be None
+    if len(bounding_box) != 2:
+        raise ValueError("Invalid bounding box")
+    for bb in bounding_box:
+        if bb is None:
+            continue
+        if len(bb) != 3:
+            raise ValueError("Invalid bounding box")
+
+
 def apply_registration(input_path, input_key,
                        output_path, output_key,
                        transformation, method, interpolation,
                        fiji_executable, elastix_directory,
                        shape, resolution, chunks,
-                       tmp_folder, target, max_jobs):
+                       tmp_folder, target, max_jobs,
+                       bounding_box=None):
     if elastix_parser.get_transformation_type(transformation) is None:
         raise ValueError(f"{transformation} is not an elastix transformation")
 
+    if bounding_box is not None:
+        _validate_bounding_box(bounding_box)
+
+    # transform via fiji transformix plugin
     if method == 'transformix':
         if not isinstance(transformation, str):
             msg = f"Transformix expects path to transformation of type str, got {type(transformation)} instead"
@@ -196,18 +239,31 @@ def apply_registration(input_path, input_key,
                           tmp_folder=tmp_folder,
                           target=target,
                           max_jobs=max_jobs)
+    # write on the fly-transformation to bdv xml metadata
     elif method == 'bdv':
         apply_bdv(input_path, output_path, transformation, resolution)
+    # transform via affine transformation functionality of nifty
     elif method == 'affine':
         apply_affine(input_path, input_key,
                      output_path, output_key,
                      transformation, interpolation,
                      shape, resolution, chunks,
-                     tmp_folder, target, max_jobs)
+                     tmp_folder, target, max_jobs,
+                     bounding_box)
+    # transform via coordinate transformation functionality of transformix and nifty
+    elif method == 'coordinate':
+        apply_coordinate(input_path, input_key,
+                         output_path, output_key,
+                         transformation=transformation,
+                         elastix_directory=elastix_directory,
+                         shape=shape, resolution=resolution,
+                         chunks=chunks, tmp_folder=tmp_folder,
+                         target=target, max_jobs=max_jobs,
+                         bounding_box=bounding_box)
     else:
         msg = (
             f"Invalid registration method {method} provided."
-            "Choose one of ('transformix', 'bdv', 'affine')"
+            "Choose one of ('transformix', 'bdv', 'affine', 'coordinate')"
         )
         raise ValueError(msg)
 
