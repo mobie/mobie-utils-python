@@ -153,7 +153,7 @@ def registration_coordinate(input_path, input_key,
     config_dir = os.path.join(tmp_folder, 'configs')
 
     task_config = task.get_config()['transformix_coordinate']
-    task_config.update({'mem_limit': 8, 'time_limit': 240})
+    task_config.update({'mem_limit': 8, 'time_limit': 1440})
     with open(os.path.join(config_dir, 'transformix_coordinate.config'), 'w') as f:
         json.dump(task_config, f)
 
