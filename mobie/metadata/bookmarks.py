@@ -14,7 +14,7 @@ def validate_bookmark_settings(im_dict, layer_name, settings):
 
 
 def add_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
-                 position=None, view=None,
+                 position=None, view=None, norm_view=None,
                  layer_settings=None, overwrite=False):
     """ Add a bookmark entry.
 
@@ -43,10 +43,16 @@ def add_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     if have_position and len(position) != 3:
         raise ValueError(f"Invalid position argument, expect 3 parameters, got {len(position)}")
 
+    have_norm_view = norm_view is not None
+    if have_norm_view and len(norm_view) != 12:
+        raise ValueError(f"Invalid norm_view argument, expect 12 parameters, got {len(norm_view)}")
+    if have_norm_view and have_view:
+        raise ValueError("Specifying both a view and a norm view is not supported")
+
     have_layers = layer_settings is not None
 
     # need to have at least one of view, layer or position
-    if sum((have_view, have_position, have_layers)) == 0:
+    if sum((have_view, have_position, have_layers, have_norm_view)) == 0:
         raise ValueError("Neither position, view nor layer settings were specified")
 
     # load existing bookmarks if we have them
@@ -66,6 +72,9 @@ def add_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
 
     if have_view:
         bookmark_entry['view'] = view
+
+    if have_norm_view:
+        bookmark_entry['normView'] = ['n' + str(vw) for vw in norm_view]
 
     if have_layers:
 
