@@ -46,7 +46,8 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
 # should be generalized and moved to pybdv at some point
 def copy_xml_as_n5_s3(in_xml, out_xml,
                       service_endpoint, bucket_name, path_in_bucket,
-                      authentication='Anonymous', region='us-west-2'):
+                      authentication='Anonymous', region='us-west-2',
+                      bdv_type='bdv.n5.s3'):
     """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
 
     Arguments:
@@ -60,7 +61,11 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
             Default: 'Anonymous'
         region [str] - the region. Only relevant if aws.s3 is used.
             Default: 'us-west-2'
+
     """
+    bdv_types = ('bdv.n5.s3', 'ome.zarr.s3')
+    if bdv_type not in bdv_types:
+        raise ValueError(f"Invalid bdv type {bdv_type}, expected one of {bdv_types}")
 
     auth_modes = ('Anonymous', 'Protected')
     if authentication not in auth_modes:
@@ -80,7 +85,6 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
 
     # write the new image loader
     imgload = ET.SubElement(seqdesc, 'ImageLoader')
-    bdv_type = 'bdv.n5.s3'
     imgload.set('format', bdv_type)
     el = ET.SubElement(imgload, 'Key')
     el.text = path_in_bucket
