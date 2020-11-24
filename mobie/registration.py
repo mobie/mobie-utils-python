@@ -2,12 +2,18 @@ import argparse
 import json
 import multiprocessing
 import os
+import warnings
 
 from elf.io import open_file
-from mobie.import_data import apply_registration
 from mobie.import_data.util import downscale
 from mobie.metadata import add_to_image_dict, have_dataset
 from mobie.tables import compute_default_table
+
+try:
+    from mobie.import_data.registration import apply_registration
+except ImportError as e:
+    warnings.warn(f"Could not import 'apply_registration' due to {e}.\n 'add_registered_volume' will not be available.")
+    apply_registration = None
 
 
 def copy_label_id(in_path, in_key, out_path, out_key):
@@ -67,6 +73,9 @@ def add_registered_volume(input_path, input_key, transformation,
         bounding_box [list[list[int]]] - bounding box where the registration is applied.
             needs to be specified in the output dataset space (default: None)
     """
+    if apply_registration is None:
+        raise ValueError("Could not import 'apply_registration' functionality")
+
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
