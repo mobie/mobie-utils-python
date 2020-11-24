@@ -50,23 +50,30 @@ def add_mask(input_path, input_key,
 
 def main():
     parser = argparse.ArgumentParser(description="Add image data to MoBIE dataset")
-    parser.add_argument('input_path', type=str,
-                        help="path to the input mask")
-    parser.add_argument('input_key', type=str,
+    parser.add_argument('--input_path', type=str,
+                        help="path to the input mask",
+                        required=True)
+    parser.add_argument('--input_key', type=str,
                         help="key for the input mask, e.g. internal path for h5/n5 data")
-    parser.add_argument('root', type=str,
-                        help="root folder of the MoBIE project")
-    parser.add_argument('dataset_name', type=str,
-                        help="name of the dataset to which the image data is added")
-    parser.add_argument('mask_name', type=str,
-                        help="name of the image data that is added")
+    parser.add_argument('--root', type=str,
+                        help="root folder of the MoBIE project",
+                        required=True)
+    parser.add_argument('--dataset_name', type=str,
+                        help="name of the dataset to which the image data is added",
+                        required=True)
+    parser.add_argument('--mask_name', type=str,
+                        help="name of the image data that is added",
+                        required=True)
 
-    parser.add_argument('resolution', type=str,
-                        help="resolution of the data in micrometer, json-encoded")
-    parser.add_argument('scale_factors', type=str,
-                        help="factors used for downscaling the data, json-encoded")
-    parser.add_argument('chunks', type=str,
-                        help="chunks of the data that is added, json-encoded")
+    parser.add_argument('--resolution', type=str,
+                        help="resolution of the data in micrometer, json-encoded",
+                        required=True)
+    parser.add_argument('--scale_factors', type=str,
+                        help="factors used for downscaling the data, json-encoded",
+                        required=True)
+    parser.add_argument('--chunks', type=str,
+                        help="chunks of the data that is added, json-encoded",
+                        required=True)
 
     parser.add_argument('--tmp_folder', type=str, default=None,
                         help="folder for temporary computation files")

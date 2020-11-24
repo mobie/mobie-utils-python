@@ -73,23 +73,31 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
 def main():
     parser = argparse.ArgumentParser(description="Add traces to MoBIE dataset")
-    parser.add_argument('input_folder', type=str,
-                        help="path to the folder with traces")
-    parser.add_argument('root', type=str,
-                        help="root folder of the MoBIE project")
-    parser.add_argument('dataset_name', type=str,
-                        help="name of the dataset to which the traces are added")
-    parser.add_argument('traces_name', type=str,
-                        help="name of the traces to be added")
-    parser.add_argument('reference_name', type=str,
-                        help="name of the reference data volume")
+    parser.add_argument('--input_folder', type=str,
+                        help="path to the folder with traces",
+                        required=True)
+    parser.add_argument('--root', type=str,
+                        help="root folder of the MoBIE project",
+                        required=True)
+    parser.add_argument('--dataset_name', type=str,
+                        help="name of the dataset to which the traces are added",
+                        required=True)
+    parser.add_argument('--traces_name', type=str,
+                        help="name of the traces to be added",
+                        required=True)
+    parser.add_argument('--reference_name', type=str,
+                        help="name of the reference data volume",
+                        required=True)
 
-    parser.add_argument('resolution', type=str,
-                        help="resolution of the traces in micrometer, json-encoded")
-    parser.add_argument('scale_factors', type=str,
-                        help="factors used for downscaling the data, json-encoded")
-    parser.add_argument('chunks', type=str,
-                        help="chunks of the data that is added, json-encoded")
+    parser.add_argument('--resolution', type=str,
+                        help="resolution of the traces in micrometer, json-encoded",
+                        required=True)
+    parser.add_argument('--scale_factors', type=str,
+                        help="factors used for downscaling the data, json-encoded",
+                        required=True)
+    parser.add_argument('--chunks', type=str,
+                        help="chunks of the data that is added, json-encoded",
+                        required=True)
 
     parser.add_argument('--reference_scale', type=int, default=0,
                         help='scale level to consider for the reference data')

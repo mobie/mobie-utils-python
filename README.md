@@ -53,6 +53,15 @@ mobie.copy_version_folder(mobie_root, dataset_name, new_dataset)
 
 ### From the command line
 
+The package also installs some command line tools to create mobie projects and add data to a project:
+- `mobie.add_image` add image data to MoBIE dataset. Initialize the dataset if it does not exist yet.
+- `mobie.add_mask` add binary mask image data to MoBIE dataset. 
+- `mobie.add_registered_volume` apply registration in elastix format and add the resulting data to MoBIE dataset.
+- `mobie.add_segmentation` add segmentation image data to MoBIE dataset.
+- `mobie.add_traces` add data containing traces (= skeletonized objects).
+
+Run `<COMMAND-NAME> --help` to get more information on how to use them.
+
 
 ## Citation
 
