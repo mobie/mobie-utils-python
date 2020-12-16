@@ -1,4 +1,5 @@
 import os
+import json
 import luigi
 
 from cluster_tools.write import WriteLocal, WriteSlurm
@@ -16,6 +17,11 @@ def _write_segmentation(in_path, in_key,
     config_dir = os.path.join(tmp_folder, 'configs')
     write_global_config(config_dir,
                         block_shape=chunks if block_shape is None else block_shape)
+
+    task_config = task.default_task_config()
+    task_config.update({'chunks': chunks})
+    with open(os.path.join(config_dir, 'write.config'), 'w') as f:
+        json.dump(task_config, f)
 
     t = task(input_path=in_path, input_key=in_key,
              output_path=out_path, output_key=out_key,

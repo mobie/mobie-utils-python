@@ -60,7 +60,7 @@ def downscale(in_path, in_key, out_path,
 
     configs = DownscalingWorkflow.get_config()
     conf = configs['copy_volume']
-    conf.update({'chunks': chunks})
+    conf.update({'chunks': chunks, 'time_limit': 600})
     with open(os.path.join(config_dir, 'copy_volume.config'), 'w') as f:
         json.dump(conf, f)
 
