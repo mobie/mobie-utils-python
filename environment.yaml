@@ -4,10 +4,12 @@ channels:
     - conda-forge
     - cpape
 dependencies:
+    - python 3.7
     - cluster_tools
     - pandas
     - paintera_tools >=0.2.1,<0.3
     - pybdv >=0.4.2,<0.5
     - s3fs
+    - pip
     - pip:
         - https://github.com/constantinpape/elf/archive/0.2.3.tar.gz
