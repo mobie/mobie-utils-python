@@ -1,0 +1,30 @@
+name: Build and test mobie python utils
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+            os: [ubuntu-latest]
+            python-version: [3.7]
+
+    name: Test ${{ matrix.os }} - ${{ matrix.python-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: s-weigand/setup-conda@v1
+        with:
+            update-conda: true
+            python-version: ${{ matrix.python-version }}
+        env:
+            ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      - name: install
+        run: ./.github/workflows/install.sh
+      - name: test
+        run: ./.github/workflows/test.sh
