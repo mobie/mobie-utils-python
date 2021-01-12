@@ -35,8 +35,8 @@ class TestImageData(unittest.TestCase):
         os.makedirs(self.test_folder, exist_ok=True)
         self.init_dataset()
 
-        self.im_path = os.path.join(self.test_folder, 'seg.h5')
-        self.im_key = 'seg'
+        self.im_path = os.path.join(self.test_folder, 'im.h5')
+        self.im_key = 'im'
         self.data = np.random.rand(*self.shape)
         with open_file(self.im_path, 'a') as f:
             f.create_dataset(self.im_key, data=self.data)
@@ -51,11 +51,11 @@ class TestImageData(unittest.TestCase):
         self.assertTrue(os.path.exists(dataset_folder))
         exp_data = self.data
 
-        # check the seg data
-        seg_path = os.path.join(dataset_folder, 'images', 'local', f'{im_name}.n5')
-        self.assertTrue(os.path.exists(seg_path))
+        # check the im data
+        im_path = os.path.join(dataset_folder, 'images', 'local', f'{im_name}.n5')
+        self.assertTrue(os.path.exists(im_path))
         key = get_key(False, 0, 0, 0)
-        with open_file(seg_path, 'r') as f:
+        with open_file(im_path, 'r') as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
 
@@ -88,9 +88,15 @@ class TestImageData(unittest.TestCase):
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-im')
 
-        cmd = ['mobie.add_image_data', self.im_path, self.im_key,
-               self.root, self.dataset_name, im_name,
-               resolution, scales, chunks,
+        cmd = ['mobie.add_image_data',
+               '--input_path', self.im_path,
+               '--input_key', self.im_key,
+               '--root', self.root,
+               '--dataset_name', self.dataset_name,
+               '--image_name', im_name,
+               '--resolution', resolution,
+               '--scale_factors', scales,
+               '--chunks', chunks,
                '--tmp_folder', tmp_folder]
         subprocess.run(cmd)
 

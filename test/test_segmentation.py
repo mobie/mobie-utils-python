@@ -98,9 +98,15 @@ class TestSegmentation(unittest.TestCase):
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-seg')
 
-        cmd = ['mobie.add_segmentation', self.seg_path, self.seg_key,
-               self.root, self.dataset_name, seg_name,
-               resolution, scales, chunks,
+        cmd = ['mobie.add_segmentation',
+               '--input_path', self.seg_path,
+               '--input_key', self.seg_key,
+               '--root', self.root,
+               '--dataset_name', self.dataset_name,
+               '--segmentation_name', seg_name,
+               '--resolution', resolution,
+               '--scale_factors', scales,
+               '--chunks', chunks,
                '--tmp_folder', tmp_folder]
         subprocess.run(cmd)
 

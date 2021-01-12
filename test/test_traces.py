@@ -94,10 +94,15 @@ class TestTraces(unittest.TestCase):
         scales = json.dumps([[2, 2, 2]])
         chunks = json.dumps([64, 64, 64])
 
-        cmd = ['mobie.add_traces', self.trace_folder,
-               self.root, self.dataset_name,
-               traces_name, ref_name,
-               resolution, scales, chunks]
+        cmd = ['mobie.add_traces',
+               '--input_folder', self.trace_folder,
+               '--root', self.root,
+               '--dataset_name', self.dataset_name,
+               '--traces_name', traces_name,
+               '--reference_name', ref_name,
+               '--resolution', resolution,
+               '--scale_factors', scales,
+               '--chunks', chunks]
         subprocess.run(cmd)
 
         dataset_folder = os.path.join(self.root, self.dataset_name)
