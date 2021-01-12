@@ -88,7 +88,7 @@ class TestImageData(unittest.TestCase):
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-im')
 
-        cmd = ['add_image_data', self.im_path, self.im_key,
+        cmd = ['mobie.add_image_data', self.im_path, self.im_key,
                self.root, self.dataset_name, im_name,
                resolution, scales, chunks,
                '--tmp_folder', tmp_folder]

@@ -98,7 +98,7 @@ class TestSegmentation(unittest.TestCase):
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-seg')
 
-        cmd = ['add_segmentation', self.seg_path, self.seg_key,
+        cmd = ['mobie.add_segmentation', self.seg_path, self.seg_key,
                self.root, self.dataset_name, seg_name,
                resolution, scales, chunks,
                '--tmp_folder', tmp_folder]

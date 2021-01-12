@@ -94,7 +94,7 @@ class TestTraces(unittest.TestCase):
         scales = json.dumps([[2, 2, 2]])
         chunks = json.dumps([64, 64, 64])
 
-        cmd = ['add_traces', self.trace_folder,
+        cmd = ['mobie.add_traces', self.trace_folder,
                self.root, self.dataset_name,
                traces_name, ref_name,
                resolution, scales, chunks]
