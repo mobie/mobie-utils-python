@@ -78,6 +78,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         settings = default_layer_setting(layer_type)
     else:
         validate_layer_settings(settings, layer_type)
+        settings.update({'type': layer_type})
 
     rel_path = os.path.relpath(xml_path, image_folder)
     storage = {"local": rel_path}
