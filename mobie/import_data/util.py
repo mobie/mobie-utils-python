@@ -136,7 +136,7 @@ def ensure_volume(in_path, in_key, tmp_folder, chunks):
         tmp_key = 'data'
         os.makedirs(tmp_folder, exist_ok=True)
         with open_file(tmp_path, mode='a') as f:
-            f.create_dataset(tmp_key, data=img[None], chunks=chunks)
+            f.create_dataset(tmp_key, data=img[None], chunks=tuple(chunks))
         return tmp_path, tmp_key
     else:
         return in_path, in_key

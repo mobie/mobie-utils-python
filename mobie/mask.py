@@ -3,7 +3,7 @@ import json
 import multiprocessing
 import os
 
-from mobie.metadata import add_to_image_dict, have_dataset
+from mobie.metadata import add_to_image_dict, have_dataset, update_transformation_parameter
 from mobie.import_data import import_segmentation
 
 
@@ -12,7 +12,7 @@ def add_mask(input_path, input_key,
              resolution, scale_factors, chunks,
              tmp_folder=None, target='local',
              max_jobs=multiprocessing.cpu_count(),
-             settings=None):
+             settings=None, transformation=None):
     """ Add a mask to an existing MoBIE dataset.
 
     Arguments:
@@ -28,6 +28,8 @@ def add_mask(input_path, input_key,
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
         settings [dict] - layer settings for the mask (default: None)
+        transformation [list or np.ndarray] - parameter for affine transformation
+            applied to the data on the fly (default: None)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -46,6 +48,9 @@ def add_mask(input_path, input_key,
 
     # add the mask to the image dict
     add_to_image_dict(dataset_folder, 'mask', xml_path)
+
+    if transformation is not None:
+        update_transformation_parameter(xml_path, transformation)
 
 
 def main():

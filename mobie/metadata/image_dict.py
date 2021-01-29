@@ -39,9 +39,15 @@ def default_layer_setting(layer_type):
     raise ValueError(f"Invalid layer type: {layer_type}")
 
 
-# TODO
-def validate_layer_settings(settings, layer_type):
-    pass
+# TODO check that all fields and values in settings are valid
+def update_layer_settings(settings, layer_type):
+    default_settings = default_layer_setting(layer_type)
+    for key, value in default_settings:
+        if key not in settings:
+            settings.update({key: value})
+    if settings['type'] != layer_type:
+        raise ValueError(f"Expect layer_type {layer_type}, got {settings['type']}")
+    return settings
 
 
 def add_to_image_dict(dataset_folder, layer_type, xml_path,
@@ -77,8 +83,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
     if settings is None:
         settings = default_layer_setting(layer_type)
     else:
-        validate_layer_settings(settings, layer_type)
-        settings.update({'type': layer_type})
+        settings = update_layer_settings(settings, layer_type)
 
     rel_path = os.path.relpath(xml_path, image_folder)
     storage = {"local": rel_path}

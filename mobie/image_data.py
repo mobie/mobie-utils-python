@@ -4,7 +4,7 @@ import multiprocessing
 import os
 
 from mobie.import_data import import_raw_volume
-from mobie.metadata import add_to_image_dict, have_dataset, get_datasets
+from mobie.metadata import add_to_image_dict, have_dataset, get_datasets, update_transformation_parameter
 from mobie.initialization import initialize_dataset
 
 
@@ -13,7 +13,7 @@ def add_image_data(input_path, input_key,
                    resolution, scale_factors, chunks,
                    tmp_folder=None, target='local',
                    max_jobs=multiprocessing.cpu_count(),
-                   settings=None):
+                   settings=None, transformation=None):
     """ Add an image volume to an existing MoBIE dataset.
 
     Arguments:
@@ -29,6 +29,8 @@ def add_image_data(input_path, input_key,
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
         settings [dict] - layer settings for the segmentation (default: None)
+        transformation [list or np.ndarray] - parameter for affine transformation
+            applied to the data on the fly (default: None)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -47,6 +49,9 @@ def add_image_data(input_path, input_key,
 
     # add the segmentation to the image dict
     add_to_image_dict(dataset_folder, 'image', xml_path)
+
+    if transformation is not None:
+        update_transformation_parameter(xml_path, transformation)
 
 
 def main():
