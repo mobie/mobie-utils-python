@@ -17,7 +17,8 @@ $ pip install -e .
 
 ## Usage
 
-The library contains several helper functions to generate MoBIE project folders and add data to it.
+The library contains functionality to generate MoBIE projects and add data to it.
+You can find a complete example notebook that shows how to generate a project [here]().
 
 ```python
 import mobie
@@ -45,10 +46,7 @@ mobie.initialize_dataset(data_path, data_key,
                          mobie_root, dataset_name, data_name,
                          resolution, chunks, scale_factors)
 
-# copy the metadata from a given dataset to intiialize a new dataset
-# and make links to the actual data
-ne_dataset = 'my_new_dataset'
-mobie.copy_version_folder(mobie_root, dataset_name, new_dataset)
+# TODO add code to add an image
 ```
 
 ### From the command line
