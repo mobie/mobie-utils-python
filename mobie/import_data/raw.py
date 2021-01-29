@@ -1,4 +1,4 @@
-from .util import downscale
+from .util import downscale, ensure_volume
 
 
 def import_raw_volume(in_path, in_key, out_path,
@@ -20,6 +20,8 @@ def import_raw_volume(in_path, in_key, out_path,
         block_shape [tuple[int]] - block shape used for computation.
             By default, same as chunks. (default:None)
     """
+    in_path, in_key = ensure_volume(in_path, in_key,
+                                    tmp_folder, chunks)
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,

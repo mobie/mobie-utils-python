@@ -1,4 +1,4 @@
-from .util import add_max_id, downscale
+from .util import add_max_id, downscale, ensure_volume
 
 
 def import_segmentation(in_path, in_key, out_path,
@@ -21,6 +21,9 @@ def import_segmentation(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         with_max_id [bool] - whether to add the max id attribute
     """
+    in_path, in_key = ensure_volume(in_path, in_key,
+                                    tmp_folder, chunks)
+
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,

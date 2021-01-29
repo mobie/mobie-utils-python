@@ -2,6 +2,7 @@ import json
 import os
 
 import luigi
+import numpy as np
 import nifty.distributed as ndist
 
 from cluster_tools.statistics import DataStatisticsWorkflow
@@ -118,3 +119,24 @@ def add_max_id(in_path, in_key, out_path, out_key,
 
     with open_file(out_path, 'a') as f:
         f[out_key].attrs['maxId'] = int(max_id)
+
+
+def ensure_volume(in_path, in_key, tmp_folder, chunks):
+    with open_file(in_path, mode='r') as f:
+        ndim = len(f[in_key].shape)
+    if ndim not in (2, 3):
+        raise ValueError(f"Expected input of dimension 2 or 3, got {ndim}")
+
+    if ndim == 2:
+        assert chunks[0] == 1, f"{chunks}"
+        with open_file(in_path, mode='r') as f:
+            ds = f[in_key]
+            img = ds[:]
+        tmp_path = os.path.join(tmp_folder, f'img_tmp_{np.random.randint(0, 1000)}.h5')
+        tmp_key = 'data'
+        os.makedirs(tmp_folder, exist_ok=True)
+        with open_file(tmp_path, mode='a') as f:
+            f.create_dataset(tmp_key, data=img[None], chunks=chunks)
+        return tmp_path, tmp_key
+    else:
+        return in_path, in_key

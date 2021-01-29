@@ -50,7 +50,8 @@ def add_image_data(input_path, input_key,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Add image data to MoBIE dataset. Initialize the dataset if it does not exist.")
+    parser = argparse.ArgumentParser(description="""Add image data to MoBIE dataset.
+                                                    Initialize the dataset if it does not exist.""")
     parser.add_argument('--input_path', type=str,
                         help="path to the input data", required=True)
     parser.add_argument('--input_key', type=str,
@@ -100,6 +101,6 @@ def main():
         initialize_dataset(args.input_path, args.input_key,
                            args.root, args.dataset_name, args.image_name,
                            resolution=resolution, chunks=chunks, scale_factors=scale_factors,
-                           is_default=is_default, add_remote=True,
+                           is_default=is_default,
                            tmp_folder=args.tmp_folder, target=args.target,
                            max_jobs=args.max_jobs)

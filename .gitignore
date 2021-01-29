@@ -1,2 +1,6 @@
 __pycache__/
 *.egg-info/
+.ipynb_checkpoints/
+tmp*/
+*.n5
+*.h5
