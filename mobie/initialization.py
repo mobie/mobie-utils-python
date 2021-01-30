@@ -70,7 +70,7 @@ def initialize_dataset(input_path, input_key,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
 
-    add_to_image_dict(dataset_folder, 'image', xml_path, add_remote=False)
+    add_to_image_dict(dataset_folder, 'image', xml_path)
     add_bookmark(dataset_folder, 'default', 'default',
                  layer_settings={raw_name: {'contrastLimits': [0., 255.]}})
 
