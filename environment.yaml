@@ -8,7 +8,7 @@ dependencies:
     - cluster_tools
     - pandas
     - paintera_tools >=0.2.1,<0.3
-    - pybdv >=0.4.2,<0.5
+    - pybdv >=0.5,<0.6
     - s3fs
     - numba <=0.51
     - pip
