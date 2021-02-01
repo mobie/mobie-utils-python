@@ -5,6 +5,7 @@ from shutil import rmtree
 
 import zarr
 import s3fs
+from botocore.exceptions import ClientError
 from tqdm import tqdm
 
 
@@ -35,16 +36,25 @@ def verify_local_dataset(path, dataset_name, n_threads):
     return verify_chunks_local(store, ds, keys, n_threads)
 
 
-def verify_chunks_s3(store, dataset, keys, n_threads):
+def verify_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
+    max_tries = 4
+
+    def load_from_store(key, n_tries):
+        while n_tries < max_tries:
+            try:
+                cdata = store[key]
+                return cdata
+            except ClientError:
+                load_from_store(key, n_tries+1)
+
     def verify_chunk(key):
-        cdata = store[key]
+        cdata = load_from_store(key, n_tries=0)
         try:
             cdata = dataset._decode_chunk(cdata)
         except Exception:
             return key
 
     with futures.ThreadPoolExecutor(n_threads) as tp:
-        # corrupted_chunks = [verify_chunk(key) for key in keys]
         corrupted_chunks = list(tqdm(tp.map(verify_chunk, keys)))
     corrupted_chunks = [key for key in corrupted_chunks if key is not None]
     return corrupted_chunks
