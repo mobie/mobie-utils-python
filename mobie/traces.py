@@ -16,7 +16,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                resolution, scale_factors, chunks,
                max_jobs=multiprocessing.cpu_count(),
                add_default_table=True, settings=None,
-               seg_infos={}):
+               seg_infos={}, unit='micrometer'):
     """ Add traces to an existing MoBIE dataset.
 
     Currently supports nmx and swc format.
@@ -36,6 +36,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         add_default_table [bool] - whether to add the default table (default: True)
         settings [dict] - layer settings for the segmentation (default: None)
         seg_infos [dict] - segmentation information that will be added to the table (default: {})
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -54,7 +55,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                   resolution=resolution,
                   scale_factors=scale_factors,
                   chunks=chunks,
-                  max_jobs=max_jobs)
+                  max_jobs=max_jobs,
+                  unit=unit)
 
     # compute the default segmentation table
     if add_default_table:

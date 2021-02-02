@@ -4,7 +4,7 @@ from .util import downscale, ensure_volume
 def import_raw_volume(in_path, in_key, out_path,
                       resolution, scale_factors, chunks,
                       tmp_folder, target, max_jobs,
-                      block_shape=None):
+                      block_shape=None, unit='micrometer'):
     """ Import raw data to mobie format.
 
     Arguments:
@@ -19,10 +19,11 @@ def import_raw_volume(in_path, in_key, out_path,
         max_jobs [int] - number of jobs (default: number of cores)
         block_shape [tuple[int]] - block shape used for computation.
             By default, same as chunks. (default:None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     in_path, in_key = ensure_volume(in_path, in_key,
                                     tmp_folder, chunks)
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='skimage')
+              library='skimage', unit=unit)

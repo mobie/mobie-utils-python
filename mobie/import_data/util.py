@@ -2,7 +2,6 @@ import json
 import os
 
 import luigi
-import numpy as np
 import nifty.distributed as ndist
 
 from cluster_tools.statistics import DataStatisticsWorkflow
@@ -52,7 +51,8 @@ def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library='vigra', library_kwargs=None,
-              metadata_format='bdv.n5', out_key=''):
+              metadata_format='bdv.n5', out_key='',
+              unit='micrometer'):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -73,7 +73,7 @@ def downscale(in_path, in_key, out_path,
         json.dump(ds_conf, f)
 
     halos = scale_factors
-    metadata_dict = {'resolution': resolution, 'unit': 'micrometer'}
+    metadata_dict = {'resolution': resolution, 'unit': unit}
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
              target=target, max_jobs=max_jobs,
@@ -132,8 +132,11 @@ def ensure_volume(in_path, in_key, tmp_folder, chunks):
         with open_file(in_path, mode='r') as f:
             ds = f[in_key]
             img = ds[:]
-        tmp_path = os.path.join(tmp_folder, f'img_tmp_{np.random.randint(0, 1000)}.h5')
+
+        name = os.path.splitext(os.path.split(in_path)[1])[0]
+        tmp_path = os.path.join(tmp_folder, f'tmp_{name}.h5')
         tmp_key = 'data'
+
         os.makedirs(tmp_folder, exist_ok=True)
         with open_file(tmp_path, mode='a') as f:
             f.create_dataset(tmp_key, data=img[None], chunks=tuple(chunks))

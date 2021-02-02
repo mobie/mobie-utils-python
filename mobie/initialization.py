@@ -36,7 +36,8 @@ def initialize_dataset(input_path, input_key,
                        resolution, chunks, scale_factors,
                        is_default=False,
                        tmp_folder=None, target='local',
-                       max_jobs=multiprocessing.cpu_count(), time_limit=None):
+                       max_jobs=multiprocessing.cpu_count(), time_limit=None,
+                       unit='micrometer'):
     """ Initialize a MoBIE dataset by copying raw data and creating the dataset folder.
 
     Arguments:
@@ -54,6 +55,7 @@ def initialize_dataset(input_path, input_key,
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
         time_limit [int] - time limit for job on cluster (default: None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     if have_dataset(root, dataset_name):
         raise ValueError(f"A dataset with name {dataset_name} is already present.")
@@ -68,7 +70,8 @@ def initialize_dataset(input_path, input_key,
 
     import_raw_volume(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
-                      tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+                      tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
+                      unit=unit)
 
     add_to_image_dict(dataset_folder, 'image', xml_path)
     add_bookmark(dataset_folder, 'default', 'default',

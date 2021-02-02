@@ -13,7 +13,8 @@ def add_image_data(input_path, input_key,
                    resolution, scale_factors, chunks,
                    tmp_folder=None, target='local',
                    max_jobs=multiprocessing.cpu_count(),
-                   settings=None, transformation=None):
+                   settings=None, transformation=None,
+                   unit='micrometer'):
     """ Add an image volume to an existing MoBIE dataset.
 
     Arguments:
@@ -31,6 +32,7 @@ def add_image_data(input_path, input_key,
         settings [dict] - layer settings for the segmentation (default: None)
         transformation [list or np.ndarray] - parameter for affine transformation
             applied to the data on the fly (default: None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -45,7 +47,7 @@ def add_image_data(input_path, input_key,
     import_raw_volume(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,
-                      max_jobs=max_jobs)
+                      max_jobs=max_jobs, unit=unit)
 
     # add the segmentation to the image dict
     add_to_image_dict(dataset_folder, 'image', xml_path)
