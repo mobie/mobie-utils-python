@@ -34,9 +34,10 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
 def initialize_dataset(input_path, input_key,
                        root, dataset_name, raw_name,
                        resolution, chunks, scale_factors,
-                       is_default=False, add_remote=True,
+                       is_default=False,
                        tmp_folder=None, target='local',
-                       max_jobs=multiprocessing.cpu_count(), time_limit=None):
+                       max_jobs=multiprocessing.cpu_count(), time_limit=None,
+                       unit='micrometer'):
     """ Initialize a MoBIE dataset by copying raw data and creating the dataset folder.
 
     Arguments:
@@ -50,11 +51,11 @@ def initialize_dataset(input_path, input_key,
         chunks [tuple[int] or list[int]] - chunks of the data to be written
         scale_factors [list[list[int]]] - downscaling factors for the data to be written
         is_default [bool] - set this dataset as default dataset (default: False)
-        add_remote [bool] - whether to add the remote storage entrie to the image dict (default: True)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
         time_limit [int] - time limit for job on cluster (default: None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     if have_dataset(root, dataset_name):
         raise ValueError(f"A dataset with name {dataset_name} is already present.")
@@ -69,9 +70,10 @@ def initialize_dataset(input_path, input_key,
 
     import_raw_volume(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
-                      tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+                      tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
+                      unit=unit)
 
-    add_to_image_dict(dataset_folder, 'image', xml_path, add_remote=add_remote)
+    add_to_image_dict(dataset_folder, 'image', xml_path)
     add_bookmark(dataset_folder, 'default', 'default',
                  layer_settings={raw_name: {'contrastLimits': [0., 255.]}})
 

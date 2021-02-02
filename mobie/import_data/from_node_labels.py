@@ -36,7 +36,7 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
                                          node_label_path, node_label_key,
                                          resolution, scale_factors, chunks,
                                          tmp_folder, target, max_jobs,
-                                         block_shape=None):
+                                         block_shape=None, unit='micrometer'):
     """ Import segmentation data into mobie format from a paintera dataset
 
     Arguments:
@@ -53,6 +53,7 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
         max_jobs [int] - number of jobs
         block_shape [tuple[int]] - block shape used for computation.
             By default, same as chunks. (default:None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
 
     out_key = 'setup0/timepoint0/s0'
@@ -67,4 +68,5 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
     downscale(out_path, out_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs={'order': 0})
+              library='vigra', library_kwargs={'order': 0},
+              unit=unit)

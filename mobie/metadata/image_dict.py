@@ -39,14 +39,29 @@ def default_layer_setting(layer_type):
     raise ValueError(f"Invalid layer type: {layer_type}")
 
 
-# TODO
-def validate_layer_settings(settings, layer_type):
-    pass
+# TODO check that all fields and values in settings are valid
+def update_layer_settings(settings, layer_type):
+    default_settings = default_layer_setting(layer_type)
+    for key, value in default_settings:
+        if key not in settings:
+            settings.update({key: value})
+    if settings['type'] != layer_type:
+        raise ValueError(f"Expect layer_type {layer_type}, got {settings['type']}")
+    return settings
+
+
+def load_image_dict(image_dict_path):
+    if os.path.exists(image_dict_path):
+        with open(image_dict_path) as f:
+            image_dict = json.load(f)
+    else:
+        image_dict = {}
+    return image_dict
 
 
 def add_to_image_dict(dataset_folder, layer_type, xml_path,
-                      settings=None, table_folder=None, overwrite=False,
-                      add_remote=True):
+                      settings=None, table_folder=None,
+                      overwrite=False):
     """ Add entry to the image dict.
 
     Arguments:
@@ -56,7 +71,6 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
         settings [dict] - settings for the layer. (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: False)
-        add_remote [bool] - whether to add the remote storage entry (default: True)
     """
     if not os.path.exists(xml_path):
         raise ValueError(f"{xml_path} does not exist")
@@ -64,12 +78,7 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
 
     image_folder = os.path.join(dataset_folder, 'images')
     image_dict_path = os.path.join(image_folder, 'images.json')
-
-    if os.path.exists(image_dict_path):
-        with open(image_dict_path) as f:
-            image_dict = json.load(f)
-    else:
-        image_dict = {}
+    image_dict = load_image_dict(image_dict_path)
 
     if layer_name in image_dict and not overwrite:
         raise ValueError(f"{layer_name} is already in the image_dict")
@@ -77,15 +86,11 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
     if settings is None:
         settings = default_layer_setting(layer_type)
     else:
-        validate_layer_settings(settings, layer_type)
-        settings.update({'type': layer_type})
+        settings = update_layer_settings(settings, layer_type)
 
     rel_path = os.path.relpath(xml_path, image_folder)
-    storage = {"local": rel_path}
-    if add_remote:
-        storage["remote"] = rel_path.replace("local", "remote")
     settings.update({
-        "storage": storage
+        "storage": {"local": rel_path}
     })
 
     if table_folder is not None:

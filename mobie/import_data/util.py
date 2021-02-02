@@ -51,7 +51,8 @@ def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library='vigra', library_kwargs=None,
-              metadata_format='bdv.n5', out_key=''):
+              metadata_format='bdv.n5', out_key='',
+              unit='micrometer'):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -72,7 +73,7 @@ def downscale(in_path, in_key, out_path,
         json.dump(ds_conf, f)
 
     halos = scale_factors
-    metadata_dict = {'resolution': resolution, 'unit': 'micrometer'}
+    metadata_dict = {'resolution': resolution, 'unit': unit}
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
              target=target, max_jobs=max_jobs,
@@ -118,3 +119,27 @@ def add_max_id(in_path, in_key, out_path, out_key,
 
     with open_file(out_path, 'a') as f:
         f[out_key].attrs['maxId'] = int(max_id)
+
+
+def ensure_volume(in_path, in_key, tmp_folder, chunks):
+    with open_file(in_path, mode='r') as f:
+        ndim = len(f[in_key].shape)
+    if ndim not in (2, 3):
+        raise ValueError(f"Expected input of dimension 2 or 3, got {ndim}")
+
+    if ndim == 2:
+        assert chunks[0] == 1, f"{chunks}"
+        with open_file(in_path, mode='r') as f:
+            ds = f[in_key]
+            img = ds[:]
+
+        name = os.path.splitext(os.path.split(in_path)[1])[0]
+        tmp_path = os.path.join(tmp_folder, f'tmp_{name}.h5')
+        tmp_key = 'data'
+
+        os.makedirs(tmp_folder, exist_ok=True)
+        with open_file(tmp_path, mode='a') as f:
+            f.create_dataset(tmp_key, data=img[None], chunks=tuple(chunks))
+        return tmp_path, tmp_key
+    else:
+        return in_path, in_key

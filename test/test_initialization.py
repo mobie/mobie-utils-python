@@ -75,8 +75,9 @@ class TestInitialization(unittest.TestCase):
         raw_name = 'test-raw'
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
         initialize_dataset(im_folder, '*.tif', self.root, dataset_name, raw_name,
-                           resolution=(0.25, 1, 1), chunks=(16, 64, 64), scale_factors=scales,
-                           tmp_folder=self.tmp_folder, add_remote=False)
+                           resolution=(0.25, 1, 1), chunks=(16, 64, 64),
+                           scale_factors=scales,
+                           tmp_folder=self.tmp_folder)
 
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
@@ -93,8 +94,9 @@ class TestInitialization(unittest.TestCase):
 
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
         initialize_dataset(data_path, data_key, self.root, dataset_name, raw_name,
-                           resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                           tmp_folder=self.tmp_folder, add_remote=False)
+                           resolution=(1, 1, 1), chunks=(64, 64, 64),
+                           scale_factors=scales,
+                           tmp_folder=self.tmp_folder)
 
     def test_init_from_hdf5(self):
         dataset_name = 'test'

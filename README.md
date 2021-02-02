@@ -17,7 +17,9 @@ $ pip install -e .
 
 ## Usage
 
-The library contains several helper functions to generate MoBIE project folders and add data to it.
+The library contains functionality to generate MoBIE projects and add data to it.
+You can find a complete example notebook that explains how to generate a project [here](https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_project.ipynb).
+Below is a short code snippet that shows how to use it in a python script.
 
 ```python
 import mobie
@@ -27,7 +29,7 @@ mobie_root = '/path/to/project-datasets/data'
 # name of the dataset to be added
 dataset_name = 'my_dataset'
 # internal name for the initial data for this dataset
-data_name = 'raw_data'
+data_name = 'raw-data'
 
 # file path and key for the input data
 # key can be an internal path for hdf5 or zarr/n5 containers
@@ -40,15 +42,24 @@ resolution = (.5, .25, .25)
 chunks = (64, 128, 128)
 scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2]]
 
-# initialize a dataset for this project from some raw data
+# initialize a dataset for this project with raw data
 mobie.initialize_dataset(data_path, data_key,
                          mobie_root, dataset_name, data_name,
                          resolution, chunks, scale_factors)
 
-# copy the metadata from a given dataset to intiialize a new dataset
-# and make links to the actual data
-ne_dataset = 'my_new_dataset'
-mobie.copy_version_folder(mobie_root, dataset_name, new_dataset)
+# add a different image with different base resolution to the dataset
+image_path = '/path/to/image.h5'
+image_key = 'h5/path'
+
+image_name = 'image-data'
+resolution = (.5, .5, .5)
+chunks = 3 * (64,)
+scale_factors = 3 * [[2, 2, 2]]
+
+mobie.add_image(image_path, image_key,
+                mobie_root, dataset_name, image_name,
+                resolution, chunks, scale_factors)
+
 ```
 
 ### From the command line

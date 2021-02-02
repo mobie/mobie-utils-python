@@ -142,7 +142,8 @@ def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
 def import_traces(input_folder, out_path,
                   reference_path, reference_scale,
                   resolution, scale_factors,
-                  radius=2, chunks=None, max_jobs=8):
+                  radius=2, chunks=None, max_jobs=8,
+                  unit='micrometer'):
     """ Import trace data into the mobie format.
 
     input_folder [str] - folder with traces to be imported.
@@ -154,6 +155,7 @@ def import_traces(input_folder, out_path,
     radius [int] - radius to write for the traces
     chunks [list[int]] - chunks for the traces volume
     max_jobs [int] - number of threads to use for down-samling
+    unit [str] - physical unit (default: micrometer)
     """
 
     traces = parse_traces(input_folder)
@@ -184,7 +186,6 @@ def import_traces(input_folder, out_path,
     xml_path = os.path.splitext(out_path)[0] + '.xml'
     # we assume that the resolution is in nanometer, but want to write in microns for bdv
     bdv_res = [res / 1000. for res in resolution]
-    unit = 'micrometer'
     write_xml_metadata(xml_path, out_path, unit, bdv_res, is_h5,
                        setup_id=0, timepoint=0, setup_name=None,
                        affine=None, attributes={'channel': {'id': 0}},

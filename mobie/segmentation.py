@@ -19,7 +19,7 @@ def add_segmentation(input_path, input_key,
                      tmp_folder=None, target='local',
                      max_jobs=multiprocessing.cpu_count(),
                      add_default_table=True, settings=None,
-                     postprocess_config=None):
+                     postprocess_config=None, unit='micrometer'):
     """ Add a segmentation to an existing MoBIE dataset.
 
     Arguments:
@@ -40,6 +40,7 @@ def add_segmentation(input_path, input_key,
         settings [dict] - layer settings for the segmentation (default: None)
         postprocess_config [dict] - config for postprocessing,
             only available for paintera dataset (default: None)
+        unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     # check that we have this dataset
     if not have_dataset(root, dataset_name):
@@ -58,18 +59,19 @@ def add_segmentation(input_path, input_key,
                                              node_label_path, node_label_key,
                                              resolution, scale_factors, chunks,
                                              tmp_folder=tmp_folder, target=target,
-                                             max_jobs=max_jobs)
+                                             max_jobs=max_jobs, unit=unit)
     elif is_paintera(input_path, input_key):
         import_segmentation_from_paintera(input_path, input_key, data_path,
                                           resolution, scale_factors, chunks,
                                           tmp_folder=tmp_folder, target=target,
                                           max_jobs=max_jobs,
-                                          postprocess_config=postprocess_config)
+                                          postprocess_config=postprocess_config,
+                                          unit=unit)
     else:
         import_segmentation(input_path, input_key, data_path,
                             resolution, scale_factors, chunks,
                             tmp_folder=tmp_folder, target=target,
-                            max_jobs=max_jobs)
+                            max_jobs=max_jobs, unit=unit)
 
     # compute the default segmentation table
     if add_default_table:
