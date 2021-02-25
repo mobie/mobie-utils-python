@@ -23,12 +23,11 @@ requirements:
     - pip
   run:
     - python >=3.6
-    - cluster_tools
+    - cluster_tools >=0.3.4
     - pandas
-    - paintera_tools >=0.2.1,<0.3
-    - pybdv >=0.5,<0.6
+    - paintera_tools >=0.2.1
+    - pybdv >=0.5
     - s3fs
-    - elf
 
 test:
   imports:
