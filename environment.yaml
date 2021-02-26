@@ -4,13 +4,11 @@ channels:
     - conda-forge
     - cpape
 dependencies:
-    - python 3.7
-    - cluster_tools
+    - elf >=0.2.4
+    - numba <=0.50
+    - cluster_tools >=0.3.4
     - pandas
-    - paintera_tools >=0.2.1,<0.3
-    - pybdv >=0.5,<0.6
+    - paintera_tools >=0.2.1
+    - pybdv >=0.5
     - s3fs
-    - numba <=0.51
     - pip
-    - pip:
-        - https://github.com/constantinpape/elf/archive/0.2.3.tar.gz

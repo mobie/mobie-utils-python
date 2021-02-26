@@ -5,6 +5,14 @@ A python library to generate projects for [MoBIE](https://github.com/mobie-org/m
 
 ## Installation
 
+**From conda:**
+
+```
+conda install -c conda-forge -c cpape mobie_utils
+```
+
+**For development:**
+
 You can set up (and activate) a conda environment with all dependencies from `environment.yaml`:
 ```sh
 $ conda env create -f environment.yaml
