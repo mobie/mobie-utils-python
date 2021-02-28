@@ -26,7 +26,7 @@ $ pip install -e .
 ## Usage
 
 The library contains functionality to generate MoBIE projects and add data to it.
-Check out [the example notebook] (https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_project.ipynb) to see how to generate a MoBIE project.
+Check out [the example notebook](https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_project.ipynb) to see how to generate a MoBIE project.
 
 Below is a short code snippet that shows how to use it in a python script.
 
