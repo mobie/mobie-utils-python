@@ -8,7 +8,7 @@ A python library to generate projects for [MoBIE](https://github.com/mobie-org/m
 **From conda:**
 
 ```
-conda install -c conda-forge -c cpape mobie_utils
+$ conda install -c conda-forge -c cpape mobie_utils
 ```
 
 **For development:**
