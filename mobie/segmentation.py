@@ -87,7 +87,7 @@ def add_segmentation(input_path, input_key,
 
     # add the segmentation to the image dict
     add_to_image_dict(dataset_folder, 'segmentation', xml_path,
-                      table_folder=table_folder)
+                      table_folder=table_folder, settings=settings)
 
 
 def main():

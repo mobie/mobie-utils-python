@@ -1,5 +1,20 @@
 import json
 import os
+import numpy as np
+
+
+# enable dumping np dtypes
+class NPTypesEncoder(json.JSONEncoder):
+    int_types = (np.int8, np.int16, np.int32, np.int64,
+                 np.uint8, np.uint16, np.uint32, np.uint64)
+    float_types = (np.float32, np.float64)
+
+    def default(self, obj):
+        if isinstance(obj, self.int_types):
+            return int(obj)
+        if isinstance(obj, self.float_types):
+            return float(obj)
+        return json.JSONEncoder.default(self, obj)
 
 
 def default_image_layer_settings():
@@ -42,7 +57,7 @@ def default_layer_setting(layer_type):
 # TODO check that all fields and values in settings are valid
 def update_layer_settings(settings, layer_type):
     default_settings = default_layer_setting(layer_type)
-    for key, value in default_settings:
+    for key, value in default_settings.items():
         if key not in settings:
             settings.update({key: value})
     if settings['type'] != layer_type:
@@ -105,4 +120,5 @@ def add_to_image_dict(dataset_folder, layer_type, xml_path,
 
     image_dict[layer_name] = settings
     with open(image_dict_path, 'w') as f:
-        json.dump(image_dict, f, indent=2, sort_keys=True)
+        json.dump(image_dict, f, indent=2, sort_keys=True,
+                  cls=NPTypesEncoder)

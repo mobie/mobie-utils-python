@@ -50,7 +50,8 @@ def add_image_data(input_path, input_key,
                       max_jobs=max_jobs, unit=unit)
 
     # add the segmentation to the image dict
-    add_to_image_dict(dataset_folder, 'image', xml_path)
+    add_to_image_dict(dataset_folder, 'image', xml_path,
+                      settings=settings)
 
     if transformation is not None:
         update_transformation_parameter(xml_path, transformation)

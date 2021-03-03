@@ -50,7 +50,8 @@ def add_mask(input_path, input_key,
                         unit=unit)
 
     # add the mask to the image dict
-    add_to_image_dict(dataset_folder, 'mask', xml_path)
+    add_to_image_dict(dataset_folder, 'mask', xml_path,
+                      settings=settings)
 
     if transformation is not None:
         update_transformation_parameter(xml_path, transformation)

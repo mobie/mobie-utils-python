@@ -34,7 +34,7 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
 def initialize_dataset(input_path, input_key,
                        root, dataset_name, raw_name,
                        resolution, chunks, scale_factors,
-                       is_default=False,
+                       is_default=False, settings=None,
                        tmp_folder=None, target='local',
                        max_jobs=multiprocessing.cpu_count(), time_limit=None,
                        unit='micrometer'):
@@ -51,6 +51,7 @@ def initialize_dataset(input_path, input_key,
         chunks [tuple[int] or list[int]] - chunks of the data to be written
         scale_factors [list[list[int]]] - downscaling factors for the data to be written
         is_default [bool] - set this dataset as default dataset (default: False)
+        settings [dict] - layer settings for the segmentation (default: None)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
@@ -73,9 +74,10 @@ def initialize_dataset(input_path, input_key,
                       tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
                       unit=unit)
 
-    add_to_image_dict(dataset_folder, 'image', xml_path)
+    add_to_image_dict(dataset_folder, 'image', xml_path, settings=settings)
+    settings = {'contrastLimits': [0., 255.]} if settings is None else settings
     add_bookmark(dataset_folder, 'default', 'default',
-                 layer_settings={raw_name: {'contrastLimits': [0., 255.]}})
+                 layer_settings={raw_name: settings})
 
     add_dataset(root, dataset_name, is_default)
 
