@@ -1,5 +1,3 @@
-import argparse
-
 from mobie.migration.make_leveled_view import make_leveled_views
 from mobie.migration.migrate_bookmarks import migrate_all_bookmakrs
 from mobie.migration.migrate_image_dicts import migrate_all_image_dicts
@@ -22,18 +20,3 @@ def migrate_to_mobie(root, pattern, anon, normal_vector=None):
     update_all_xmls(root, pattern, anon)
 
     versions_to_datasets(root)
-
-
-# TODO pass the normal vector
-def main():
-    parser = argparse.ArgumentParser(description="Migrate old platybrowser layout to new MoBIE layout.")
-    parser.add_argument('root', type=str)
-    parser.add_argument('pattern', type=str)
-    parser.add_argument('--anon', type=int, default=1)
-
-    args = parser.parse_args()
-    migrate_to_mobie(args.root, args.pattern, bool(args.anon))
-
-
-if __name__ == '__main__':
-    main()

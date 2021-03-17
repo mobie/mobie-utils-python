@@ -18,8 +18,8 @@ setup(
             "mobie.add_registered_volume = mobie.registration:main",
             "mobie.add_segmentation = mobie.segmentation:main",
             "mobie.add_traces = mobie.traces:main",
-            "mobie.migrate_to_mobie = mobie.migration.migrate:main",
-            "mobie.migrate_dataset_to_mobie = mobie.migration.migrate_dataset:main",
+            "mobie.migrate_project = mobie.migration.migrate_project:main",
+            "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
         ]
     },
 )

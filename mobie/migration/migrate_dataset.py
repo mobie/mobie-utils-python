@@ -1,34 +1,25 @@
 import argparse
-import os
-from .make_leveled_view import make_leveled_view
-from .migrate_bookmarks import migrate_bookmarks
-from .migrate_image_dicts import migrate_image_dict
-from .remove_additional_tables_file import remove_for_single_dataset
-from .update_xmls import update_xmls
+from .migrate_v1.migrate_dataset import migrate_dataset_to_mobie as migrate_dataset_v1
+from .migrate_v2 import migrate_dataset as migrate_dataset_v2
 
 
-def migrate_dataset_to_mobie(folder, anon, normal_vector=None):
-
-    if normal_vector is not None:
-        make_leveled_view(folder, normal_vector)
-
-    migrate_bookmarks(os.path.join(folder, 'misc'))
-
-    migrate_image_dict(os.path.join(folder, 'images', 'images.json'))
-
-    remove_for_single_dataset(folder)
-
-    update_xmls(folder, anon)
-
-
-# TODO pass the normal vector
 def main():
-    parser = argparse.ArgumentParser(description="Migrate old platybrowser dataset to new MoBIE dataset.")
+    parser = argparse.ArgumentParser(description="Migrate dataset to newer spec version.")
     parser.add_argument('folder', type=str)
+    msg = """Migration script version: choose one of
+        1) migrate from platybrowser spec to MoBIE spec 0.1
+        2) migrate spec 0.1 to 0.2"""
+    parser.add_argument('--version', '-v', type=int, default=2, help=msg)
     parser.add_argument('--anon', type=int, default=1)
 
     args = parser.parse_args()
-    migrate_dataset_to_mobie(args.folder, bool(args.anon))
+    version = args.version
+    if version == 1:
+        migrate_dataset_v1(args.folder, bool(args.anon))
+    elif version == 2:
+        migrate_dataset_v2(args.folder)
+    else:
+        raise ValueError(f"Invalid version {version}")
 
 
 if __name__ == '__main__':
