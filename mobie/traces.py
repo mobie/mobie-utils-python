@@ -61,7 +61,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
     # compute the default segmentation table
     if add_default_table:
         table_folder = os.path.join(dataset_folder, 'tables', traces_name)
-        table_path = os.path.join(table_folder, 'default.csv')
+        table_path = os.path.join(table_folder, 'default.tsv')
         os.makedirs(table_folder, exist_ok=True)
         compute_trace_default_table(input_folder, table_path, resolution,
                                     seg_infos=seg_infos)

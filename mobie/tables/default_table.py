@@ -6,6 +6,7 @@ import pandas as pd
 
 from cluster_tools.morphology import MorphologyWorkflow
 from elf.io import open_file
+from .util import remove_background_label_row
 from ..config import write_global_config
 
 
@@ -74,6 +75,7 @@ def to_csv(input_path, input_key, output_path, resolution,
     # wrie the output table
     data = np.concatenate([label_ids, anchors, minc, maxc, attributes[:, 1:2]], axis=1)
     df = pd.DataFrame(data, columns=col_names)
+    df = remove_background_label_row(df)
     df.to_csv(output_path, sep='\t', index=False)
 
     return label_ids

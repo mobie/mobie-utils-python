@@ -76,7 +76,7 @@ def add_segmentation(input_path, input_key,
     # compute the default segmentation table
     if add_default_table:
         table_folder = os.path.join(dataset_folder, 'tables', segmentation_name)
-        table_path = os.path.join(table_folder, 'default.csv')
+        table_path = os.path.join(table_folder, 'default.tsv')
         os.makedirs(table_folder, exist_ok=True)
         key = get_key(False, 0, 0, 0)
         compute_default_table(data_path, key, table_path, resolution,

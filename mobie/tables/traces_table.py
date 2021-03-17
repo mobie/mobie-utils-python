@@ -7,6 +7,7 @@ from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 from tqdm import tqdm
 
+from .util import remove_background_label_row
 from ..import_data.traces import parse_traces, vals_to_coords
 
 
@@ -88,4 +89,5 @@ def compute_trace_default_table(input_folder, table_path, resolution, seg_infos=
     os.makedirs(table_folder, exist_ok=True)
 
     table = pd.DataFrame(table, columns=header)
+    table = remove_background_label_row(table)
     table.to_csv(table_path, index=False, sep='\t')

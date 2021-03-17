@@ -124,7 +124,7 @@ def add_registered_volume(input_path, input_key, transformation,
             raise NotImplementedError(msg)
 
         table_folder = os.path.join(dataset_folder, 'tables', data_name)
-        table_path = os.path.join(table_folder, 'default.csv')
+        table_path = os.path.join(table_folder, 'default.tsv')
         os.makedirs(table_folder, exist_ok=True)
         compute_default_table(data_path, data_key, table_path, effective_resolution,
                               tmp_folder=tmp_folder, target=target,
