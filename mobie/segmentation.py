@@ -1,26 +1,30 @@
-import argparse
-import json
 import multiprocessing
 import os
 
 from pybdv.metadata import get_key
+import mobie.metadata as metadata
 from mobie.import_data import (import_segmentation,
                                import_segmentation_from_node_labels,
                                import_segmentation_from_paintera,
                                is_paintera)
-from mobie.metadata import add_to_image_dict, have_dataset
 from mobie.tables import compute_default_table
+from mobie.utils import (get_default_menu_item, get_base_parser,
+                         parse_spatial_args, parse_view)
+from mobie.validation import validate_view_metadata
 
 
+# TODO support transformation
+# TODO support default arguments for scale factors and chunks
 def add_segmentation(input_path, input_key,
                      root, dataset_name, segmentation_name,
                      resolution, scale_factors, chunks,
+                     menu_item=None,
                      node_label_path=None, node_label_key=None,
                      tmp_folder=None, target='local',
                      max_jobs=multiprocessing.cpu_count(),
-                     add_default_table=True, settings=None,
+                     add_default_table=True, view=None,
                      postprocess_config=None, unit='micrometer'):
-    """ Add a segmentation to an existing MoBIE dataset.
+    """ Add segmentation source to MoBIE dataset.
 
     Arguments:
         input_path [str] - path to the segmentation to add.
@@ -31,22 +35,30 @@ def add_segmentation(input_path, input_key,
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
+        menu_item [str] - menu item for this source.
+            If none is given will be created based on the image name. (default: None)
         node_label_path [str] - path to node labels (default: None)
         node_label_key [str] - key to node labels (default: None)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
         add_default_table [bool] - whether to add the default table (default: True)
-        settings [dict] - layer settings for the segmentation (default: None)
+        view [dict] - default view settings for this source (default: None)
         postprocess_config [dict] - config for postprocessing,
             only available for paintera dataset (default: None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     # check that we have this dataset
-    if not have_dataset(root, dataset_name):
+    if not metadata.have_dataset(root, dataset_name):
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
 
-    tmp_folder = f'tmp_{segmentation_name}' if tmp_folder is None else tmp_folder
+    if menu_item is None:
+        menu_item = get_default_menu_item("segmentation", segmentation_name)
+    if view is None:
+        view = metadata.get_default_view("segmentation", segmentation_name)
+    validate_view_metadata(view, sources=[segmentation_name])
+
+    tmp_folder = f'tmp_{dataset_name}_{segmentation_name}' if tmp_folder is None else tmp_folder
 
     # import the segmentation data
     dataset_folder = os.path.join(root, dataset_name)
@@ -86,62 +98,30 @@ def add_segmentation(input_path, input_key,
         table_folder = None
 
     # add the segmentation to the image dict
-    add_to_image_dict(dataset_folder, 'segmentation', xml_path,
-                      table_folder=table_folder, settings=settings)
+    metadata.add_source_metadata(dataset_folder, 'segmentation',
+                                 segmentation_name, xml_path,
+                                 menu_item=menu_item,
+                                 table_folder=table_folder, view=view)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Add segmentation to MoBIE dataset")
-    parser.add_argument('--input_path', type=str,
-                        help="path to the input segmentation",
-                        required=True)
-    parser.add_argument('--input_key', type=str,
-                        help="key for the input segmentation, e.g. internal path for h5/n5 data",
-                        required=True)
-    parser.add_argument('--root', type=str,
-                        help="root folder of the MoBIE project",
-                        required=True)
-    parser.add_argument('--dataset_name', type=str,
-                        help="name of the dataset to which the segmentation is added",
-                        required=True)
-    parser.add_argument('--segmentation_name', type=str,
-                        help="name of the segmentation that is added",
-                        required=True)
-
-    parser.add_argument('--resolution', type=str,
-                        help="resolution of the data in micrometer, json-encoded",
-                        required=True)
-    parser.add_argument('--scale_factors', type=str,
-                        help="factors used for downscaling the data, json-encoded",
-                        required=True)
-    parser.add_argument('--chunks', type=str,
-                        help="chunks of the data that is added, json-encoded",
-                        required=True)
-
+    description = "Add segmentation source to MoBIE dataset."
+    parser = get_base_parser(description)
     parser.add_argument('--node_label_path', type=str, default=None,
                         help="path to the node_labels for the segmentation")
     parser.add_argument('--node_label_key', type=str, default=None,
                         help="key for the node labels for segmentation")
-
     parser.add_argument('--add_default_table', type=int, default=1,
                         help="whether to add the default table")
-    parser.add_argument('--tmp_folder', type=str, default=None,
-                        help="folder for temporary computation files")
-    parser.add_argument('--target', type=str, default='local',
-                        help="computation target")
-    parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count(),
-                        help="number of jobs")
-
     args = parser.parse_args()
 
-    # resolution, scale_factors and chunks need to be json encoded
-    resolution = json.loads(args.resolution)
-    scale_factors = json.loads(args.scale_factors)
-    chunks = json.loads(args.chunks)
+    resolution, scale_factors, chunks, transformation = parse_spatial_args(args)
+    view = parse_view(args)
 
     add_segmentation(args.input_path, args.input_key,
-                     args.root, args.dataset_name, args.segmentation_name,
+                     args.root, args.dataset_name, args.name,
                      node_label_path=args.node_label_path, node_label_key=args.node_label_key,
-                     resolution=resolution, add_default_table=bool(args.add_default_table),
-                     scale_factors=scale_factors, chunks=chunks,
+                     resolution=resolution, scale_factors=scale_factors, chunks=chunks,
+                     add_default_table=bool(args.add_default_table),
+                     view=view, unit=args.unit, menu_item=args.menu_item,
                      tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs)

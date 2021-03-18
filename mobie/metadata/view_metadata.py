@@ -21,6 +21,7 @@ def get_default_view(source_type, source_name):
                     "segmentationDisplays": {
                         "alpha": 0.75,  # TODO find a good default alpha value
                         "color": "glasbey",
+                        "name": source_name,
                         "sources": [source_name]
                     }
                 }

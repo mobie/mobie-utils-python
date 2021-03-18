@@ -46,20 +46,22 @@ def validate_view_metadata(view, sources=None, assert_true=_assert_true):
     displays = view["sourceDisplays"]
     for display in displays:
         display_metadata = list(display.values())[0]
+        display_name = display_metadata['name']
         display_sources = display_metadata["sources"]
         all_display_sources.extend(display_sources)
         if sources is not None:
             wrong_sources = list(set(display_sources) - set(sources))
-            msg = f"Found wrong sources {wrong_sources} in sourceDisplay {display_metadata['name']}"
+            msg = f"Found wrong sources {wrong_sources} in sourceDisplay {display_name}"
             assert_true(len(wrong_sources) == 0, msg)
 
     # TODO validate table root location for auto grid
-    all_display_sources = set(all_display_sources)
     source_transformations = view.get("sourceTransformations")
     if source_transformations is not None:
+        all_display_sources = set(all_display_sources)
         for transform in source_transformations:
             transform_metadata = list(transform.values())[0]
+            transform_name = transform_metadata['name']
             transform_sources = transform_metadata["sources"]
             wrong_sources = list(set(transform_sources) - all_display_sources)
-            msg = f"Found wrong sources {wrong_sources} in transform {transform_metadata['name']}"
+            msg = f"Found wrong sources {wrong_sources} in transform {transform_name}"
             assert_true(len(wrong_sources) == 0, msg)
