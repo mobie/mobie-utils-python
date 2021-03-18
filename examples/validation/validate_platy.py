@@ -1,6 +1,6 @@
 import argparse
 import json
-from mobie.verification import verify_s3_dataset
+from mobie.verification import validate_s3_dataset
 
 
 def verify_platy_dataset(version, dataset_name, scale, n_threads, save_path):
@@ -11,8 +11,8 @@ def verify_platy_dataset(version, dataset_name, scale, n_threads, save_path):
     dataset_name = f'setup0/timepoint0/s{scale}'
 
     # TODO catch error if dataset / version / scale combination is invalid
-    corrupted_chunks = verify_s3_dataset(bucket, path_in_bucket, dataset_name,
-                                         server=server, anon=True)
+    corrupted_chunks = validate_s3_dataset(bucket, path_in_bucket, dataset_name,
+                                           server=server, anon=True)
 
     if save_path:
         print("Saving corrupted chunks to", save_path)

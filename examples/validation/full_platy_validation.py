@@ -3,14 +3,14 @@ import os
 import shutil
 from glob import glob
 
-from mobie.verification import verify_s3_dataset, fix_corrupted_chunks_minio
+from mobie.validation.data import validate_s3_dataset, fix_corrupted_chunks_minio
 from mobie.xml_utils import read_path_in_bucket
 from pybdv.metadata import get_data_path
 
 SAVE_DIR = './corrupted_chunks'
 
 
-# TODO move this to mobie.verification.py
+# TODO move this to mobie.validation
 
 def verify_dataset(dataset_key, scale, n_threads):
     server = 'https://s3.embl.de'
@@ -19,8 +19,8 @@ def verify_dataset(dataset_key, scale, n_threads):
     path_in_bucket = f'platybrowser/{dataset_key}'
     dataset_name = f'setup0/timepoint0/s{scale}'
 
-    corrupted_chunks = verify_s3_dataset(bucket, path_in_bucket, dataset_name,
-                                         server=server, anon=True)
+    corrupted_chunks = validate_s3_dataset(bucket, path_in_bucket, dataset_name,
+                                           server=server, anon=True)
     return corrupted_chunks
 
 

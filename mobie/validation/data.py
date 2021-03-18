@@ -11,9 +11,9 @@ from botocore.exceptions import ClientError
 from tqdm import tqdm
 
 
-def verify_chunks_local(store, dataset, keys, n_threads):
+def validate_chunks_local(store, dataset, keys, n_threads):
 
-    def verify_chunk(chunk_key):
+    def validate_chunk(chunk_key):
         key = os.path.join(dataset.path, chunk_key)
         cdata = store[key]
         try:
@@ -22,12 +22,12 @@ def verify_chunks_local(store, dataset, keys, n_threads):
             return chunk_key
 
     with futures.ThreadPoolExecutor(n_threads) as tp:
-        corrupted_chunks = list(tqdm(tp.map(verify_chunk, keys)))
+        corrupted_chunks = list(tqdm(tp.map(validate_chunk, keys)))
     corrupted_chunks = [key for key in corrupted_chunks if key is not None]
     return corrupted_chunks
 
 
-def verify_local_dataset(path, dataset_name, n_threads, keys=None):
+def validate_local_dataset(path, dataset_name, n_threads, keys=None):
     f = zarr.open(path, mode='r')
     ds = f[dataset_name]
     store = ds.store
@@ -36,10 +36,10 @@ def verify_local_dataset(path, dataset_name, n_threads, keys=None):
 
     if keys is None:
         keys = list(set(store.listdir(ds.path)) - set(['.zarray', '.zattrs']))
-    return verify_chunks_local(store, ds, keys, n_threads)
+    return validate_chunks_local(store, ds, keys, n_threads)
 
 
-def verify_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
+def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
     max_tries = 4
 
     def load_from_store(key, n_tries):
@@ -50,7 +50,7 @@ def verify_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
             except ClientError:
                 load_from_store(key, n_tries+1)
 
-    def verify_chunk(key):
+    def validate_chunk(key):
         cdata = load_from_store(key, n_tries=0)
         try:
             cdata = dataset._decode_chunk(cdata)
@@ -58,7 +58,7 @@ def verify_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
             return key
 
     with futures.ThreadPoolExecutor(n_threads) as tp:
-        corrupted_chunks = list(tqdm(tp.map(verify_chunk, keys)))
+        corrupted_chunks = list(tqdm(tp.map(validate_chunk, keys)))
     corrupted_chunks = [key for key in corrupted_chunks if key is not None]
 
     if 'attributes.json' in corrupted_chunks:
@@ -77,12 +77,12 @@ def _get_fs(server, anon):
 
 
 # zarr doesn't support s3 n5 yet, so we need to hack it...
-def verify_s3_dataset(bucket_name,
-                      path_in_bucket,
-                      dataset_name,
-                      server=None,
-                      anon=True,
-                      n_threads=1):
+def validate_s3_dataset(bucket_name,
+                        path_in_bucket,
+                        dataset_name,
+                        server=None,
+                        anon=True,
+                        n_threads=1):
 
     tmp_file = './tmp_file.n5'
     os.makedirs(tmp_file, exist_ok=True)
@@ -114,13 +114,13 @@ def verify_s3_dataset(bucket_name,
     with open(attrs_file, 'w') as f:
         json.dump(attrs, f)
 
-    print("Verifying chunks for s3 dataset stored at")
+    print("validateing chunks for s3 dataset stored at")
     if server is None:
         print(f"{bucket_name}:{path_in_bucket}:{dataset_name}")
     else:
         print(f"{server}:{bucket_name}:{path_in_bucket}:{dataset_name}")
     dataset = zarr.open(tmp_file)[dataset_name]
-    corrupted_chunks = verify_chunks_s3(store, dataset, keys=iter(store), n_threads=n_threads)
+    corrupted_chunks = validate_chunks_s3(store, dataset, keys=iter(store), n_threads=n_threads)
 
     try:
         rmtree(tmp_file)
