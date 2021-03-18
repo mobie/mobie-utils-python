@@ -12,6 +12,7 @@ from elf.io import open_file
 from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 from mobie import add_image
+from mobie.validation import validate_project, validate_source_metadata
 
 
 class TestImageData(unittest.TestCase):
@@ -140,43 +141,13 @@ class TestImageData(unittest.TestCase):
         dataset_folder = os.path.join(self.root, self.dataset_name)
         self.check_data(dataset_folder, im_name)
 
-    # TODO refactor to mobie.validation or similar
-    # TODO check metadata formats
     #
     # data validation
     #
 
-    def check_data(self, dataset_folder, im_name):
-        self.assertTrue(os.path.exists(dataset_folder))
-        exp_data = self.data
-
-        # check the im data
-        im_path = os.path.join(dataset_folder, 'images', 'local', f'{im_name}.n5')
-        self.assertTrue(os.path.exists(im_path))
-        key = get_key(False, 0, 0, 0)
-        with open_file(im_path, 'r') as f:
-            data = f[key][:]
-        self.assertTrue(np.array_equal(data, exp_data))
-
-        # check the image dict
-        im_dict_path = os.path.join(dataset_folder, 'sources.json')
-        with open(im_dict_path) as f:
-            im_dict = json.load(f)
-        self.assertIn(im_name, im_dict)
-
     def check_dataset(self, dataset_folder, exp_shape, raw_name):
-        self.assertTrue(os.path.exists(dataset_folder))
-
-        # check the folder structure
-        expected_folders = [
-            'images/remote',
-            'images/local',
-            'misc/bookmarks',
-            'tables'
-        ]
-        for exp_folder in expected_folders:
-            folder = os.path.join(dataset_folder, exp_folder)
-            self.assertTrue(os.path.exists(folder))
+        # validate the full project
+        validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
 
         # check the raw data
         xml_path = os.path.join(dataset_folder, 'images', 'local', f'{raw_name}.xml')
@@ -186,12 +157,23 @@ class TestImageData(unittest.TestCase):
             shape = f[key].shape
         self.assertEqual(shape, exp_shape)
 
-        # check the bookmarks
-        default_bookmark = os.path.join(dataset_folder, 'misc', 'bookmarks', 'default.json')
-        self.assertTrue(os.path.exists(default_bookmark))
-        with open(default_bookmark) as f:
-            default_bookmark = json.load(f)
-        self.assertIn('default', default_bookmark)
+    def check_data(self, dataset_folder, name):
+        exp_data = self.data
+
+        # check the image metadata
+        metadata_path = os.path.join(dataset_folder, 'sources.json')
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+        self.assertIn(name, metadata)
+        validate_source_metadata(name, metadata[name], dataset_folder)
+
+        # check the image data
+        im_path = os.path.join(dataset_folder, 'images', 'local', f'{name}.n5')
+        self.assertTrue(os.path.exists(im_path))
+        key = get_key(False, 0, 0, 0)
+        with open_file(im_path, 'r') as f:
+            data = f[key][:]
+        self.assertTrue(np.array_equal(data, exp_data))
 
 
 if __name__ == '__main__':

@@ -3,27 +3,25 @@
 def get_default_view(source_type, source_name):
     if source_type == 'image':
         view = {
-            "displayGroups": [
+            "sourceDisplays": [
                 {
-                    "imageDisplayGroup": {
+                    "imageDisplays": {
                         "color": "white",
                         "contrastLimits": [0.0, 255.0],
                         "name": source_name,
-                        "sources": [source_name],
-                        "timepoint": 0
+                        "sources": [source_name]
                     }
                 }
             ]
         }
     elif source_type == 'segmentation':
         view = {
-            "displayGroups": [
+            "sourceDisplays": [
                 {
-                    "segmentationDisplayGroup": {
-                        "alpha": 1000.,  # TODO what is our alpha range and what's the default value
+                    "segmentationDisplays": {
+                        "alpha": 0.75,  # TODO find a good default alpha value
                         "color": "glasbey",
-                        "sources": [source_name],
-                        "timepoint": 0
+                        "sources": [source_name]
                     }
                 }
             ]

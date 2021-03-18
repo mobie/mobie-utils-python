@@ -5,6 +5,7 @@ import mobie.metadata as metadata
 from mobie.import_data import import_image_data
 from mobie.utils import (get_default_menu_item, get_base_parser,
                          parse_spatial_args, parse_view)
+from mobie.validation import validate_view_metadata
 
 
 # TODO support default arguments for scale factors and chunks
@@ -54,7 +55,7 @@ def add_image(input_path, input_key,
 
     if view is None:
         view = metadata.get_default_view('image', image_name)
-    # TODO validate the view metadata
+    validate_view_metadata(view, sources=[image_name])
 
     # import the image data and add the metadata
     dataset_folder = os.path.join(root, dataset_name)
@@ -64,7 +65,7 @@ def add_image(input_path, input_key,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,
                       max_jobs=max_jobs, unit=unit)
-    metadata.add_source_metadata(dataset_folder, 'image', xml_path,
+    metadata.add_source_metadata(dataset_folder, 'image', image_name, xml_path,
                                  menu_item=menu_item, view=view)
 
     if transformation is not None:
