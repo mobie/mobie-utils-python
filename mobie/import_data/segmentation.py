@@ -1,4 +1,4 @@
-from .util import add_max_id, downscale, ensure_volume
+from .utils import add_max_id, downscale, ensure_volume
 
 
 def import_segmentation(in_path, in_key, out_path,

@@ -3,8 +3,8 @@ import json
 import luigi
 
 from cluster_tools.write import WriteLocal, WriteSlurm
-from .util import downscale
-from ..config import write_global_config
+from .utils import downscale
+from ..utils import write_global_config
 
 
 def _write_segmentation(in_path, in_key,

@@ -9,7 +9,7 @@ import numpy as np
 from elf.io import open_file
 from elf.transformation import elastix_parser
 from cluster_tools.copy_volume import CopyVolumeLocal, CopyVolumeSlurm
-from mobie.config import write_global_config
+from mobie.utils import write_global_config
 from .registration_impl import (registration_affine,
                                 registration_bdv,
                                 registration_coordinate,

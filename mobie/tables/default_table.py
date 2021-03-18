@@ -6,8 +6,8 @@ import pandas as pd
 
 from cluster_tools.morphology import MorphologyWorkflow
 from elf.io import open_file
-from .util import remove_background_label_row
-from ..config import write_global_config
+from .utils import remove_background_label_row
+from ..utils import write_global_config
 
 
 def _table_impl(input_path, input_key, tmp_folder, target, max_jobs):

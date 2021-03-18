@@ -1,4 +1,4 @@
-from .util import downscale, ensure_volume
+from .utils import downscale, ensure_volume
 
 
 def import_image_data(in_path, in_key, out_path,

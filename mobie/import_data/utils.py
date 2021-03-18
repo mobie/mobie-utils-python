@@ -8,7 +8,7 @@ from cluster_tools.statistics import DataStatisticsWorkflow
 from cluster_tools.downscaling import DownscalingWorkflow
 from cluster_tools.node_labels import NodeLabelWorkflow
 from elf.io import open_file
-from ..config import write_global_config
+from ..utils import write_global_config
 
 
 def compute_node_labels(seg_path, seg_key,

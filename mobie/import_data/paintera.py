@@ -1,6 +1,6 @@
 import os
 from elf.io import open_file, is_z5py, is_group
-from .util import downscale, add_max_id
+from .utils import downscale, add_max_id
 
 try:
     from paintera_tools import serialize_from_commit, postprocess
