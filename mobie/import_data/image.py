@@ -1,11 +1,11 @@
 from .util import downscale, ensure_volume
 
 
-def import_raw_volume(in_path, in_key, out_path,
+def import_image_data(in_path, in_key, out_path,
                       resolution, scale_factors, chunks,
                       tmp_folder, target, max_jobs,
                       block_shape=None, unit='micrometer'):
-    """ Import raw data to mobie format.
+    """ Import image data to mobie format.
 
     Arguments:
         in_path [str] - input data to be added.

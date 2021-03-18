@@ -1,21 +1,25 @@
-import argparse
-import json
 import multiprocessing
 import os
 
-from mobie.import_data import import_raw_volume
-from mobie.metadata import add_to_image_dict, have_dataset, get_datasets, update_transformation_parameter
-from mobie.initialization import initialize_dataset
+import mobie.metadata as metadata
+from mobie.import_data import import_image_data
+from mobie.utils import (get_default_menu_item, get_base_parser,
+                         parse_spatial_args, parse_view)
 
 
-def add_image_data(input_path, input_key,
-                   root, dataset_name, image_name,
-                   resolution, scale_factors, chunks,
-                   tmp_folder=None, target='local',
-                   max_jobs=multiprocessing.cpu_count(),
-                   settings=None, transformation=None,
-                   unit='micrometer'):
-    """ Add an image volume to an existing MoBIE dataset.
+# TODO support default arguments for scale factors and chunks
+def add_image(input_path, input_key,
+              root, dataset_name, image_name,
+              resolution, scale_factors, chunks,
+              menu_item=None,
+              tmp_folder=None, target='local',
+              max_jobs=multiprocessing.cpu_count(),
+              view=None, transformation=None,
+              unit='micrometer',
+              is_default_dataset=False):
+    """ Add an image source to a MoBIE dataset.
+
+    Will create the dataset if it does not exist.
 
     Arguments:
         input_path [str] - path to the data that should be added.
@@ -26,89 +30,67 @@ def add_image_data(input_path, input_key,
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
+        menu_item [str] - menu item for this source.
+            If none is given will be created based on the image name. (default: None)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: 'local')
         max_jobs [int] - number of jobs (default: number of cores)
-        settings [dict] - layer settings for the segmentation (default: None)
+        view [dict] - default view settings for this source (default: None)
         transformation [list or np.ndarray] - parameter for affine transformation
             applied to the data on the fly (default: None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        is_default_dataset [bool] - whether to set new dataset as default dataset.
+            Only applies if the dataset is created. (default: False)
     """
-    # check that we have this dataset
-    if not have_dataset(root, dataset_name):
-        raise ValueError(f"Dataset {dataset_name} not found in {root}")
+    # check if we have this dataset already
+    ds_exists = metadata.have_dataset(root, dataset_name)
+    if not ds_exists:
+        metadata.create_dataset_structure(root, dataset_name)
 
-    tmp_folder = f'tmp_{image_name}' if tmp_folder is None else tmp_folder
+    tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
-    # import the segmentation data
+    if menu_item is None:
+        menu_item = get_default_menu_item('image', image_name)
+
+    if view is None:
+        view = metadata.get_default_view('image', image_name)
+    # TODO validate the view metadata
+
+    # import the image data and add the metadata
     dataset_folder = os.path.join(root, dataset_name)
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.xml')
-    import_raw_volume(input_path, input_key, data_path,
+    import_image_data(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,
                       max_jobs=max_jobs, unit=unit)
-
-    # add the segmentation to the image dict
-    add_to_image_dict(dataset_folder, 'image', xml_path,
-                      settings=settings)
+    metadata.add_source_metadata(dataset_folder, 'image', xml_path,
+                                 menu_item=menu_item, view=view)
 
     if transformation is not None:
-        update_transformation_parameter(xml_path, transformation)
+        metadata.update_transformation_parameter(xml_path, transformation)
+
+    # need to add the dataset to datasets.json and create the default bookmark
+    # if we have just created it
+    if not ds_exists:
+        metadata.add_dataset(root, dataset_name, is_default_dataset)
+        metadata.add_bookmark(dataset_folder, 'default', 'default', view=view)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="""Add image data to MoBIE dataset.
-                                                    Initialize the dataset if it does not exist.""")
-    parser.add_argument('--input_path', type=str,
-                        help="path to the input data", required=True)
-    parser.add_argument('--input_key', type=str,
-                        help="key for the input data, e.g. internal path for h5/n5 data or patterns like *.tif",
-                        required=True)
-    parser.add_argument('--root', type=str,
-                        help="root folder under which the MoBIE project is saved",
-                        required=True)
-    parser.add_argument('--dataset_name', type=str,
-                        help="name of the dataset to which the image data is added",
-                        required=True)
-    parser.add_argument('--image_name', type=str,
-                        help="name of the image data that is added",
-                        required=True)
-
-    parser.add_argument('--resolution', type=str,
-                        help="resolution of the data in micrometer, json-encoded",
-                        required=True)
-    parser.add_argument('--scale_factors', type=str,
-                        help="factors used for downscaling the data, json-encoded",
-                        required=True)
-    parser.add_argument('--chunks', type=str,
-                        help="chunks of the data that is added, json-encoded",
-                        required=True)
-
-    parser.add_argument('--tmp_folder', type=str, default=None,
-                        help="folder for temporary computation files")
-    parser.add_argument('--target', type=str, default='local',
-                        help="computation target")
-    parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count(),
-                        help="number of jobs")
-
+    description = """Add image data to MoBIE dataset.
+                     Initialize the dataset if it does not exist."""
+    parser = get_base_parser(description)
+    parser.add_argument("--is_default_dataset", type=int, default=0,
+                        help="")
     args = parser.parse_args()
-    resolution = json.loads(args.resolution)
-    scale_factors = json.loads(args.scale_factors)
-    chunks = json.loads(args.chunks)
 
-    # if the dataset is initialized already, then add the image data to it
-    if have_dataset(args.root, args.dataset_name):
-        add_image_data(args.input_path, args.input_key,
-                       args.root, args.dataset_name, args.image_name,
-                       resolution=resolution, scale_factors=scale_factors, chunks=chunks,
-                       tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs)
-    # otherwise initialize the dataset with this image data
-    else:
-        is_default = len(get_datasets(args.root)) > 0
-        initialize_dataset(args.input_path, args.input_key,
-                           args.root, args.dataset_name, args.image_name,
-                           resolution=resolution, chunks=chunks, scale_factors=scale_factors,
-                           is_default=is_default,
-                           tmp_folder=args.tmp_folder, target=args.target,
-                           max_jobs=args.max_jobs)
+    resolution, scale_factors, chunks, transformation = parse_spatial_args(args)
+    view = parse_view(args)
+    add_image(args.input_path, args.input_key,
+              args.root, args.dataset_name, args.name,
+              resolution=resolution, scale_factors=scale_factors, chunks=chunks,
+              view=view, menu_item=args.menu_item,
+              tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs,
+              is_default_dataset=bool(args.is_default_dataset),
+              transformation=transformation, unit=args.unit)

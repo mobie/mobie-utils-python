@@ -15,7 +15,7 @@ except ImportError:
     mrcfile = None
 
 
-class TestImportRaw(unittest.TestCase):
+class TestImportImage(unittest.TestCase):
     test_folder = './test-folder'
     tmp_folder = './test-folder/tmp'
     out_path = './test-folder/imported-data.n5'
@@ -44,7 +44,7 @@ class TestImportRaw(unittest.TestCase):
             self.assertEqual(this_shape, exp_shape)
 
     def test_import_tif(self):
-        from mobie.import_data import import_raw_volume
+        from mobie.import_data import import_image_data
         shape = (32, 128, 128)
         data = np.random.rand(*shape)
 
@@ -55,7 +55,7 @@ class TestImportRaw(unittest.TestCase):
             imageio.imsave(path, data[z])
 
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
-        import_raw_volume(im_folder, '*.tif', self.out_path,
+        import_image_data(im_folder, '*.tif', self.out_path,
                           resolution=(0.25, 1, 1), chunks=(16, 64, 64),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target='local', max_jobs=self.n_jobs)
@@ -63,7 +63,7 @@ class TestImportRaw(unittest.TestCase):
         self.check_data(data, scales)
 
     def test_import_hdf5(self):
-        from mobie.import_data import import_raw_volume
+        from mobie.import_data import import_image_data
         shape = (128, 128, 128)
         data = np.random.rand(*shape)
 
@@ -73,7 +73,7 @@ class TestImportRaw(unittest.TestCase):
             f.create_dataset(key, data=data)
 
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        import_raw_volume(test_path_h5, key, self.out_path,
+        import_image_data(test_path_h5, key, self.out_path,
                           resolution=(1, 1, 1), chunks=(64, 64, 64),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target='local', max_jobs=self.n_jobs)

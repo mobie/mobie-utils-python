@@ -1,5 +1,6 @@
 from .bookmarks import add_bookmark
-from .datasets import add_dataset, copy_dataset_folder, get_datasets,  have_dataset
-from .image_dict import add_to_image_dict, load_image_dict
-from .transformation import update_transformation_parameter
-from .remote import add_remote_project_metadata
+from .dataset_metadata import add_dataset, create_dataset_structure, have_dataset, get_datasets
+from .remote_metadata import add_remote_dataset_metadata, add_remote_project_metadata
+from .source_metadata import add_source_metadata
+from .view_metadata import get_default_view
+from .xml_metadata import update_transformation_parameter
