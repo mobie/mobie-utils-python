@@ -1,8 +1,8 @@
 import argparse
 import os
 import imageio
-from mobie import add_image_data, add_mask, add_segmentation, initialize_dataset
-from mobie.metadata import add_remote_project_metadata
+import mobie
+from mobie.metadata import add_remote_project_metadata, get_default_view
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', required=True)
@@ -29,16 +29,16 @@ resolution = (1., 10., 10.)
 chunks = (1, 512, 512)
 scale_factors = 4 * [[1, 2, 2]]
 
-initialize_dataset(
+mobie.add_image(
     input_path=input_file,
     input_key='',  # the input is a single tif image, so we leave input_key blank
     root=mobie_project_folder,
     dataset_name=dataset_name,
-    raw_name=raw_name,
+    image_name=raw_name,
     resolution=resolution,
     chunks=chunks,
     scale_factors=scale_factors,
-    is_default=True,  # mark this dataset as the default dataset that will be loaded by mobie
+    is_default_dataset=True,  # mark this dataset as the default dataset that will be loaded by mobie
     target=target,
     max_jobs=max_jobs,
     unit=unit
@@ -70,11 +70,12 @@ for name, trafo in zip(tomo_names, transformations):
     # be applied in mobie to the min / max value of the data.
     im = imageio.volread(im_path)
     min_val, max_val = im.min(), im.max()
-    settings = {
-        'contrastLimits': [min_val, max_val]
-    }
+    source_transforms = [{"parameters": trafo}]
+    view = get_default_view("image", im_name,
+                            contrastLimits=[min_val, max_val],
+                            sourceTransforms=source_transforms)
 
-    add_image_data(
+    mobie.add_image(
         input_path=im_path,
         input_key="",
         root=mobie_project_folder,
@@ -86,7 +87,7 @@ for name, trafo in zip(tomo_names, transformations):
         chunks=chunks,
         target=target,
         max_jobs=max_jobs,
-        settings=settings,
+        view=view,
         unit=unit
     )
 
@@ -101,11 +102,9 @@ scale_factors = [[1, 2, 2], [1, 2, 2], [1, 2, 2]]
 chunks = (1, 512, 512)
 
 # In addition, we set the default display color to green.
-settings = {
-    "color": "green"
-}
+view = get_default_view("image", im_name, color="green")
 
-add_image_data(
+mobie.add_image(
     input_path=input_path,
     input_key="",
     root=mobie_project_folder,
@@ -113,7 +112,7 @@ add_image_data(
     image_name=im_name,
     resolution=resolution,
     scale_factors=scale_factors,
-    settings=settings,
+    view=view,
     chunks=chunks,
     target=target,
     max_jobs=max_jobs,
@@ -131,12 +130,12 @@ chunks = [1, 256, 256]
 resolution = [1., 160., 160.]
 scale_factors = [[1, 2, 2]]
 
-add_mask(
+mobie.add_image(
     input_path=input_path,
     input_key="",
     root=mobie_project_folder,
     dataset_name=dataset_name,
-    mask_name=mask_name,
+    image_name=mask_name,
     resolution=resolution,
     chunks=chunks,
     scale_factors=scale_factors,
@@ -152,7 +151,7 @@ resolution = [1., 30., 30.]
 chunks = [1, 256, 256]
 scale_factors = [[1, 2, 2], [1, 2, 2], [1, 2, 2], [1, 2, 2]]
 
-add_segmentation(
+mobie.add_segmentation(
     input_path=input_path,
     input_key="",
     root=mobie_project_folder,
@@ -165,14 +164,11 @@ add_segmentation(
 )
 
 
+# create metadata for remote data
 bucket_name = 'my-test-bucket'
-
 service_endpoint = 'https://s3.embl.de'
-authentication = 'Anonymous'
-
 add_remote_project_metadata(
     mobie_project_folder,
     bucket_name,
     service_endpoint,
-    authentication=authentication
 )
