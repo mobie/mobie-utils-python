@@ -3,7 +3,6 @@ from setuptools import setup, find_packages
 
 version = runpy.run_path("mobie/__version__.py")["__version__"]
 
-# minimal setup script for the mmpb package
 setup(
     name="mobie",
     packages=find_packages(exclude=["test"]),
@@ -14,11 +13,13 @@ setup(
     entry_points={
         "console_scripts": [
             "mobie.add_image = mobie.image_data:main",
-            "mobie.add_registered_volume = mobie.registration:main",
+            "mobie.add_registered_source = mobie.registration:main",
             "mobie.add_segmentation = mobie.segmentation:main",
             "mobie.add_traces = mobie.traces:main",
             "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
-            "mobie.migrate_project = mobie.migration.migrate_project:main"
+            "mobie.migrate_project = mobie.migration.migrate_project:main",
+            "mobie.validate_dataset = mobie.validation.validate_dataset:main",
+            "mobie.validate_project = mobie.validation.validate_project:main"
         ]
     },
 )

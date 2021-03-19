@@ -118,6 +118,9 @@ def main():
     resolution, scale_factors, chunks, transformation = parse_spatial_args(args)
     view = parse_view(args)
 
+    if transformation is not None:
+        raise NotImplementedError("Transformation is currently not supported")
+
     add_segmentation(args.input_path, args.input_key,
                      args.root, args.dataset_name, args.name,
                      node_label_path=args.node_label_path, node_label_key=args.node_label_key,

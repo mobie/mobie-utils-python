@@ -14,7 +14,7 @@ def get_default_menu_item(source_type, name):
 
 
 # TODO default arguments for scale-factors and chunks
-def get_base_parser(description):
+def get_base_parser(description, transformation_file=False):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--input_path', type=str,
                         help="path to the input data", required=True)
@@ -45,8 +45,12 @@ def get_base_parser(description):
                         help="")
     parser.add_argument('--view', type=str, default=None,
                         help="default view settings for this source, json encoded or path to a json file")
-    parser.add_argument('--transformation', type=str, default=None,
-                        help="affine transformation parameters in bdv convention, json encoded")
+    if transformation_file:
+        parser.add_argument('--transformation', type=str, required=True,
+                            help="file defining elastix transformation to be applied")
+    else:
+        parser.add_argument('--transformation', type=str, default=None,
+                            help="affine transformation parameters in bdv convention, json encoded")
     parser.add_argument('--unit', type=str, default='micrometer',
                         help="physical unit of the source data")
 
@@ -59,7 +63,7 @@ def get_base_parser(description):
     return parser
 
 
-def parse_spatial_args(args):
+def parse_spatial_args(args, parse_transformation=True):
     resolution = json.loads(args.resolution)
     if args.scale_factors is None:
         scale_factors = None
@@ -69,6 +73,10 @@ def parse_spatial_args(args):
         chunks = None
     else:
         chunks = json.loads(args.chunks)
+
+    if not parse_transformation:
+        return resolution, scale_factors, chunks
+
     if args.transformation is None:
         transformation = None
     else:

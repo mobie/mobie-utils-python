@@ -52,7 +52,6 @@ def add_image(input_path, input_key,
 
     if menu_item is None:
         menu_item = get_default_menu_item('image', image_name)
-
     if view is None:
         view = metadata.get_default_view('image', image_name)
     validate_view_metadata(view, sources=[image_name])
