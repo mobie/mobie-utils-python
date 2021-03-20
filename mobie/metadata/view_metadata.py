@@ -1,6 +1,6 @@
 
 
-def to_affine_source_transform(name, sources, parameters, timepoint=None):
+def to_affine_source_transform(name, sources, parameters, timepoints=None):
     """
     """
     assert len(parameters) == 12
@@ -12,9 +12,9 @@ def to_affine_source_transform(name, sources, parameters, timepoint=None):
             "sources": sources
         }
     }
-    if timepoint is not None:
-        assert isinstance(timepoint, (int, list, tuple))
-        trafo["affine"]["timepoint"] = timepoint
+    if timepoints is not None:
+        assert isinstance(timepoints, (list, tuple))
+        trafo["affine"]["timepoints"] = timepoints
     return trafo
 
 
@@ -73,7 +73,7 @@ def get_default_view(source_type, source_name, **kwargs):
 
     viewer_transform = kwargs.pop("viewerTransform", None)
     if viewer_transform is not None:
-        raise NotImplementedError
+        view["viewerTransform"] = viewer_transform
 
     if kwargs:
         raise ValueError(f"Invalid keyword arguments: {list(kwargs.keys())}")
