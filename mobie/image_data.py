@@ -43,10 +43,17 @@ def add_image(input_path, input_key,
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is created. (default: False)
     """
-    # check if we have this dataset already
-    ds_exists = metadata.have_dataset(root, dataset_name)
+    dataset_folder = os.path.join(root, dataset_name)
+    # check if we have the project and dataset already
+    proj_exists = metadata.project_exists(root)
+    if proj_exists:
+        ds_exists = metadata.dataset_exists(root, dataset_name)
+    else:
+        metadata.create_project_metadata(root)
+        ds_exists = False
     if not ds_exists:
         metadata.create_dataset_structure(root, dataset_name)
+        metadata.create_dataset_metadata(dataset_folder)
 
     tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
@@ -57,7 +64,6 @@ def add_image(input_path, input_key,
     validate_view_metadata(view, sources=[image_name])
 
     # import the image data and add the metadata
-    dataset_folder = os.path.join(root, dataset_name)
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.n5')
     xml_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.xml')
     import_image_data(input_path, input_key, data_path,
@@ -74,7 +80,7 @@ def add_image(input_path, input_key,
     # if we have just created it
     if not ds_exists:
         metadata.add_dataset(root, dataset_name, is_default_dataset)
-        metadata.add_bookmark(dataset_folder, 'default', 'default', view=view)
+        metadata.add_view_to_dataset(dataset_folder, 'default', view=view)
 
 
 def main():

@@ -11,6 +11,7 @@ from elf.io import open_file
 from pybdv.util import get_key
 from mobie import add_image
 from mobie.validation import validate_source_metadata
+from mobie.metadata import read_dataset_metadata
 
 
 class TestSegmentation(unittest.TestCase):
@@ -54,11 +55,9 @@ class TestSegmentation(unittest.TestCase):
         exp_data = self.data
 
         # check the segmentation metadata
-        metadata_path = os.path.join(dataset_folder, 'sources.json')
-        with open(metadata_path) as f:
-            metadata = json.load(f)
-        self.assertIn(name, metadata)
-        validate_source_metadata(name, metadata[name], dataset_folder)
+        metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(name, metadata['sources'])
+        validate_source_metadata(name, metadata['sources'][name], dataset_folder)
 
         # check the segmentation data
         seg_path = os.path.join(dataset_folder, 'images', 'local', f'{name}.n5')

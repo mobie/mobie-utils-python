@@ -1,53 +1,65 @@
-import json
 import os
 import shutil
 import warnings
 from glob import glob
 
 from pybdv.metadata import get_data_path, get_bdv_format
-from ..__version__ import SPEC_VERSION
+from .utils import read_metadata, write_metadata
+from ..validation import validate_view_metadata
 from ..xml_utils import copy_xml_with_newpath
-from .source_metadata import read_sources_metadata, write_sources_metadata
 
 
-def _load_datasets(path):
-    try:
-        with open(path) as f:
-            datasets = json.load(f)
-    except (FileNotFoundError, ValueError):
-        datasets = {}
-        datasets['datasets'] = []
-        datasets['specVersion'] = SPEC_VERSION
-    return datasets
+#
+# functionality for reading / writing dataset.shema.json
+#
 
 
-def have_dataset(root, dataset_name):
-    path = os.path.join(root, 'datasets.json')
-    datasets = _load_datasets(path)
-    return dataset_name in datasets['datasets']
+def write_dataset_metadata(dataset_folder, dataset_metadata):
+    path = os.path.join(dataset_folder, 'dataset.json')
+    write_metadata(path, dataset_metadata)
 
 
-def add_dataset(root, dataset_name, is_default):
-    path = os.path.join(root, 'datasets.json')
-    datasets = _load_datasets(path)
-
-    if dataset_name in datasets['datasets']:
-        warnings.warn(f"Dataset {dataset_name} is already present!")
-    else:
-        datasets['datasets'].append(dataset_name)
-
-    # if this is the only dataset we set it as default
-    if is_default or len(datasets['datasets']) == 1:
-        datasets['defaultDataset'] = dataset_name
-
-    with open(path, 'w') as f:
-        json.dump(datasets, f, sort_keys=True, indent=2)
+def read_dataset_metadata(dataset_folder):
+    path = os.path.join(dataset_folder, 'dataset.json')
+    return read_metadata(path)
 
 
-def get_datasets(root):
-    path = os.path.join(root, 'datasets.json')
-    datasets = _load_datasets(path)
-    return datasets['datasets']
+#
+# functionality for creating datasets
+#
+
+
+# NOTE: structure of the datasets metadata is not yet clear
+def create_dataset_metadata(dataset_folder, dimensions=None, references=None):
+    path = os.path.join(dataset_folder, 'dataset.json')
+    if os.path.exists(path):
+        raise RuntimeError(f"Dataset metadata at {path} already exists")
+    ds_metadata = {
+        "dimensions": [3] if dimensions is None else dimensions
+    }
+    if references is not None:
+        ds_metadata["references"] = references
+
+    metadata = {
+        "dataset": ds_metadata,
+        "sources": {},
+        "views": {}
+    }
+
+    write_dataset_metadata(dataset_folder, metadata)
+
+
+def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True):
+    validate_view_metadata(view)
+    metadata = read_dataset_metadata(dataset_folder)
+    if view_name in metadata["views"]:
+        msg = f"A view with name {view_name} already exists for the dataset {dataset_folder}"
+        if overwrite:
+            warnings.warn(msg)
+        else:
+            raise ValueError(msg)
+    metadata["views"][view_name] = view
+    write_dataset_metadata(dataset_folder, metadata)
 
 
 def create_dataset_structure(root, dataset_name):
@@ -132,26 +144,36 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
 
 
 def copy_sources(src_folder, dst_folder, exclude_sources=[]):
-    sources = read_sources_metadata(src_folder)
+    dataset_metadata = read_dataset_metadata(src_folder)
+    sources = dataset_metadata["sources"]
+
     new_sources = {}
     for name, metadata in sources.items():
-        source_type = metadata['type']
         # don't copy exclude sources
         if name in exclude_sources:
             continue
+
+        source_type = list(metadata.keys())[0]
+        metadata = metadata[source_type]
+
         # copy the xmls for the different storages
-        for storage, relative_xml in metadata['imageLocation'].items():
+        for storage, relative_xml in metadata['sourceLocations'].items():
             in_path = os.path.join(src_folder, relative_xml)
             out_path = os.path.join(dst_folder, relative_xml)
             # copy the xml
             copy_xml_file(in_path, out_path, storage)
+
+        # copy table if we have it
         if source_type == 'segmentation':
             if 'tableRootLocation' in metadata:
                 copy_tables(src_folder, dst_folder, metadata['tableRootLocation'])
             # link the id look-up-table (platybrowser specific functionality)
             link_id_lut(src_folder, dst_folder, name)
-        new_sources[name] = metadata
-    write_sources_metadata(dst_folder, new_sources)
+
+        new_sources[name] = {source_type: metadata}
+
+    dataset_metadata["sources"] = new_sources
+    write_dataset_metadata(dst_folder, dataset_metadata)
 
 
 def copy_misc_data(src_folder, dst_folder, copy_misc=None):

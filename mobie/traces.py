@@ -43,7 +43,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         unit [str] - physical unit of the coordinate system (default: micrometer)
     """
     # check that we have this dataset
-    if not metadata.have_dataset(root, dataset_name):
+    if not metadata.dataset_exists(root, dataset_name):
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
 
     if menu_item is None:

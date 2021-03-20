@@ -1,18 +1,8 @@
 import os
 import warnings
-from .utils import read_metadata, write_metadata
+from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .view_metadata import get_default_view
 from ..validation import validate_source_metadata
-
-
-def write_sources_metadata(dataset_folder, sources_metadata):
-    path = os.path.join(dataset_folder, 'sources.json')
-    write_metadata(path, sources_metadata)
-
-
-def read_sources_metadata(dataset_folder):
-    path = os.path.join(dataset_folder, 'sources.json')
-    return read_metadata(path)
 
 
 def get_image_metadata(source_name, xml_path, menu_item, view=None):
@@ -69,7 +59,8 @@ def add_source_metadata(
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
     """
-    sources_metadata = read_sources_metadata(dataset_folder)
+    dataset_metadata = read_dataset_metadata(dataset_folder)
+    sources_metadata = dataset_metadata["sources"]
 
     # validate the arguments
     if source_type not in ('image', 'segmentation'):
@@ -94,7 +85,8 @@ def add_source_metadata(
 
     validate_source_metadata(source_name, source_metadata, dataset_folder)
     sources_metadata[source_name] = source_metadata
-    write_sources_metadata(dataset_folder, sources_metadata)
+    dataset_metadata["sources"] = sources_metadata
+    write_dataset_metadata(dataset_folder, dataset_metadata)
 
 
 # TODO

@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 from .dataset import validate_dataset
-from .utils import _assert_true, _assert_in, _assert_equal
+from .utils import _assert_true, _assert_in, _assert_equal, validate_with_schema
 from ..__version__ import SPEC_VERSION
 
 
@@ -25,20 +25,25 @@ def check_version(version_a, version_b, assert_equal):
         assert_equal(minor_a, minor_b, msg)
 
 
-def validate_project(root, assert_true=_assert_true, assert_in=_assert_in, assert_equal=_assert_equal):
-    datasets_file = os.path.join(root, "datasets.json")
-    msg = f"Cannot find {datasets_file}"
-    assert_true(os.path.exists(datasets_file), msg)
+def validate_project(root,
+                     assert_true=_assert_true,
+                     assert_in=_assert_in,
+                     assert_equal=_assert_equal):
+    metadata_path = os.path.join(root, "project.json")
+    msg = f"Cannot find {metadata_path}"
+    assert_true(os.path.exists(metadata_path), msg)
 
-    with open(datasets_file) as f:
-        dataset_metadata = json.load(f)
+    with open(metadata_path) as f:
+        project_metadata = json.load(f)
 
-    msg = f"Cannot find 'version' field in dataset metadata at {datasets_file}"
-    assert_in("specVersion", dataset_metadata, msg)
-    check_version(SPEC_VERSION, dataset_metadata["specVersion"], assert_equal)
+    # static validation
+    validate_with_schema(project_metadata, "project")
 
-    datasets = dataset_metadata["datasets"]
-    default_dataset = dataset_metadata["defaultDataset"]
+    # dynamic validation
+    check_version(SPEC_VERSION, project_metadata["specVersion"], assert_equal)
+
+    datasets = project_metadata["datasets"]
+    default_dataset = project_metadata["defaultDataset"]
     msg = f"Cannot find default dataset {default_dataset} in {datasets}"
     assert_in(default_dataset, datasets, msg)
 

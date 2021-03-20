@@ -60,7 +60,7 @@ def add_registered_source(input_path, input_key, transformation,
         raise ValueError("Could not import 'apply_registration' functionality")
 
     # check that we have this dataset
-    if not metadata.have_dataset(root, dataset_name):
+    if not metadata.dataset_exists(root, dataset_name):
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
     tmp_folder = f'tmp_{source_name}' if tmp_folder is None else tmp_folder
 

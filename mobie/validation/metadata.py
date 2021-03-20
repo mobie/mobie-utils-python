@@ -1,27 +1,23 @@
 import os
-from .utils import _assert_true
+from jsonschema import ValidationError
+from .utils import _assert_true, validate_with_schema
 
 
 def validate_source_metadata(name, metadata, dataset_folder=None,
                              assert_true=_assert_true):
-    # TODO static validate with json schema
-
-    # dynamic validation of entries
-
-    # TODO can this be done in json schema? (checking string format)
-    menu_item = metadata["menuItem"]
-    if not isinstance(menu_item, str) and len(menu_item.split("/") != 2):
-        assert_true(False, f"The field menu_item must have the format '<MENU>/<ENTRY>', got {menu_item}")
-
-    # TODO can this be done in json schema? (dependent fields)
-    if "tableRootLocation" in metadata and metadata["type"] != "segmentation":
-        msg = "Invalid parameter combination: a table folder may only be specified for sources of type segmentation"
+    # static validation with json schema
+    try:
+        validate_with_schema(metadata, 'source')
+    except ValidationError as e:
+        msg = f"{e}"
         assert_true(False, msg)
 
+    source_type = list(metadata.keys())[0]
+    metadata = metadata[source_type]
     # dynamic validation of paths
     if dataset_folder is not None:
-        image_location = metadata['imageLocation']
-        for storage, location in image_location.items():
+        data_locations = metadata['sourceLocations']
+        for storage, location in data_locations.items():
             path = os.path.join(dataset_folder, location)
             msg = f"Could not find xml for {storage} at {path}"
             assert_true(os.path.exists(path), msg)
@@ -39,7 +35,12 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
 
 
 def validate_view_metadata(view, sources=None, assert_true=_assert_true):
-    # TODO static validation with json schema
+    # static validation with json schema
+    try:
+        validate_with_schema(view, 'view')
+    except ValidationError as e:
+        msg = f"{e}"
+        assert_true(False, msg)
 
     # dynamic validation of sources
     all_display_sources = []

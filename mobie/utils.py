@@ -105,9 +105,9 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
         copy_misc [callable] - function to copy additonal misc data (default: None)
     """
     # check that we have the src dataset and don't have the dst dataset already
-    if not metadata.have_dataset(root, src_dataset):
+    if not metadata.dataset_exists(root, src_dataset):
         raise ValueError(f"Could not find dataset {src_dataset}")
-    if metadata.have_dataset(root, dst_dataset):
+    if metadata.dataset_exists(root, dst_dataset):
         raise ValueError(f"A dataset with name {dst_dataset} is already present.")
     if copy_misc is not None and not callable(copy_misc):
         raise ValueError("copy_misc must be callable")

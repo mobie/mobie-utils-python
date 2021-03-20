@@ -38,7 +38,7 @@ def _download_schema():
 def validate_with_schema(metadata, schema):
     assert isinstance(schema, (str, dict))
     if isinstance(schema, str):
-        assert schema in ("view", "source")
+        assert schema in ("view", "source", "dataset", "project")
         if not _download_schema():
             warnings.warn("TODO")
             return

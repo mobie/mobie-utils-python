@@ -11,6 +11,7 @@ import elf.skeleton.io as skio
 from elf.io import open_file
 from mobie import add_image
 from mobie.validation import validate_source_metadata
+from mobie.metadata import read_dataset_metadata
 
 
 class TestTraces(unittest.TestCase):
@@ -60,11 +61,9 @@ class TestTraces(unittest.TestCase):
         self.assertTrue(os.path.exists(dataset_folder))
 
         # check the segmentation metadata
-        metadata_path = os.path.join(dataset_folder, 'sources.json')
-        with open(metadata_path) as f:
-            metadata = json.load(f)
-        self.assertIn(trace_name, metadata)
-        validate_source_metadata(trace_name, metadata[trace_name], dataset_folder)
+        metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(trace_name, metadata['sources'])
+        validate_source_metadata(trace_name, metadata['sources'][trace_name], dataset_folder)
 
         # check the table
         table_path = os.path.join(dataset_folder, 'tables', trace_name, 'default.tsv')

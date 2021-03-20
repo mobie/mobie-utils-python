@@ -1,8 +1,8 @@
 import os
 from copy import deepcopy
 
-from .dataset_metadata import get_datasets
-from .source_metadata import read_sources_metadata, write_sources_metadata
+from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
+from .project_metadata import get_datasets
 from ..xml_utils import copy_xml_as_n5_s3
 
 
@@ -48,13 +48,14 @@ def add_remote_dataset_metadata(
     bdv_type = 'bdv.n5.s3'
 
     dataset_folder = os.path.join(root, dataset_name)
-    sources = read_sources_metadata(dataset_folder)
+    ds_metadata = read_dataset_metadata(dataset_folder)
+    sources = ds_metadata["sources"]
     new_sources = deepcopy(sources)
 
     for name, metadata in sources.items():
         # the xml paths for the image dict,
         # which are relative to the 'images' folder
-        storage = metadata['imageLocation']
+        storage = metadata['sourcesLocation']
         xml = storage['local']
         xml_remote = xml.replace('local', 'remote')
 
@@ -73,6 +74,8 @@ def add_remote_dataset_metadata(
 
         # add the remote storage to the image dict
         storage['remote'] = xml_remote
-        metadata['imageLocation'] = storage
+        metadata['sourcesLocation'] = storage
         new_sources[name] = metadata
-    write_sources_metadata(dataset_folder, new_sources)
+
+    ds_metadata["sources"] = new_sources
+    write_dataset_metadata(dataset_folder, ds_metadata)

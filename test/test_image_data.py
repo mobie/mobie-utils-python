@@ -13,6 +13,7 @@ from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 from mobie import add_image
 from mobie.validation import validate_project, validate_source_metadata
+from mobie.metadata import read_dataset_metadata
 
 
 class TestImageData(unittest.TestCase):
@@ -161,11 +162,10 @@ class TestImageData(unittest.TestCase):
         exp_data = self.data
 
         # check the image metadata
-        metadata_path = os.path.join(dataset_folder, 'sources.json')
-        with open(metadata_path) as f:
-            metadata = json.load(f)
-        self.assertIn(name, metadata)
-        validate_source_metadata(name, metadata[name], dataset_folder)
+        metadata = read_dataset_metadata(dataset_folder)
+        sources = metadata['sources']
+        self.assertIn(name, sources)
+        validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
         im_path = os.path.join(dataset_folder, 'images', 'local', f'{name}.n5')
