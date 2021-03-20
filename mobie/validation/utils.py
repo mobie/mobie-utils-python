@@ -6,6 +6,7 @@ import jsonschema
 import requests
 
 
+# TODO jsonschema should be able to do this!
 def _download_schema():
     folder = os.path.expanduser('~/.mobie')
     os.makedirs(folder, exist_ok=True)

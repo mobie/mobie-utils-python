@@ -15,6 +15,38 @@ def read_sources_metadata(dataset_folder):
     return read_metadata(path)
 
 
+def get_image_metadata(source_name, xml_path, menu_item, view=None):
+    if view is None:
+        view = get_default_view("image", source_name)
+    source_metadata = {
+        "image": {
+            "sourceLocations": {
+                "local": xml_path
+            },
+            "menuItem": menu_item,
+            "view": view
+        }
+    }
+    return source_metadata
+
+
+def get_segmentation_metadata(source_name, xml_path, menu_item, view=None, table_location=None):
+    if view is None:
+        view = get_default_view("image", source_name)
+    source_metadata = {
+        "segmentation": {
+            "sourceLocations": {
+                "local": xml_path
+            },
+            "menuItem": menu_item,
+            "view": view
+        }
+    }
+    if table_location is not None:
+        source_metadata["segmentation"]["tableRootLocation"] = table_location
+    return source_metadata
+
+
 def add_source_metadata(
     dataset_folder,
     source_type,
@@ -52,20 +84,13 @@ def add_source_metadata(
 
     # create the metadata for this source
     relative_xml_path = os.path.relpath(xml_path, dataset_folder)
-    if view is None:
-        view = get_default_view(source_type, source_name)
 
-    source_metadata = {
-        "imageLocation": {
-            "local": relative_xml_path
-        },
-        "menuItem": menu_item,
-        "type": source_type,
-        "view": view
-    }
-    if table_folder is not None:
-        relative_table_folder = os.path.relpath(table_folder, dataset_folder)
-        source_metadata["tableRootLocation"] = relative_table_folder
+    if source_type == "image":
+        source_metadata = get_image_metadata(source_name, relative_xml_path, menu_item, view)
+    else:
+        relative_table_folder = None if table_folder is None else os.path.relpath(table_folder, dataset_folder)
+        source_metadata = get_segmentation_metadata(source_name, relative_xml_path,
+                                                    menu_item, view, relative_table_folder)
 
     validate_source_metadata(source_name, source_metadata, dataset_folder)
     sources_metadata[source_name] = source_metadata
