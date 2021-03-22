@@ -53,9 +53,11 @@ def add_remote_dataset_metadata(
     new_sources = deepcopy(sources)
 
     for name, metadata in sources.items():
+        source_type = list(metadata.keys())[0]
+
         # the xml paths for the image dict,
         # which are relative to the 'images' folder
-        storage = metadata['sourcesLocation']
+        storage = metadata[source_type]['imageDataLocations']
         xml = storage['local']
         xml_remote = xml.replace('local', 'remote')
 
@@ -74,7 +76,7 @@ def add_remote_dataset_metadata(
 
         # add the remote storage to the image dict
         storage['remote'] = xml_remote
-        metadata['sourcesLocation'] = storage
+        metadata[source_type]['imageDataLocations'] = storage
         new_sources[name] = metadata
 
     ds_metadata["sources"] = new_sources
