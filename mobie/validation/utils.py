@@ -7,7 +7,7 @@ import requests
 
 
 SCHEMA_URLS = {
-    "bookmark": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/bookmark.schema.json",
+    "bookmarks": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/bookmarks.schema.json",
     "dataset": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/dataset.schema.json",
     "project": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/project.schema.json",
     "source": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/source.schema.json",
@@ -25,7 +25,7 @@ def _download_schema():
         try:
             r = requests.get(address)
             with open(out_file, 'w') as f:
-                f.write(r.content)
+                f.write(r.content.decode('utf-8'))
             return True
         except Exception:
             return False
