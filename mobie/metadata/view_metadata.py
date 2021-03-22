@@ -40,6 +40,11 @@ def get_default_view(source_type, source_name, **kwargs):
                 "sources": [source_name]
             }
         }
+        additional_image_kwargs = ["resolution3dView", "showImagesIn3d"]
+        for kwarg_name in additional_image_kwargs:
+            kwarg_val = kwargs.pop(kwarg_name, None)
+            if kwarg_val is not None:
+                source_display["imageDisplays"][kwarg_name] = kwarg_val
     elif source_type == 'segmentation':
         # TODO find a good default alpha value
         alpha = kwargs.pop("alpha", 0.75)
@@ -52,7 +57,9 @@ def get_default_view(source_type, source_name, **kwargs):
                 "sources": [source_name]
             }
         }
-        additional_seg_kwargs = ["colorByColumn", "selectedSegmentIds", "showSelectedSegmentsIn3d", "tables"]
+        additional_seg_kwargs = ["colorByColumn", "resolution3dView",
+                                 "selectedSegmentIds", "showSelectedSegmentsIn3d",
+                                 "tables", "valueLimits"]
         for kwarg_name in additional_seg_kwargs:
             kwarg_val = kwargs.pop(kwarg_name, None)
             if kwarg_val is not None:
