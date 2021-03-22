@@ -10,7 +10,7 @@ def get_image_metadata(source_name, xml_path, menu_item, view=None):
         view = get_default_view("image", source_name)
     source_metadata = {
         "image": {
-            "sourceLocations": {
+            "imageDataLocations": {
                 "local": xml_path
             },
             "menuItem": menu_item,
@@ -25,7 +25,7 @@ def get_segmentation_metadata(source_name, xml_path, menu_item, view=None, table
         view = get_default_view("image", source_name)
     source_metadata = {
         "segmentation": {
-            "sourceLocations": {
+            "imageDataLocations": {
                 "local": xml_path
             },
             "menuItem": menu_item,
@@ -33,7 +33,7 @@ def get_segmentation_metadata(source_name, xml_path, menu_item, view=None, table
         }
     }
     if table_location is not None:
-        source_metadata["segmentation"]["tableRootLocation"] = table_location
+        source_metadata["segmentation"]["tableDataRootLocation"] = table_location
     return source_metadata
 
 

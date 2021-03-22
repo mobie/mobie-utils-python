@@ -16,13 +16,13 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     metadata = metadata[source_type]
     # dynamic validation of paths
     if dataset_folder is not None:
-        data_locations = metadata['sourceLocations']
+        data_locations = metadata['imageDataLocations']
         for storage, location in data_locations.items():
             path = os.path.join(dataset_folder, location)
             msg = f"Could not find xml for {storage} at {path}"
             assert_true(os.path.exists(path), msg)
-        if 'tableRootLocation' in metadata:
-            table_folder = os.path.join(dataset_folder, metadata['tableRootLocation'])
+        if 'tableDataRootLocation' in metadata:
+            table_folder = os.path.join(dataset_folder, metadata['tableDataRootLocation'])
             msg = f"Could not find table root folder at {table_folder}"
             assert_true(os.path.isdir(table_folder), msg)
             default_table = os.path.join(table_folder, 'default.tsv')

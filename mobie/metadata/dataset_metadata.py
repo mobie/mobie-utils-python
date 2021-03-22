@@ -30,15 +30,16 @@ def read_dataset_metadata(dataset_folder):
 
 
 # NOTE: structure of the datasets metadata is not yet clear
-def create_dataset_metadata(dataset_folder, dimensions=None, references=None):
+def create_dataset_metadata(dataset_folder, description=None, is2d=False):
     path = os.path.join(dataset_folder, 'dataset.json')
     if os.path.exists(path):
         raise RuntimeError(f"Dataset metadata at {path} already exists")
     ds_metadata = {
-        "dimensions": [3] if dimensions is None else dimensions
+        "is2d": is2d
+
     }
-    if references is not None:
-        ds_metadata["references"] = references
+    if description is not None:
+        ds_metadata["description"] = description
 
     metadata = {
         "dataset": ds_metadata,
@@ -157,7 +158,7 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
         metadata = metadata[source_type]
 
         # copy the xmls for the different storages
-        for storage, relative_xml in metadata['sourceLocations'].items():
+        for storage, relative_xml in metadata['imageDataLocations'].items():
             in_path = os.path.join(src_folder, relative_xml)
             out_path = os.path.join(dst_folder, relative_xml)
             # copy the xml
@@ -165,8 +166,8 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
         # copy table if we have it
         if source_type == 'segmentation':
-            if 'tableRootLocation' in metadata:
-                copy_tables(src_folder, dst_folder, metadata['tableRootLocation'])
+            if 'tableDataRootLocation' in metadata:
+                copy_tables(src_folder, dst_folder, metadata['tableDataRootLocation'])
             # link the id look-up-table (platybrowser specific functionality)
             link_id_lut(src_folder, dst_folder, name)
 

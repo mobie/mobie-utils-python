@@ -7,7 +7,7 @@ class TestDatasetMetadata(unittest.TestCase):
     def get_dataset_metadata(self):
         from mobie.metadata import get_default_view, get_image_metadata, get_segmentation_metadata
         dataset_metadata = {
-            "dataset": {"dimensions": [3], "references": ["https://my_reference.com"]},
+            "dataset": {"is2d": False, "description": "My dataset."},
             "sources": {
                 "image1": get_image_metadata("image1", "/images/image1.xml",
                                              menu_item="images/image1"),

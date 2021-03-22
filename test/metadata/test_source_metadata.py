@@ -15,7 +15,7 @@ class TestSourceMetadata(unittest.TestCase):
         # check missing fields
         source = get_image_metadata(name, "/path/to/bdv.xml",
                                     menu_item="segmentations/some-seg")
-        source["image"].pop("sourceLocations")
+        source["image"].pop("imageDataLocations")
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -34,7 +34,7 @@ class TestSourceMetadata(unittest.TestCase):
 
         source = get_image_metadata(name, "/path/to/bdv.xml",
                                     menu_item="segmentations/some-seg")
-        source["image"]["sourceLocations"]["foo"] = "bar"
+        source["image"]["imageDataLocations"]["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -68,7 +68,7 @@ class TestSourceMetadata(unittest.TestCase):
         # check missing fields
         source = get_segmentation_metadata(name, "/path/to/bdv.xml",
                                            menu_item="segmentations/some-seg")
-        source["segmentation"].pop("sourceLocations")
+        source["segmentation"].pop("imageDataLocations")
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -87,7 +87,7 @@ class TestSourceMetadata(unittest.TestCase):
 
         source = get_segmentation_metadata(name, "/path/to/bdv.xml",
                                            menu_item="segmentations/some-seg")
-        source["segmentation"]["sourceLocations"]["foo"] = "bar"
+        source["segmentation"]["imageDataLocations"]["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
