@@ -46,8 +46,7 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
 # should be generalized and moved to pybdv at some point
 def copy_xml_as_n5_s3(in_xml, out_xml,
                       service_endpoint, bucket_name, path_in_bucket,
-                      authentication='Anonymous', region='us-west-2',
-                      bdv_type='bdv.n5.s3'):
+                      region='us-west-2', bdv_type='bdv.n5.s3'):
     """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
 
     Arguments:
@@ -57,18 +56,12 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
             For EMBL: 'https://s3.embl.de'.
         bucket_name [str] - name of the bucket
         path_in_bucket [str] - file paths inside of the bucket
-        authentication [str] - the authentication mode, can be 'Anonymous' or 'Protected'.
-            Default: 'Anonymous'
         region [str] - the region. Only relevant if aws.s3 is used.
             Default: 'us-west-2'
     """
     bdv_types = ('bdv.n5.s3', 'ome.zarr.s3')
     if bdv_type not in bdv_types:
         raise ValueError(f"Invalid bdv type {bdv_type}, expected one of {bdv_types}")
-
-    auth_modes = ('Anonymous', 'Protected')
-    if authentication not in auth_modes:
-        raise ValueError(f"Invalid authentication mode {authentication}, expected one of {auth_modes}")
 
     # check if we have an xml already
     tree = ET.parse(in_xml)
@@ -94,8 +87,6 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
     el.text = service_endpoint
     el = ET.SubElement(imgload, 'BucketName')
     el.text = bucket_name
-    el = ET.SubElement(imgload, 'Authentication')
-    el.text = authentication
 
     indent_xml(root)
     tree = ET.ElementTree(root)
