@@ -48,12 +48,11 @@ class TestProjectMetadata(unittest.TestCase):
         with self.assertRaises(ValidationError):
             validate_with_schema(metadata, schema)
 
-        # TODO need the regexps
         # check invalid values
-        # metadata = self.get_project_metadata()
-        # metadata["specVersion"] = "0.3.3"
-        # with self.assertRaises(ValidationError):
-        #     validate_with_schema(metadata, "project")
+        metadata = self.get_project_metadata()
+        metadata["specVersion"] = "0.3.3"
+        with self.assertRaises(ValidationError):
+            validate_with_schema(metadata, "project")
 
 
 if __name__ == '__main__':

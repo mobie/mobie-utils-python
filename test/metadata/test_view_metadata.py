@@ -12,10 +12,12 @@ class TestViewMetadata(unittest.TestCase):
         view = get_default_view('image', 'my-image')
         validate_with_schema(view, 'view')
 
-        # test custom contrast limits and color
+        # test custom image settings
         custom_kwargs = [
             {'contrastLimits': [0., 255.], 'color': 'white'},
-            {'contrastLimits': [0., 2000.], 'color': 'red'}
+            {'contrastLimits': [0., 2000.], 'color': 'red'},
+            {'showImagesIn3d': True},
+            {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]}
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('image', 'my-image', **kwargs)
@@ -41,8 +43,11 @@ class TestViewMetadata(unittest.TestCase):
         # test invalid values
         invalid_kwargs = [
             {'color': "foobar"},
+            {'color': "r=1,g=2,b=3,a=4,z=5"},
             {'contrastLimits': [-10., 5.]},
             {'contrastLimits': [1., 2., 3.]},
+            {'showImagesIn3d': "foobar"},
+            {'resolution3dView': [1., 2., 3., 4.]}
         ]
         for kwargs in invalid_kwargs:
             view = get_default_view('image', 'my-image', **kwargs)
@@ -56,12 +61,12 @@ class TestViewMetadata(unittest.TestCase):
         view = get_default_view('segmentation', 'my-seg')
         validate_with_schema(view, 'view')
 
-        # TODO selectedSegmentIds
-        # test custom contrast limits and color
+        # test custom segmentation settings
         custom_kwargs = [
             {'alpha': 0.5, 'color': 'glasbey'},
             {'alpha': 0.9, 'color': 'viridis',
-             'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]}
+             'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]},
+            {'selectedSegmentIds': ['my-seg,0,1', 'my-seg,0,2', 'my-seg,1,10']}
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('segmentation', 'my-seg', **kwargs)
@@ -83,7 +88,9 @@ class TestViewMetadata(unittest.TestCase):
         invalid_kwargs = [
             {'alpha': 10},
             {'color': "red"},
-            {'color': "foobar"}
+            {'color': "foobar"},
+            {'selectedSegmentIds': ['my-seg/abc,0,2']},
+            {'selectedSegmentIds': ['my-segc,alpha,2']}
         ]
         for kwargs in invalid_kwargs:
             view = get_default_view('segmentation', 'my-seg', **kwargs)
