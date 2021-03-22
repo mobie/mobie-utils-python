@@ -66,7 +66,7 @@ class TestViewMetadata(unittest.TestCase):
             {'alpha': 0.5, 'color': 'glasbey'},
             {'alpha': 0.9, 'color': 'viridis',
              'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]},
-            {'selectedSegmentIds': ['my-seg,0,1', 'my-seg,0,2', 'my-seg,1,10']}
+            {'selectedSegmentIds': ['my-seg;0;1', 'my-seg;0;2', 'my-seg;1;10']}
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('segmentation', 'my-seg', **kwargs)
@@ -89,8 +89,9 @@ class TestViewMetadata(unittest.TestCase):
             {'alpha': 10},
             {'color': "red"},
             {'color': "foobar"},
-            {'selectedSegmentIds': ['my-seg/abc,0,2']},
-            {'selectedSegmentIds': ['my-segc,alpha,2']}
+            {'selectedSegmentIds': ['my-seg,0,2']},
+            {'selectedSegmentIds': ['my-seg/abc;0;2']},
+            {'selectedSegmentIds': ['my-segc;alpha;2']}
         ]
         for kwargs in invalid_kwargs:
             view = get_default_view('segmentation', 'my-seg', **kwargs)
