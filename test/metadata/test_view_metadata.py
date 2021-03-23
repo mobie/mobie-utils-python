@@ -105,89 +105,71 @@ class TestViewMetadata(unittest.TestCase):
         from mobie.metadata import get_default_view
 
         # test view with source transformations
-        trafo_kwargs = [
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist()}]},
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist()}
-                                  for _ in range(3)]},
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
-                                   'timepoints': [0]}]},
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
-                                   'timepoints': [1, 2, 3]}]}
+        trafos = [
+            {'parameters': np.random.rand(12).tolist()},
+            {'parameters': np.random.rand(12).tolist(), 'timepoints': [0]},
+            {'parameters': np.random.rand(12).tolist(), 'timepoints': [1, 2, 3]}
         ]
-        for kwargs in trafo_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
-            validate_with_schema(view, 'view')
-
-        # test invalid fields
-        view = get_default_view('image', 'my-image', **trafo_kwargs[0])
-        view["sourceTransforms"].append({"invalidTransform": {"parameters": 0}})
-        with self.assertRaises(ValidationError):
-            validate_with_schema(view, 'view')
-
-        view = get_default_view('image', 'my-image', **trafo_kwargs[0])
-        view["sourceTransforms"][0]["affine"]["foo"] = "bar"
-        with self.assertRaises(ValidationError):
+        for trafo in trafos:
+            view = get_default_view('image', 'my-image', source_transform=trafo)
             validate_with_schema(view, 'view')
 
         # test invalid values
-        invalid_kwargs = [
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
-                                   'timepoints': [-1]}]},
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
-                                   'timepoints': [-1, 2, 3]}]}
+        invalid_trafos = [
+            {'parameters': np.random.rand(12).tolist(), 'timepoints': [-1]},
+            {'parameters': np.random.rand(12).tolist(), 'timepoints': [-1, 2, 3]}
         ]
-        for kwargs in invalid_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+        for trafo in invalid_trafos:
+            view = get_default_view('image', 'my-image', source_transform=trafo)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
     def test_viewer_transform(self):
         from mobie.metadata import get_default_view
 
-        trafo_kwargs = [
-            {'viewerTransform': {"timepoint": 0}},
-            {'viewerTransform': {'affine': np.random.rand(12).tolist()}},
-            {'viewerTransform': {'affine': np.random.rand(12).tolist(), "timepoint": 0}},
-            {'viewerTransform': {'normalizedAffine': np.random.rand(12).tolist()}},
-            {'viewerTransform': {'normalizedAffine': np.random.rand(12).tolist(), "timepoint": 1}},
-            {'viewerTransform': {'position': np.random.rand(3).tolist()}},
-            {'viewerTransform': {'position': np.random.rand(3).tolist(), "timepoint": 2}}
+        trafos = [
+            {"timepoint": 0},
+            {'affine': np.random.rand(12).tolist()},
+            {'affine': np.random.rand(12).tolist(), "timepoint": 0},
+            {'normalizedAffine': np.random.rand(12).tolist()},
+            {'normalizedAffine': np.random.rand(12).tolist(), "timepoint": 1},
+            {'position': np.random.rand(3).tolist()},
+            {'position': np.random.rand(3).tolist(), "timepoint": 2}
         ]
-        for kwargs in trafo_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+        for trafo in trafos:
+            view = get_default_view('image', 'my-image', viewer_transform=trafo)
             validate_with_schema(view, 'view')
 
         # test missing fields
-        invalid_kwargs = [
-            {'viewerTransform': {}},
-            {'viewerTransform': {"foo": "bar"}}
+        invalid_trafos = [
+            {"foo": "bar"}
         ]
-        for kwargs in invalid_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+        for trafo in invalid_trafos:
+            view = get_default_view('image', 'my-image', viewer_transform=trafo)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
         # test invalid fields
-        invalid_kwargs = [
-            {'viewerTransform': {'timepoint': 0, "foo": "bar"}},
-            {'viewerTransform': {'affine': np.random.rand(12).tolist(), "foo": "bar"}},
-            {'viewerTransform': {'normalizedAffine': np.random.rand(12).tolist(), "x": "y"}},
-            {'viewerTransform': {'position': np.random.rand(3).tolist(), "a": 3}}
+        invalid_trafos = [
+            {'timepoint': 0, "foo": "bar"},
+            {'affine': np.random.rand(12).tolist(), "foo": "bar"},
+            {'normalizedAffine': np.random.rand(12).tolist(), "x": "y"},
+            {'position': np.random.rand(3).tolist(), "a": 3}
         ]
-        for kwargs in invalid_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+        for trafo in invalid_trafos:
+            view = get_default_view('image', 'my-image', viewer_transform=trafo)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
         # test invalid values
-        invalid_kwargs = [
-            {'viewerTransform': {'timepoint': -1}},
-            {'viewerTransform': {'affine': np.random.rand(11).tolist()}},
-            {'viewerTransform': {'normalizedAffine': np.random.rand(13).tolist()}},
-            {'viewerTransform': {'position': np.random.rand(4).tolist()}}
+        invalid_trafos = [
+            {'timepoint': -1},
+            {'affine': np.random.rand(11).tolist()},
+            {'normalizedAffine': np.random.rand(13).tolist()},
+            {'position': np.random.rand(4).tolist()}
         ]
-        for kwargs in invalid_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+        for trafo in invalid_trafos:
+            view = get_default_view('image', 'my-image', viewer_transform=trafo)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 

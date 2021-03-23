@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+from copy import deepcopy
 
 import mobie.metadata as metadata
 from mobie.import_data import import_image_data
@@ -51,17 +52,20 @@ def add_image(input_path, input_key,
     else:
         metadata.create_project_metadata(root)
         ds_exists = False
-    if not ds_exists:
-        metadata.create_dataset_structure(root, dataset_name)
-        metadata.create_dataset_metadata(dataset_folder)
-
-    tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
     if view is None:
         view = metadata.get_default_view('image', image_name, menu_item=menu_item)
     elif view is not None and menu_item is not None:
         view.update({"menuItem": menu_item})
     validate_view_metadata(view, sources=[image_name])
+
+    if not ds_exists:
+        metadata.create_dataset_structure(root, dataset_name)
+        default_view = deepcopy(view)
+        default_view.update({"menuItem": "bookmark/default"})
+        metadata.create_dataset_metadata(dataset_folder, views={'default': default_view})
+
+    tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
     # import the image data and add the metadata
     data_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.n5')
@@ -79,8 +83,6 @@ def add_image(input_path, input_key,
     # if we have just created it
     if not ds_exists:
         metadata.add_dataset(root, dataset_name, is_default_dataset)
-        view.update({"menuItem": "bookmark/default"})
-        metadata.add_view_to_dataset(dataset_folder, 'default', view=view)
 
 
 def main():

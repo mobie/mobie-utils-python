@@ -1,84 +1,178 @@
 
 
-def to_affine_source_transform(sources, parameters, timepoints=None):
-    """
-    """
+def get_image_display(sources, **kwargs):
+    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
+        raise ValueError(f"Invalid sources: {sources}")
+    color = kwargs.pop("color", "white")
+    contrast_limits = kwargs.pop("contrastLimits",  [0.0, 255.0])
+    image_display = {
+        "color": color,
+        "contrastLimits": contrast_limits,
+        "sources": sources
+    }
+    additional_image_kwargs = ["resolution3dView", "showImagesIn3d"]
+    for kwarg_name in additional_image_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            image_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments for image display: {list(kwargs.keys())}")
+    return {"imageDisplay": image_display}
+
+
+def get_segmentation_display(sources, **kwargs):
+    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
+        raise ValueError(f"Invalid sources: {sources}")
+    # TODO find a good default alpha value
+    alpha = kwargs.pop("alpha", 0.75)
+    color = kwargs.pop("color", "glasbey")
+    segmentation_display = {
+        "alpha": alpha,
+        "color": color,
+        "sources": sources
+    }
+    additional_seg_kwargs = ["colorByColumn", "resolution3dView",
+                             "selectedSegmentIds", "showSelectedSegmentsIn3d",
+                             "tables", "valueLimits"]
+    for kwarg_name in additional_seg_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            segmentation_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments segmentation display: {list(kwargs.keys())}")
+    return {"segmentationDisplay": segmentation_display}
+
+
+def get_affine_source_transform(sources, parameters, timepoints=None):
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
     trafo = {
-        "affine": {
-            "parameters": parameters,
-            "sources": sources
-        }
+        "sources": sources,
+        "parameters": parameters
     }
     if timepoints is not None:
-        assert isinstance(timepoints, (list, tuple))
-        trafo["affine"]["timepoints"] = timepoints
-    return trafo
+        trafo["timepoints"] = timepoints
+    return {"affine": trafo}
 
 
-# TODO needs to be refactored a bit to support more complex views without too much code duplication
-def get_default_view(source_type, source_name, menu_item=None, **kwargs):
+def get_auto_grid_source_transform(sources, table_location, timepoints=None):
+    trafo = {
+        "sources": sources,
+        "tableDataLocation": table_location
+    }
+    if timepoints is not None:
+        trafo[timepoints] = timepoints
+    return {"autoGrid": trafo}
+
+
+def get_viewer_transform(transform_type, parameters=None, timepoint=None):
+    if transform_type == "affine":
+        assert len(parameters) == 12
+        assert all(isinstance(param, float) for param in parameters)
+        trafo = {"affine": parameters}
+    elif transform_type == "normalizedAffine":
+        assert len(parameters) == 12
+        assert all(isinstance(param, float) for param in parameters)
+        trafo = {"normalizedAffine": parameters}
+    elif transform_type == "position":
+        assert len(parameters) == 3
+        assert all(isinstance(param, float) for param in parameters)
+        trafo = {"position": parameters}
+    elif transform_type == "timepoint":
+        assert timepoint is not None
+        trafo = {}
+    else:
+        msg = f"Expect transform_type in (), got {transform_type}"
+        raise ValueError(msg)
+
+    if timepoint is not None:
+        trafo[timepoint] = timepoint
+
+    return {transform_type: trafo}
+
+
+def get_view(source_types, sources, display_settings, menu_item,
+             source_transforms=None, viewer_transform=None):
+    """ Create view metadata for multi source views.
+
+    Arguments:
+        source_types [list[str]] - list of source types in this view.
+        sources [list[list[str]]] - nested list of source names in this view.
+        display_settings [list[dict]] - list of display settings in this view.
+        menu_item [str] - menu item for this view.
+        source_transforms [list[dict]] - (default: None)
+        viewer_transform [dict] - (default: None)
+    """
+
+    msg = f"Different length of types, sources, settings: {len(source_types)}, {len(sources)}, {len(display_settings)}"
+    if len(source_types) != len(sources) != len(display_settings):
+        raise ValueError(msg)
+    view = {"menuItem": menu_item}
+
+    source_displays = []
+    for source_type, source_list, display_setting in zip(source_types, sources, display_settings):
+        if source_type == "image":
+            display = get_image_display(source_list, **display_setting)
+        elif source_type == "segmentation":
+            display = get_segmentation_display(source_list, **display_setting)
+        else:
+            raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
+        source_displays.append(display)
+    view["sourceDisplays"] = source_displays
+
+    if source_transforms is not None:
+        # check that source transform types are valid and that all sources listed
+        # are also present in the display sources
+        all_sources = set([source for source_list in sources for source in source_list])
+        for source_transform in source_transforms:
+            trafo_type = list(source_transform.keys())[0]
+            if trafo_type not in ("affine", "autoGrid"):
+                msg = f"Invalid source transform type {trafo_type}, expect one of 'affine', 'autoGrid'"
+                raise ValueError(msg)
+
+            trafo = source_transform[trafo_type]
+            trafo_sources = trafo["sources"]
+            invalid_sources = list(set(trafo_sources) - all_sources)
+            if invalid_sources:
+                msg = f"Invalid sources in transform: {invalid_sources}"
+                raise ValueError(msg)
+
+        view["sourceTransforms"] = source_transforms
+
+    if viewer_transform is not None:
+        viewer_transform_types = ['affine', 'normalizedAffine', 'position', 'timepoint']
+        viewer_transform_type = list(viewer_transform.keys())[0]
+        if len(viewer_transform) != 1 and viewer_transform_type not in viewer_transform_types:
+            msg = f"Invalid viewer transform {viewer_transform_type}, expect one of {viewer_transform_types}"
+            raise ValueError(msg)
+        view["viewerTransform"] = viewer_transform
+
+    return view
+
+
+def get_default_view(source_type, source_name, menu_item=None,
+                     source_transform=None, viewer_transform=None, **kwargs):
     """ Create default view metadata for a single source.
 
     Arguments:
         source_type [str] - type of the source, either 'image' or 'segmentation'
         source_name [str] - name of the source.
         menu_item [str] - (default: None)
-        **kwargs - additional keyword arguments for that view
+        source_transform [dict] - dict with affine source transform.
+            If given, must contain 'parameters' and may contain 'timepoints' (default: None).
+        viewer_transform [dict] - dict with viewer transform (default: None)
+        **kwargs - additional settings for this view
     """
     menu_item = f"{source_type}/{source_name}" if menu_item is None else menu_item
-    view = {'menuItem': menu_item}
-    if source_type == 'image':
-        color = kwargs.pop("color", "white")
-        contrast_limits = kwargs.pop("contrastLimits",  [0.0, 255.0])
-        source_displays = {
-            "imageDisplay": {
-                "color": color,
-                "contrastLimits": contrast_limits,
-                "sources": [source_name]
-            }
-        }
-        additional_image_kwargs = ["resolution3dView", "showImagesIn3d"]
-        for kwarg_name in additional_image_kwargs:
-            kwarg_val = kwargs.pop(kwarg_name, None)
-            if kwarg_val is not None:
-                source_displays["imageDisplay"][kwarg_name] = kwarg_val
-    elif source_type == 'segmentation':
-        # TODO find a good default alpha value
-        alpha = kwargs.pop("alpha", 0.75)
-        color = kwargs.pop("color", "glasbey")
-        source_displays = {
-            "segmentationDisplay": {
-                "alpha": alpha,
-                "color": color,
-                "sources": [source_name]
-            }
-        }
-        additional_seg_kwargs = ["colorByColumn", "resolution3dView",
-                                 "selectedSegmentIds", "showSelectedSegmentsIn3d",
-                                 "tables", "valueLimits"]
-        for kwarg_name in additional_seg_kwargs:
-            kwarg_val = kwargs.pop(kwarg_name, None)
-            if kwarg_val is not None:
-                source_displays["segmentationDisplay"][kwarg_name] = kwarg_val
+    if source_transform is None:
+        source_transforms = None
     else:
-        raise ValueError(f"Expect source_type to be 'image' or 'segmentation', got {source_type}")
-    view["sourceDisplays"] = [source_displays]
+        source_transforms = [
+            get_affine_source_transform(
+                [source_name], source_transform["parameters"], source_transform.get("timepoints", None)
+            )
+        ]
 
-    source_transforms = kwargs.pop("sourceTransforms", None)
-    if source_transforms is not None:
-        source_transform_list = []
-        for i, transform in enumerate(source_transforms):
-            transform["sources"] = [source_name]
-            source_transform_list.append(to_affine_source_transform(**transform))
-        view["sourceTransforms"] = source_transform_list
-
-    viewer_transform = kwargs.pop("viewerTransform", None)
-    if viewer_transform is not None:
-        view["viewerTransform"] = viewer_transform
-
-    if kwargs:
-        raise ValueError(f"Invalid keyword arguments: {list(kwargs.keys())}")
-
+    view = get_view([source_type], [[source_name]], [kwargs], menu_item,
+                    source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view
