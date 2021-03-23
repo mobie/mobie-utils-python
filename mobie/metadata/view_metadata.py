@@ -1,6 +1,6 @@
 
 
-def get_image_display(sources, **kwargs):
+def get_image_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     color = kwargs.pop("color", "white")
@@ -8,6 +8,7 @@ def get_image_display(sources, **kwargs):
     image_display = {
         "color": color,
         "contrastLimits": contrast_limits,
+        "name": name,
         "sources": sources
     }
     additional_image_kwargs = ["resolution3dView", "showImagesIn3d"]
@@ -20,7 +21,7 @@ def get_image_display(sources, **kwargs):
     return {"imageDisplay": image_display}
 
 
-def get_segmentation_display(sources, **kwargs):
+def get_segmentation_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     # TODO find a good default alpha value
@@ -29,6 +30,7 @@ def get_segmentation_display(sources, **kwargs):
     segmentation_display = {
         "alpha": alpha,
         "color": color,
+        "name": name,
         "sources": sources
     }
     additional_seg_kwargs = ["colorByColumn", "resolution3dView",
@@ -91,30 +93,31 @@ def get_viewer_transform(transform_type, parameters=None, timepoint=None):
     return {transform_type: trafo}
 
 
-def get_view(source_types, sources, display_settings, menu_item,
+def get_view(names, source_types, sources, display_settings, menu_item,
              source_transforms=None, viewer_transform=None):
     """ Create view metadata for multi source views.
 
     Arguments:
+        names [list[str]] - names of the display groups in this view.
         source_types [list[str]] - list of source types in this view.
         sources [list[list[str]]] - nested list of source names in this view.
         display_settings [list[dict]] - list of display settings in this view.
-        menu_item [str] - menu item for this view.
+        menu_item [str] - menu item for this view: <MENU_NAME>/<ENTRY_NAME> (default: None)
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
     """
 
-    msg = f"Different length of types, sources, settings: {len(source_types)}, {len(sources)}, {len(display_settings)}"
-    if len(source_types) != len(sources) != len(display_settings):
-        raise ValueError(msg)
+    if len(names) != len(source_types) != len(sources) != len(display_settings):
+        lens = f"{len(names)} {len(source_types)}, {len(sources)}, {len(display_settings)}"
+        raise ValueError(f"Different length of names, types, sources and settings: {lens}")
     view = {"menuItem": menu_item}
 
     source_displays = []
-    for source_type, source_list, display_setting in zip(source_types, sources, display_settings):
+    for name, source_type, source_list, display_setting in zip(names, source_types, sources, display_settings):
         if source_type == "image":
-            display = get_image_display(source_list, **display_setting)
+            display = get_image_display(name, source_list, **display_setting)
         elif source_type == "segmentation":
-            display = get_segmentation_display(source_list, **display_setting)
+            display = get_segmentation_display(name, source_list, **display_setting)
         else:
             raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
         source_displays.append(display)
@@ -157,7 +160,7 @@ def get_default_view(source_type, source_name, menu_item=None,
     Arguments:
         source_type [str] - type of the source, either 'image' or 'segmentation'
         source_name [str] - name of the source.
-        menu_item [str] - (default: None)
+        menu_item [str] - menu item for this view: <MENU_NAME>/<ENTRY_NAME> (default: None)
         source_transform [dict] - dict with affine source transform.
             If given, must contain 'parameters' and may contain 'timepoints' (default: None).
         viewer_transform [dict] - dict with viewer transform (default: None)
@@ -173,6 +176,6 @@ def get_default_view(source_type, source_name, menu_item=None,
             )
         ]
 
-    view = get_view([source_type], [[source_name]], [kwargs], menu_item,
+    view = get_view([source_name], [source_type], [[source_name]], [kwargs], menu_item,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view

@@ -171,8 +171,12 @@ settings = [
     {"color": "white", "contrastLimits": [0., 255.]},
     {"color": "glasbey", "alpha": 0.75}
 ]
+viewer_transform = {"affine": [2., 0., 0., 0.,
+                               0., 2., 0., 0.,
+                               0., 0., 1., 0.]}
 mobie.metadata.add_dataset_bookmark(dataset_folder, "default",
                                     sources=source_list, display_settings=settings,
+                                    viewer_transform=viewer_transform,
                                     overwrite=True)
 
 
