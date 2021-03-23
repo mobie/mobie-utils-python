@@ -2,7 +2,7 @@ import argparse
 import os
 import imageio
 import mobie
-from mobie.metadata import add_remote_project_metadata, get_default_view
+import mobie.metadata as metadata
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', required=True)
@@ -15,6 +15,7 @@ args = parser.parse_args()
 example_input_data = args.input
 mobie_project_folder = args.output
 dataset_name = args.dataset_name
+dataset_folder = os.path.join(mobie_project_folder, dataset_name)
 
 target = args.target
 max_jobs = args.max_jobs
@@ -70,10 +71,9 @@ for name, trafo in zip(tomo_names, transformations):
     # be applied in mobie to the min / max value of the data.
     im = imageio.volread(im_path)
     min_val, max_val = im.min(), im.max()
-    source_transforms = [{"parameters": trafo}]
-    view = get_default_view("image", im_name,
-                            contrastLimits=[min_val, max_val],
-                            sourceTransforms=source_transforms)
+    view = metadata.get_default_view("image", im_name,
+                                     source_transform={'parameters': trafo},
+                                     contrastLimits=[min_val, max_val])
 
     mobie.add_image(
         input_path=im_path,
@@ -102,7 +102,7 @@ scale_factors = [[1, 2, 2], [1, 2, 2], [1, 2, 2]]
 chunks = (1, 512, 512)
 
 # In addition, we set the default display color to green.
-view = get_default_view("image", im_name, color="green")
+view = metadata.get_default_view("image", im_name, color="green")
 
 mobie.add_image(
     input_path=input_path,
@@ -164,10 +164,22 @@ mobie.add_segmentation(
 )
 
 
+# finally, we update the default bookmark so that both the raw data and the segmentation is
+# loaded upon opening the dataset
+source_list = [[raw_name], [segmentation_name]]
+settings = [
+    {"color": "white", "contrastLimits": [0., 255.]},
+    {"color": "glasbey", "alpha": 0.75}
+]
+mobie.metadata.add_dataset_bookmark(dataset_folder, "default",
+                                    sources=source_list, display_settings=settings,
+                                    overwrite=True)
+
+
 # create metadata for remote data
 bucket_name = 'my-test-bucket'
 service_endpoint = 'https://s3.embl.de'
-add_remote_project_metadata(
+metadata.add_remote_project_metadata(
     mobie_project_folder,
     bucket_name,
     service_endpoint,
