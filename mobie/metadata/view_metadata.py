@@ -67,30 +67,34 @@ def get_auto_grid_source_transform(sources, table_location, timepoints=None):
     return {"autoGrid": trafo}
 
 
-def get_viewer_transform(transform_type, parameters=None, timepoint=None):
-    if transform_type == "affine":
-        assert len(parameters) == 12
-        assert all(isinstance(param, float) for param in parameters)
-        trafo = {"affine": parameters}
-    elif transform_type == "normalizedAffine":
-        assert len(parameters) == 12
-        assert all(isinstance(param, float) for param in parameters)
-        trafo = {"normalizedAffine": parameters}
-    elif transform_type == "position":
-        assert len(parameters) == 3
-        assert all(isinstance(param, float) for param in parameters)
-        trafo = {"position": parameters}
-    elif transform_type == "timepoint":
-        assert timepoint is not None
-        trafo = {}
-    else:
-        msg = f"Expect transform_type in (), got {transform_type}"
-        raise ValueError(msg)
+def get_viewer_transform(affine=None, normalized_affine=None, position=None, timepoint=None):
+    # don't allow empty transform
+    if all(param is None for param in (affine, normalized_affine, position, timepoint)):
+        raise ValueError("Invalid parameters: need to pass at least one parameter")
+
+    trafo = {}
+    if affine is not None:
+        if normalized_affine is not None:
+            raise ValueError("Invalid parameters: both affine and normalized_affine were passed")
+        # TODO do we allow position + affine ?
+        assert len(affine) == 12
+        assert all(isinstance(param, float) for param in affine)
+        trafo['affine'] = affine
+
+    if normalized_affine is not None:
+        assert len(normalized_affine) == 12
+        assert all(isinstance(param, float) for param in normalized_affine)
+        trafo['normalizedAffine'] = normalized_affine
+
+    if position is not None:
+        assert len(position) == 3
+        assert all(isinstance(param, float) for param in position)
+        trafo['position'] = position
 
     if timepoint is not None:
-        trafo[timepoint] = timepoint
+        trafo['timepoint'] = timepoint
 
-    return {transform_type: trafo}
+    return trafo
 
 
 def get_view(names, source_types, sources, display_settings, menu_item,

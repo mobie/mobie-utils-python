@@ -7,7 +7,8 @@ import pandas as pd
 from pybdv.metadata import indent_xml
 
 import mobie.metadata as metadata
-from mobie.tables.util import remove_background_label_row
+from mobie.tables.utils import remove_background_label_row
+from mobie.metadata.utils import write_metadata
 
 
 #
@@ -15,34 +16,32 @@ from mobie.tables.util import remove_background_label_row
 #
 
 
-# TODO
-def migrate_source_metadata(name, source, dataset_folder):
+def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
     source_type = source['type']
     xml_locations = source['storage']
     local_xml = os.path.join('images', xml_locations['local'])
     assert os.path.exists(os.path.join(dataset_folder, local_xml))
 
     if source_type in ('image', 'mask'):
-        menu_item = ''  # TODO name to menu item parsing
+        menu_item = parse_menu_name(source_type, name)
 
         view = metadata.get_default_view(
-            "image", name,
+            "image", name, menu_item=menu_item,
             color=source['color'], contrastLimits=source['contrastLimits']
         )
         new_source = metadata.get_image_metadata(
-            name, local_xml, menu_item,
-            view=view
+            name, local_xml, view=view
         )
         source_type = 'image'
 
     else:
         assert source_type == 'segmentation'
-        menu_item = ''  # TODO name to menu item parsing
+        menu_item = parse_menu_name(source_type, name)
 
         seg_color = source['color']
         seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
         view = metadata.get_default_view(
-            "segmentation", name, color=seg_color
+            "segmentation", name, menu_item=menu_item, color=seg_color
         )
 
         if 'tableFolder' in source:
@@ -52,7 +51,7 @@ def migrate_source_metadata(name, source, dataset_folder):
             table_location = None
 
         new_source = metadata.get_segmentation_metadata(
-            name, local_xml, menu_item,
+            name, local_xml,
             view=view, table_location=table_location
         )
 
@@ -64,7 +63,7 @@ def migrate_source_metadata(name, source, dataset_folder):
     return new_source
 
 
-def migrate_dataset_metadata(folder):
+def migrate_dataset_metadata(folder, parse_menu_name):
     in_file = os.path.join(folder, 'images', 'images.json')
     assert os.path.exists(in_file), in_file
     with open(in_file, 'r') as f:
@@ -72,7 +71,8 @@ def migrate_dataset_metadata(folder):
 
     new_sources = {}
     for name, source in sources_in.items():
-        new_sources[name] = migrate_source_metadata(name, source, folder)
+        new_sources[name] = migrate_source_metadata(name, source,
+                                                    folder, parse_menu_name)
 
     dataset_metadata = {
         "is2d": False,
@@ -83,30 +83,121 @@ def migrate_dataset_metadata(folder):
     os.remove(in_file)
 
 
-# TODO
-def migrate_bookmark(bookmark):
-    pass
+def migrate_bookmark(name, bookmark, all_sources):
+    menu_item = f"bookmark/{name}"
+
+    # check if we have a viewer transform in this bookmark
+    affine = bookmark.pop('view', None)
+    normalized_affine = bookmark.pop('normView', None)
+    position = bookmark.pop('position', None)
+    if normalized_affine is not None:
+        # get rid of the leading "n" character in normView
+        normalized_affine = [float(param[1:]) for param in normalized_affine]
+    if any(trafo is not None for trafo in (affine, normalized_affine, position)):
+        viewer_transform = metadata.get_viewer_transform(affine=affine,
+                                                         normalized_affine=normalized_affine,
+                                                         position=position)
+    else:
+        viewer_transform = None
+
+    # layers is in bookmark -> we need to add sourceDisplays
+    if "layers" in bookmark:
+        layers = bookmark.pop("layers")
+        names, source_types, sources, display_settings = [], [], [], []
+
+        for source_name, settings in layers.items():
+            this_source = all_sources[source_name]
+            source_type = list(this_source.keys())[0]
+            this_default_settings = this_source[source_type]['view']['sourceDisplays']
+
+            if source_type == 'image':
+                this_default_settings = this_default_settings[0]['imageDisplay']
+                this_settings = {
+                    'color': settings.pop('color', this_default_settings['color']),
+                    'contrastLimits': settings.pop('contrastLimits', this_default_settings['contrastLimits'])
+                }
+
+            else:  # source_type == 'segmentation'
+                this_default_settings = this_default_settings[0]['segmentationDisplay']
+
+                # TODO rename color_key to "lut" when spec changes
+                seg_color_key = 'color'  # 'lut'
+                color = settings.pop('color', this_default_settings[seg_color_key])
+                if color == 'randomFromGlasbey':
+                    color = 'glasbey'
+
+                this_settings = {
+                    'alpha': this_default_settings['alpha'],  # did not have alpha equivalent in old spec
+                    seg_color_key: color
+                }
+
+                # optional keys that don't need any translation
+                optional_keys = ("colorByColumn", "showSelectedSegmentsIn3d", "tables")
+                for key in optional_keys:
+                    val = settings.pop(key, None)
+                    if val is not None:
+                        this_settings[key] = val
+
+                # selected segment id entry format is "<source-name>;<timepoint>;<label-id>"
+                selected_ids = settings.pop("selectedLabelIds", None)
+                if selected_ids is not None:
+                    selected_ids = [f"{source_name};0;{sid}" for sid in selected_ids]
+                    this_settings["selectedSegmentIds"] = selected_ids
+
+                # segmentation might have contrastLimits, which we can just ignore
+                settings.pop('contrastLimits', None)
+
+            assert not settings, f"Not all settings fields were parsed: {list(settings.keys())}"
+            names.append(source_name)
+            sources.append([source_name])
+            source_types.append(source_type)
+            display_settings.append(this_settings)
+
+        view = metadata.get_view(names, source_types, sources, display_settings,
+                                 menu_item=menu_item, viewer_transform=viewer_transform)
+
+    # otherwise, we don't have sources and require a viewerTransform
+    else:
+        assert viewer_transform is not None
+        view = {
+            'menuItem': menu_item,
+            'viewerTransform': viewer_transform
+        }
+
+    assert not bookmark, f"Not all bookmark fields were parsed: {list(bookmark.keys())}"
+    return view
 
 
-def migrate_bookmark_file(bookmark_file):
+def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False):
+    dataset_metadata = metadata.read_dataset_metadata(dataset_folder)
+    all_sources = dataset_metadata['sources']
+
     with open(bookmark_file) as f:
         bookmarks = json.load(f)
 
     new_bookmarks = {}
     for name, bookmark in bookmarks.items():
-        new_bookmarks[name] = migrate_bookmark(bookmark)
+        new_bookmarks[name] = migrate_bookmark(name, bookmark, all_sources)
 
-    with open(bookmark_file, 'w') as f:
-        json.dump(new_bookmarks, f, indent=2, sort_keys=True)
+    if is_default:
+        dataset_metadata['views'] = new_bookmarks
+        metadata.write_dataset_metadata(dataset_folder, dataset_metadata)
+    else:
+        write_metadata(bookmark_file, {'bookmarks': new_bookmarks})
 
 
-# TODO bookmarks from default.json go to dataset.json:views
 def migrate_bookmarks(folder):
     bookmark_dir = os.path.join(folder, 'misc', 'bookmarks')
-    assert os.path.exists(bookmark_dir)
+    assert os.path.exists(bookmark_dir), bookmark_dir
+    default_bookmark_file = os.path.join(bookmark_dir, 'default.json')
+
+    assert os.path.exists(default_bookmark_file), default_bookmark_file
+    migrate_bookmark_file(default_bookmark_file, folder, is_default=True)
+    os.remove(default_bookmark_file)
+
     bookmark_files = glob(os.path.join(bookmark_dir, '*.json'))
     for bookmark_file in bookmark_files:
-        migrate_bookmark_file(bookmark_file)
+        migrate_bookmark_file(bookmark_file, folder)
 
 
 #
@@ -156,15 +247,20 @@ def migrate_sources(folder):
     # dataset might not have remote sources
     if not os.path.exists(remote_folder):
         return
-    xmls = os.path.join(remote_folder, '*.xml')
+    xmls = glob(os.path.join(remote_folder, '*.xml'))
     for xml in xmls:
         remove_authentication_field(xml)
 
 
-def migrate_dataset(folder):
-    migrate_dataset_metadata(folder)
-    return
+def default_menu_name_parser(source_type, name):
+    return f"{source_type}s/{name}"
+
+
+def migrate_dataset(folder, parse_menu_name=None):
+    if parse_menu_name is None:
+        parse_menu_name = default_menu_name_parser
+    migrate_dataset_metadata(folder, parse_menu_name)
     migrate_bookmarks(folder)
     migrate_tables(folder)
     migrate_sources(folder)
-    # TODO validate
+    # TODO validate - need to allow for views without sourceDisplays!

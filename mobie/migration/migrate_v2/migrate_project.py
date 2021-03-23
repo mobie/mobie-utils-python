@@ -1,19 +1,21 @@
 import json
 import os
 from .migrate_dataset import migrate_dataset
+from ...metadata import write_project_metadata
 
 
-def migrate_project(root):
+def migrate_project(root, parse_menu_name=None):
     ds_file = os.path.join(root, 'datasets.json')
     with open(ds_file, 'r') as f:
-        datasets = json.load(f)
-    ds_list = datasets['datasets']
+        metadata = json.load(f)
+    ds_list = metadata['datasets']
+
     for ds in ds_list:
         ds_folder = os.path.join(root, ds)
         assert os.path.exists(ds_folder), ds_folder
-        print("Migrate dataset", ds)
-        migrate_dataset(ds_folder)
+        print("Migrate dataset:", ds)
+        migrate_dataset(ds_folder, parse_menu_name=parse_menu_name)
 
-    datasets['specVersion'] = '0.2.0'
-    with open(ds_file, 'w') as f:
-        json.dump(datasets, f, indent=2, sort_keys=True)
+    metadata['specVersion'] = '0.2.0'
+    write_project_metadata(root, metadata)
+    os.remove(ds_file)
