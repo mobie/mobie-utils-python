@@ -7,12 +7,6 @@ from cluster_tools.cluster_tasks import BaseClusterTask
 import mobie.metadata as metadata
 
 
-# TODO more name parsing
-def get_default_menu_item(source_type, name):
-    menu_item = f"{source_type}/name"
-    return menu_item
-
-
 # TODO default arguments for scale-factors and chunks
 def get_base_parser(description, transformation_file=False):
     parser = argparse.ArgumentParser(description=description)

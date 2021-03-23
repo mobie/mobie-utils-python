@@ -5,7 +5,7 @@ import warnings
 import mobie.metadata as metadata
 from mobie.import_data.utils import downscale, add_max_id
 from mobie.tables import compute_default_table
-from mobie.utils import get_default_menu_item, get_base_parser, parse_spatial_args, parse_view
+from mobie.utils import get_base_parser, parse_spatial_args, parse_view
 from mobie.validation import validate_view_metadata
 
 try:
@@ -64,11 +64,10 @@ def add_registered_source(input_path, input_key, transformation,
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
     tmp_folder = f'tmp_{source_name}' if tmp_folder is None else tmp_folder
 
-    if menu_item is None:
-        menu_item = get_default_menu_item(source_type, source_name)
-
     if view is None:
-        view = metadata.get_default_view(source_type, source_name)
+        view = metadata.get_default_view(source_type, source_name, menu_item=menu_item)
+    elif view is not None and menu_item is not None:
+        view.update({"menuItem": menu_item})
     validate_view_metadata(view, sources=[source_name])
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -122,9 +121,7 @@ def add_registered_source(input_path, input_key, transformation,
     # add the segmentation to the image dict
     metadata.add_source_metadata(dataset_folder, source_type,
                                  source_name, xml_path,
-                                 view=view,
-                                 menu_item=menu_item,
-                                 table_folder=table_folder)
+                                 view=view, table_folder=table_folder)
 
 
 if __name__ == '__main__':

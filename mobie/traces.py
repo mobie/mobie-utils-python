@@ -6,8 +6,7 @@ from pybdv.metadata import get_data_path
 import mobie.metadata as metadata
 from mobie.import_data import import_traces
 from mobie.tables import compute_trace_default_table
-from mobie.utils import (get_default_menu_item, get_base_parser,
-                         parse_spatial_args, parse_view)
+from mobie.utils import get_base_parser, parse_spatial_args, parse_view
 from mobie.validation import validate_view_metadata
 
 
@@ -46,10 +45,10 @@ def add_traces(input_folder, root, dataset_name, traces_name,
     if not metadata.dataset_exists(root, dataset_name):
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
 
-    if menu_item is None:
-        menu_item = get_default_menu_item('segmentation', traces_name)
     if view is None:
-        view = metadata.get_default_view('segmentation', traces_name)
+        view = metadata.get_default_view("segmentation", traces_name, menu_item=menu_item)
+    elif view is not None and menu_item is not None:
+        view.update({"menuItem": menu_item})
     validate_view_metadata(view, sources=[traces_name])
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -80,8 +79,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
     metadata.add_source_metadata(dataset_folder, 'segmentation',
                                  traces_name, xml_path,
-                                 menu_item=menu_item, view=view,
-                                 table_folder=table_folder)
+                                 view=view, table_folder=table_folder)
 
 
 def main():

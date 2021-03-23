@@ -47,12 +47,11 @@ def validate_view_metadata(view, sources=None, assert_true=_assert_true):
     displays = view["sourceDisplays"]
     for display in displays:
         display_metadata = list(display.values())[0]
-        display_name = display_metadata['name']
         display_sources = display_metadata["sources"]
         all_display_sources.extend(display_sources)
         if sources is not None:
             wrong_sources = list(set(display_sources) - set(sources))
-            msg = f"Found wrong sources {wrong_sources} in sourceDisplay {display_name}"
+            msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
             assert_true(len(wrong_sources) == 0, msg)
 
     # TODO validate table root location for auto grid

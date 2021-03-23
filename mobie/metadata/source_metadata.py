@@ -5,7 +5,7 @@ from .view_metadata import get_default_view
 from ..validation import validate_source_metadata
 
 
-def get_image_metadata(source_name, xml_path, menu_item, view=None):
+def get_image_metadata(source_name, xml_path, view=None):
     if view is None:
         view = get_default_view("image", source_name)
     source_metadata = {
@@ -13,14 +13,13 @@ def get_image_metadata(source_name, xml_path, menu_item, view=None):
             "imageDataLocations": {
                 "local": xml_path
             },
-            "menuItem": menu_item,
             "view": view
         }
     }
     return source_metadata
 
 
-def get_segmentation_metadata(source_name, xml_path, menu_item, view=None, table_location=None):
+def get_segmentation_metadata(source_name, xml_path, view=None, table_location=None):
     if view is None:
         view = get_default_view("image", source_name)
     source_metadata = {
@@ -28,12 +27,11 @@ def get_segmentation_metadata(source_name, xml_path, menu_item, view=None, table
             "imageDataLocations": {
                 "local": xml_path
             },
-            "menuItem": menu_item,
             "view": view
         }
     }
     if table_location is not None:
-        source_metadata["segmentation"]["tableDataRootLocation"] = table_location
+        source_metadata["segmentation"]["tableDataLocation"] = table_location
     return source_metadata
 
 
@@ -42,7 +40,6 @@ def add_source_metadata(
     source_type,
     source_name,
     xml_path,
-    menu_item,
     view=None,
     table_folder=None,
     overwrite=True
@@ -54,7 +51,6 @@ def add_source_metadata(
         source_type [str] - type of the source, either 'image' or 'segmentation'.
         source_name [str] - name of the source.
         xml_path [str] - path to the xml for the image data corresponding to this source.
-        menu_item [str] -
         view [dict] - default view for this source. (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
@@ -77,11 +73,11 @@ def add_source_metadata(
     relative_xml_path = os.path.relpath(xml_path, dataset_folder)
 
     if source_type == "image":
-        source_metadata = get_image_metadata(source_name, relative_xml_path, menu_item, view)
+        source_metadata = get_image_metadata(source_name, relative_xml_path, view)
     else:
         relative_table_folder = None if table_folder is None else os.path.relpath(table_folder, dataset_folder)
         source_metadata = get_segmentation_metadata(source_name, relative_xml_path,
-                                                    menu_item, view, relative_table_folder)
+                                                    view, relative_table_folder)
 
     validate_source_metadata(source_name, source_metadata, dataset_folder)
     sources_metadata[source_name] = source_metadata

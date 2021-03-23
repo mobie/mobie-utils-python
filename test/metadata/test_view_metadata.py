@@ -25,7 +25,7 @@ class TestViewMetadata(unittest.TestCase):
 
         # test missing fields
         view = get_default_view('image', 'my-image')
-        view['sourceDisplays'][0]['imageDisplays'].pop('color')
+        view['sourceDisplays'][0]['imageDisplay'].pop('color')
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 
@@ -36,12 +36,15 @@ class TestViewMetadata(unittest.TestCase):
             validate_with_schema(view, 'view')
 
         view = get_default_view('image', 'my-image')
-        view['sourceDisplays'][0]['imageDisplays']["foo"] = "bar"
+        view['sourceDisplays'][0]['imageDisplay']["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 
         # test invalid values
         invalid_kwargs = [
+            {'menu_item': "abc"},
+            {'menu_item': "abc a/d"},
+            {'menu_item': "abca/d;x"},
             {'color': "foobar"},
             {'color': "r=1,g=2,b=3,a=4,z=5"},
             {'contrastLimits': [-10., 5.]},
@@ -74,13 +77,13 @@ class TestViewMetadata(unittest.TestCase):
 
         # test missing fields
         view = get_default_view('segmentation', 'my-seg')
-        view['sourceDisplays'][0]['segmentationDisplays'].pop('alpha')
+        view['sourceDisplays'][0]['segmentationDisplay'].pop('alpha')
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 
         # test invalid fields
         view = get_default_view('segmentation', 'my-seg')
-        view['sourceDisplays'][0]['segmentationDisplays']["foo"] = "bar"
+        view['sourceDisplays'][0]['segmentationDisplay']["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 
@@ -103,8 +106,7 @@ class TestViewMetadata(unittest.TestCase):
 
         # test view with source transformations
         trafo_kwargs = [
-            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
-                                   'name': 'my-affine'}]},
+            {'sourceTransforms': [{'parameters': np.random.rand(12).tolist()}]},
             {'sourceTransforms': [{'parameters': np.random.rand(12).tolist()}
                                   for _ in range(3)]},
             {'sourceTransforms': [{'parameters': np.random.rand(12).tolist(),
@@ -118,7 +120,7 @@ class TestViewMetadata(unittest.TestCase):
 
         # test invalid fields
         view = get_default_view('image', 'my-image', **trafo_kwargs[0])
-        view["sourceTransforms"].append({"invalidTransform": {"name": "invalid", "parameters": 0}})
+        view["sourceTransforms"].append({"invalidTransform": {"parameters": 0}})
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 

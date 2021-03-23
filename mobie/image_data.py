@@ -3,8 +3,7 @@ import os
 
 import mobie.metadata as metadata
 from mobie.import_data import import_image_data
-from mobie.utils import (get_default_menu_item, get_base_parser,
-                         parse_spatial_args, parse_view)
+from mobie.utils import get_base_parser, parse_spatial_args, parse_view
 from mobie.validation import validate_view_metadata
 
 
@@ -57,10 +56,10 @@ def add_image(input_path, input_key,
 
     tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
-    if menu_item is None:
-        menu_item = get_default_menu_item('image', image_name)
     if view is None:
-        view = metadata.get_default_view('image', image_name)
+        view = metadata.get_default_view('image', image_name, menu_item=menu_item)
+    elif view is not None and menu_item is not None:
+        view.update({"menuItem": menu_item})
     validate_view_metadata(view, sources=[image_name])
 
     # import the image data and add the metadata
@@ -70,8 +69,7 @@ def add_image(input_path, input_key,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,
                       max_jobs=max_jobs, unit=unit)
-    metadata.add_source_metadata(dataset_folder, 'image', image_name, xml_path,
-                                 menu_item=menu_item, view=view)
+    metadata.add_source_metadata(dataset_folder, 'image', image_name, xml_path, view=view)
 
     if transformation is not None:
         metadata.update_transformation_parameter(xml_path, transformation)

@@ -30,10 +30,8 @@ class TestProjectMetadata(unittest.TestCase):
 
         # check optional fields
         metadata = self.get_project_metadata()
-        metadata["project"] = {
-            "description": "Lorem ipsum.",
-            "references": ["https://my-publication.com"]
-        }
+        metadata["description"] = "Lorem ipsum."
+        metadata["references"] = ["https://my-publication.com"]
         validate_with_schema(metadata, schema)
 
         # check missing fields

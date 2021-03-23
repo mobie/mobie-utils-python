@@ -8,7 +8,7 @@ from ..__version__ import SPEC_VERSION
 #
 
 
-def create_project_metadata(root):
+def create_project_metadata(root, description=None, references=None):
     os.makedirs(root, exist_ok=True)
     path = os.path.join(root, "project.json")
     if os.path.exists(path):
@@ -17,6 +17,10 @@ def create_project_metadata(root):
         "specVersion": SPEC_VERSION,
         "datasets": []
     }
+    if description is not None:
+        metadata[description] = description
+    if references is not None:
+        metadata[references] = references
     write_project_metadata(root,  metadata)
 
 

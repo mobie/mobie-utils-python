@@ -16,4 +16,4 @@ def migrate_project(root):
 
     datasets['specVersion'] = '0.2.0'
     with open(ds_file, 'w') as f:
-        json.dump(datasets, f)
+        json.dump(datasets, f, indent=2, sort_keys=True)

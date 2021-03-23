@@ -1,13 +1,12 @@
 
 
-def to_affine_source_transform(name, sources, parameters, timepoints=None):
+def to_affine_source_transform(sources, parameters, timepoints=None):
     """
     """
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
     trafo = {
         "affine": {
-            "name": name,
             "parameters": parameters,
             "sources": sources
         }
@@ -19,24 +18,24 @@ def to_affine_source_transform(name, sources, parameters, timepoints=None):
 
 
 # TODO needs to be refactored a bit to support more complex views without too much code duplication
-# TODO support more kwargs and explain in more details
-def get_default_view(source_type, source_name, **kwargs):
+def get_default_view(source_type, source_name, menu_item=None, **kwargs):
     """ Create default view metadata for a single source.
 
     Arguments:
         source_type [str] - type of the source, either 'image' or 'segmentation'
         source_name [str] - name of the source.
+        menu_item [str] - (default: None)
         **kwargs - additional keyword arguments for that view
     """
-    view = {}
+    menu_item = f"{source_type}/{source_name}" if menu_item is None else menu_item
+    view = {'menuItem': menu_item}
     if source_type == 'image':
         color = kwargs.pop("color", "white")
         contrast_limits = kwargs.pop("contrastLimits",  [0.0, 255.0])
-        source_display = {
-            "imageDisplays": {
+        source_displays = {
+            "imageDisplay": {
                 "color": color,
                 "contrastLimits": contrast_limits,
-                "name": source_name,
                 "sources": [source_name]
             }
         }
@@ -44,16 +43,15 @@ def get_default_view(source_type, source_name, **kwargs):
         for kwarg_name in additional_image_kwargs:
             kwarg_val = kwargs.pop(kwarg_name, None)
             if kwarg_val is not None:
-                source_display["imageDisplays"][kwarg_name] = kwarg_val
+                source_displays["imageDisplay"][kwarg_name] = kwarg_val
     elif source_type == 'segmentation':
         # TODO find a good default alpha value
         alpha = kwargs.pop("alpha", 0.75)
         color = kwargs.pop("color", "glasbey")
-        source_display = {
-            "segmentationDisplays": {
+        source_displays = {
+            "segmentationDisplay": {
                 "alpha": alpha,
                 "color": color,
-                "name": source_name,
                 "sources": [source_name]
             }
         }
@@ -63,17 +61,15 @@ def get_default_view(source_type, source_name, **kwargs):
         for kwarg_name in additional_seg_kwargs:
             kwarg_val = kwargs.pop(kwarg_name, None)
             if kwarg_val is not None:
-                source_display["segmentationDisplays"][kwarg_name] = kwarg_val
+                source_displays["segmentationDisplay"][kwarg_name] = kwarg_val
     else:
         raise ValueError(f"Expect source_type to be 'image' or 'segmentation', got {source_type}")
-    view["sourceDisplays"] = [source_display]
+    view["sourceDisplays"] = [source_displays]
 
     source_transforms = kwargs.pop("sourceTransforms", None)
     if source_transforms is not None:
         source_transform_list = []
         for i, transform in enumerate(source_transforms):
-            if "name" not in transform:
-                transform["name"] = f'affine-{i}'
             transform["sources"] = [source_name]
             source_transform_list.append(to_affine_source_transform(**transform))
         view["sourceTransforms"] = source_transform_list
