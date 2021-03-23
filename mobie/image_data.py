@@ -4,6 +4,7 @@ import os
 import mobie.metadata as metadata
 from mobie.import_data import import_image_data
 from mobie.utils import get_base_parser, parse_spatial_args, parse_view
+from mobie.xml_utils import update_transformation_parameter
 from mobie.validation import validate_view_metadata
 
 
@@ -72,12 +73,13 @@ def add_image(input_path, input_key,
     metadata.add_source_metadata(dataset_folder, 'image', image_name, xml_path, view=view)
 
     if transformation is not None:
-        metadata.update_transformation_parameter(xml_path, transformation)
+        update_transformation_parameter(xml_path, transformation)
 
     # need to add the dataset to datasets.json and create the default bookmark
     # if we have just created it
     if not ds_exists:
         metadata.add_dataset(root, dataset_name, is_default_dataset)
+        view.update({"menuItem": "bookmark/default"})
         metadata.add_view_to_dataset(dataset_folder, 'default', view=view)
 
 

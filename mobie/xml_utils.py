@@ -1,6 +1,7 @@
 import os
 import xml.etree.ElementTree as ET
 from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
+from pybdv.metadata import write_affine
 
 
 def copy_xml_with_abspath(xml_in, xml_out):
@@ -99,3 +100,10 @@ def read_path_in_bucket(xml):
     imgload = seqdesc.find('ImageLoader')
     el = imgload.find('Key')
     return el.text
+
+
+def update_transformation_parameter(xml_path, parameter):
+    if len(parameter) != 12:
+        raise ValueError("Expected affine transformation with 12 parameters, got {len(parameter)}")
+    write_affine(xml_path, setup_id=0, affine=parameter,
+                 overwrite=True, timepoint=0)
