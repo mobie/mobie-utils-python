@@ -4,12 +4,13 @@ channels:
     - conda-forge
     - cpape
 dependencies:
-    - elf >=0.2.4
-    - numba <=0.50
     - cluster_tools >=0.3.4
+    - elf >=0.2.4
+    - jsonschema
+    - numba <=0.50
     - pandas
     - paintera_tools >=0.2.1
+    - pip
+    - requests
     - pybdv >=0.5
     - s3fs
-    - jsonschema
-    - pip
