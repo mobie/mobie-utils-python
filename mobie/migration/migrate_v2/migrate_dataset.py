@@ -41,7 +41,7 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
         seg_color = source['color']
         seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
         view = metadata.get_default_view(
-            "segmentation", name, menu_name=menu_name, color=seg_color
+            "segmentation", name, menu_name=menu_name, lut=seg_color
         )
 
         if 'tableFolder' in source:
@@ -93,6 +93,13 @@ def migrate_bookmark(name, bookmark, all_sources):
     if normalized_affine is not None:
         # get rid of the leading "n" character in normView
         normalized_affine = [float(param[1:]) for param in normalized_affine]
+
+    # old views allow to specify both position and view / normView, but the position doesn't
+    # have any effect in that case, so we don't allow it any more.
+    # hence get rid of the position if it's specified alongside a view or normView
+    if position is not None and (affine is not None or normalized_affine is not None):
+        position = None
+
     if any(trafo is not None for trafo in (affine, normalized_affine, position)):
         viewer_transform = metadata.get_viewer_transform(affine=affine,
                                                          normalized_affine=normalized_affine,

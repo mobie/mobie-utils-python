@@ -76,12 +76,15 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
     if affine is not None:
         if normalized_affine is not None:
             raise ValueError("Invalid parameters: both affine and normalized_affine were passed")
-        # TODO do we allow position + affine ?
+        if position is not None:
+            raise ValueError("Invalid parameters: both affine and position were passed")
         assert len(affine) == 12
         assert all(isinstance(param, float) for param in affine)
         trafo['affine'] = affine
 
     if normalized_affine is not None:
+        if position is not None:
+            raise ValueError("Invalid parameters: both normaized affine and position were passed")
         assert len(normalized_affine) == 12
         assert all(isinstance(param, float) for param in normalized_affine)
         trafo['normalizedAffine'] = normalized_affine
