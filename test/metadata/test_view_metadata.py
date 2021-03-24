@@ -42,9 +42,9 @@ class TestViewMetadata(unittest.TestCase):
 
         # test invalid values
         invalid_kwargs = [
-            {'menu_item': "abc"},
-            {'menu_item': "abc a/d"},
-            {'menu_item': "abca/d;x"},
+            {'uiSelectionGroup': "abc a"},
+            {'uiSelectionGroup': "abc/a"},
+            {'uiSelectionGroup': "abc;"},
             {'color': "foobar"},
             {'color': "r=1,g=2,b=3,a=4,z=5"},
             {'contrastLimits': [-10., 5.]},
@@ -53,7 +53,9 @@ class TestViewMetadata(unittest.TestCase):
             {'resolution3dView': [1., 2., 3., 4.]}
         ]
         for kwargs in invalid_kwargs:
-            view = get_default_view('image', 'my-image', **kwargs)
+            if 'uiSelectionGroup' in kwargs:
+                menu_name = kwargs.pop('uiSelectionGroup')
+            view = get_default_view('image', 'my-image', menu_name=menu_name, **kwargs)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
@@ -66,8 +68,8 @@ class TestViewMetadata(unittest.TestCase):
 
         # test custom segmentation settings
         custom_kwargs = [
-            {'alpha': 0.5, 'color': 'glasbey'},
-            {'alpha': 0.9, 'color': 'viridis',
+            {'alpha': 0.5, 'lut': 'glasbey'},
+            {'alpha': 0.9, 'lut': 'viridis',
              'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]},
             {'selectedSegmentIds': ['my-seg;0;1', 'my-seg;0;2', 'my-seg;1;10']}
         ]
@@ -90,8 +92,8 @@ class TestViewMetadata(unittest.TestCase):
         # test invalid values
         invalid_kwargs = [
             {'alpha': 10},
-            {'color': "red"},
-            {'color': "foobar"},
+            {'lut': "red"},
+            {'lut': "foobar"},
             {'selectedSegmentIds': ['my-seg,0,2']},
             {'selectedSegmentIds': ['my-seg/abc;0;2']},
             {'selectedSegmentIds': ['my-segc;alpha;2']}

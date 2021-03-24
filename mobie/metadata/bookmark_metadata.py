@@ -9,10 +9,8 @@ from ..validation.utils import validate_with_schema
 # TODO add more convenience for source and viewer transforms ?
 
 
-def create_bookmark_view(sources, all_sources,
-                         display_settings, menu_item,
-                         source_transforms, viewer_transform,
-                         display_group_names):
+def create_bookmark_view(sources, all_sources, display_settings,
+                         source_transforms, viewer_transform, display_group_names):
     all_source_names = set(all_sources.keys())
     source_types = []
     for source_list in sources:
@@ -31,8 +29,9 @@ def create_bookmark_view(sources, all_sources,
     if display_group_names is None:
         display_group_names = [f'{source_type}-group-{i}' for i, source_type in enumerate(source_types)]
 
+    menu_name = "bookmark"
     view = get_view(display_group_names, source_types, sources,
-                    display_settings, menu_item,
+                    display_settings, menu_name,
                     source_transforms, viewer_transform)
     return view
 
@@ -56,9 +55,8 @@ def add_dataset_bookmark(dataset_folder, bookmark_name,
         overwrite [bool] - whether to overwrite existing views (default: False)
     """
     all_sources = read_dataset_metadata(dataset_folder)['sources']
-    menu_item = f"bookmark/{bookmark_name}"
     view = create_bookmark_view(sources, all_sources, display_settings,
-                                menu_item, source_transforms, viewer_transform,
+                                source_transforms, viewer_transform,
                                 display_group_names)
     validate_with_schema(view, 'view')
     add_view_to_dataset(dataset_folder, bookmark_name, view, overwrite=overwrite)
@@ -93,9 +91,8 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
             raise ValueError(msg)
 
     all_sources = read_dataset_metadata(dataset_folder)['sources']
-    menu_item = f"bookmark/{bookmark_name}"
     view = create_bookmark_view(sources, all_sources, display_settings,
-                                menu_item, source_transforms, viewer_transform,
+                                source_transforms, viewer_transform,
                                 display_group_names)
     validate_with_schema(view, 'view')
 

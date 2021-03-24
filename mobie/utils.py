@@ -35,8 +35,8 @@ def get_base_parser(description, transformation_file=False):
                         help="chunks of the data that is added, json-encoded",
                         required=True)
 
-    parser.add_argument('--menu_item', type=str, default=None,
-                        help="")
+    parser.add_argument('--menu_name', type=str, default=None,
+                        help="the menu name which will be used when grouping this source in the UI")
     parser.add_argument('--view', type=str, default=None,
                         help="default view settings for this source, json encoded or path to a json file")
     if transformation_file:

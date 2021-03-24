@@ -5,7 +5,7 @@ def import_segmentation(in_path, in_key, out_path,
                         resolution, scale_factors, chunks,
                         tmp_folder, target, max_jobs,
                         block_shape=None, with_max_id=True,
-                        unit='micrometer'):
+                        unit='micrometer', source_name=None):
     """ Import segmentation data into mobie format.
 
     Arguments:
@@ -22,6 +22,7 @@ def import_segmentation(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         with_max_id [bool] - whether to add the max id attribute
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        source_name [str] - name of the source (default: None)
     """
     in_path, in_key = ensure_volume(in_path, in_key,
                                     tmp_folder, chunks)
@@ -30,7 +31,7 @@ def import_segmentation(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library='vigra', library_kwargs={'order': 0},
-              unit=unit)
+              unit=unit, source_name=source_name)
 
     if with_max_id:
         add_max_id(in_path, in_key, out_path, 'setup0/timepoint0/s0',

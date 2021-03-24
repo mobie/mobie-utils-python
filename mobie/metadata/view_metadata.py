@@ -26,10 +26,10 @@ def get_segmentation_display(name, sources, **kwargs):
         raise ValueError(f"Invalid sources: {sources}")
     # TODO find a good default alpha value
     alpha = kwargs.pop("alpha", 0.75)
-    color = kwargs.pop("color", "glasbey")
+    lut = kwargs.pop("lut", "glasbey")
     segmentation_display = {
         "alpha": alpha,
-        "color": color,
+        "lut": lut,
         "name": name,
         "sources": sources
     }
@@ -97,7 +97,7 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
     return trafo
 
 
-def get_view(names, source_types, sources, display_settings, menu_item,
+def get_view(names, source_types, sources, display_settings, menu_name,
              source_transforms=None, viewer_transform=None):
     """ Create view metadata for multi source views.
 
@@ -106,7 +106,7 @@ def get_view(names, source_types, sources, display_settings, menu_item,
         source_types [list[str]] - list of source types in this view.
         sources [list[list[str]]] - nested list of source names in this view.
         display_settings [list[dict]] - list of display settings in this view.
-        menu_item [str] - menu item for this view: <MENU_NAME>/<ENTRY_NAME> (default: None)
+        menu_name [str] - menu name for this view
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
     """
@@ -114,7 +114,7 @@ def get_view(names, source_types, sources, display_settings, menu_item,
     if len(names) != len(source_types) != len(sources) != len(display_settings):
         lens = f"{len(names)} {len(source_types)}, {len(sources)}, {len(display_settings)}"
         raise ValueError(f"Different length of names, types, sources and settings: {lens}")
-    view = {"menuItem": menu_item}
+    view = {"uiSelectionGroup": menu_name}
 
     source_displays = []
     for name, source_type, source_list, display_setting in zip(names, source_types, sources, display_settings):
@@ -157,20 +157,20 @@ def get_view(names, source_types, sources, display_settings, menu_item,
     return view
 
 
-def get_default_view(source_type, source_name, menu_item=None,
+def get_default_view(source_type, source_name, menu_name=None,
                      source_transform=None, viewer_transform=None, **kwargs):
     """ Create default view metadata for a single source.
 
     Arguments:
         source_type [str] - type of the source, either 'image' or 'segmentation'
         source_name [str] - name of the source.
-        menu_item [str] - menu item for this view: <MENU_NAME>/<ENTRY_NAME> (default: None)
+        menu_name [str] - menu name for this view (default: None)
         source_transform [dict] - dict with affine source transform.
             If given, must contain 'parameters' and may contain 'timepoints' (default: None).
         viewer_transform [dict] - dict with viewer transform (default: None)
         **kwargs - additional settings for this view
     """
-    menu_item = f"{source_type}/{source_name}" if menu_item is None else menu_item
+    menu_name = f"{source_type}s" if menu_name is None else menu_name
     if source_transform is None:
         source_transforms = None
     else:
@@ -180,6 +180,6 @@ def get_default_view(source_type, source_name, menu_item=None,
             )
         ]
 
-    view = get_view([source_name], [source_type], [[source_name]], [kwargs], menu_item,
+    view = get_view([source_name], [source_type], [[source_name]], [kwargs], menu_name,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view

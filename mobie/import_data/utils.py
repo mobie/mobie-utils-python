@@ -52,7 +52,7 @@ def downscale(in_path, in_key, out_path,
               tmp_folder, target, max_jobs, block_shape,
               library='vigra', library_kwargs=None,
               metadata_format='bdv.n5', out_key='',
-              unit='micrometer'):
+              unit='micrometer', source_name=None):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -73,7 +73,9 @@ def downscale(in_path, in_key, out_path,
         json.dump(ds_conf, f)
 
     halos = scale_factors
-    metadata_dict = {'resolution': resolution, 'unit': unit}
+    metadata_dict = {'resolution': resolution,
+                     'unit': unit,
+                     'setup_name': source_name}
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
              target=target, max_jobs=max_jobs,

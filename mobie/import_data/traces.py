@@ -143,7 +143,7 @@ def import_traces(input_folder, out_path,
                   reference_path, reference_scale,
                   resolution, scale_factors,
                   radius=2, chunks=None, max_jobs=8,
-                  unit='micrometer'):
+                  unit='micrometer', source_name=None):
     """ Import trace data into the mobie format.
 
     input_folder [str] - folder with traces to be imported.
@@ -156,6 +156,7 @@ def import_traces(input_folder, out_path,
     chunks [list[int]] - chunks for the traces volume
     max_jobs [int] - number of threads to use for down-samling
     unit [str] - physical unit (default: micrometer)
+    source_name [str] - name of the source (default: None)
     """
 
     traces = parse_traces(input_folder)
@@ -187,7 +188,7 @@ def import_traces(input_folder, out_path,
     # we assume that the resolution is in nanometer, but want to write in microns for bdv
     bdv_res = [res / 1000. for res in resolution]
     write_xml_metadata(xml_path, out_path, unit, bdv_res, is_h5,
-                       setup_id=0, timepoint=0, setup_name=None,
+                       setup_id=0, timepoint=0, setup_name=source_name,
                        affine=None, attributes={'channel': {'id': 0}},
                        overwrite=False, overwrite_data=False, enforce_consistency=False)
     bdv_scale_factors = [[1, 1, 1]] + scale_factors

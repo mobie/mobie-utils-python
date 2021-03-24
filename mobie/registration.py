@@ -18,7 +18,7 @@ except ImportError as e:
 def add_registered_source(input_path, input_key, transformation,
                           root, dataset_name, source_name,
                           resolution, scale_factors, chunks, method,
-                          menu_item=None, shape=None, source_type='image',
+                          menu_name=None, shape=None, source_type='image',
                           view=None, add_default_table=True,
                           fiji_executable=None, elastix_directory=None,
                           tmp_folder=None, target='local',
@@ -43,7 +43,7 @@ def add_registered_source(input_path, input_key, transformation,
             'bdv': write transformation to bdv metadata so that it's applied on the fly.
                 only works for affine transformations or simpler.
             'transformix': apply transformation using transformix
-        menu_item [str] - menu item for this source.
+        menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
         shape [tuple[int]] - shape of the output volume. If None, the shape specified in
             the elastix transformation file will be used. (default: None)
@@ -65,9 +65,9 @@ def add_registered_source(input_path, input_key, transformation,
     tmp_folder = f'tmp_{source_name}' if tmp_folder is None else tmp_folder
 
     if view is None:
-        view = metadata.get_default_view(source_type, source_name, menu_item=menu_item)
-    elif view is not None and menu_item is not None:
-        view.update({"menuItem": menu_item})
+        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name)
+    elif view is not None and menu_name is not None:
+        view.update({"uiSelectionGroup": menu_name})
     validate_view_metadata(view, sources=[source_name])
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -97,7 +97,8 @@ def add_registered_source(input_path, input_key, transformation,
         downscale(data_path, data_key, data_path,
                   effective_resolution, scale_factors, chunks,
                   tmp_folder, target, max_jobs, block_shape=chunks,
-                  library=ds_library, library_kwargs=ds_library_kwargs)
+                  library=ds_library, library_kwargs=ds_library_kwargs,
+                  source_name=source_name)
         add_max_id(input_path, input_key, data_path, data_key,
                    tmp_folder, target, max_jobs)
 
@@ -154,7 +155,7 @@ if __name__ == '__main__':
     add_registered_source(args.input_path, args.input_key, args.transformation,
                           args.root, args.dataset_name, args.name,
                           resolution, scale_factors, chunks,
-                          method=args.method, menu_item=args.menu_item,
+                          method=args.method, menu_name=args.menu_name,
                           shape=args.shape, source_type=args.source_type,
                           add_default_table=bool(args.add_default_table),
                           tmp_folder=args.tmp_folder, targer=args.target, max_jobs=args.max_jobs)

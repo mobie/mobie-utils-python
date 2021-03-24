@@ -60,7 +60,7 @@ class TestBookmarkMetadata(unittest.TestCase):
         sources = [[self.raw_name], [self.seg_name]]
         display_settings = [
             {"color": "white", "contrastLimits": [0., 1000.]},
-            {"alpha": 0.8, "color": "viridis", "colorByColumn": "n_pixels"}
+            {"alpha": 0.8, "lut": "viridis", "colorByColumn": "n_pixels"}
         ]
 
         add_dataset_bookmark(dataset_folder, bookmark_name,
@@ -78,7 +78,7 @@ class TestBookmarkMetadata(unittest.TestCase):
         sources = [[self.raw_name], [self.seg_name]]
         display_settings = [
             {"color": "white", "contrastLimits": [0., 1000.]},
-            {"alpha": 0.8, "color": "viridis", "colorByColumn": "n_pixels"}
+            {"alpha": 0.8, "lut": "viridis", "colorByColumn": "n_pixels"}
         ]
 
         add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,

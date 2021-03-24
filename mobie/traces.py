@@ -14,7 +14,7 @@ from mobie.validation import validate_view_metadata
 def add_traces(input_folder, root, dataset_name, traces_name,
                reference_name, reference_scale,
                resolution, scale_factors, chunks,
-               menu_item=None, view=None,
+               menu_name=None, view=None,
                max_jobs=multiprocessing.cpu_count(),
                add_default_table=True,
                seg_infos={}, unit='micrometer'):
@@ -32,7 +32,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         reference_scale [int] - scale level of the reference data to use
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
-        menu_item [str] - menu item for this source.
+        menu_name [str] - menu item for this source.
             If none is given will be created based on the image name. (default: None)
         view [dict] - default view settings for this source (default: None)
         chunks [list[int]] - chunks for the data.
@@ -46,9 +46,9 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
 
     if view is None:
-        view = metadata.get_default_view("segmentation", traces_name, menu_item=menu_item)
-    elif view is not None and menu_item is not None:
-        view.update({"menuItem": menu_item})
+        view = metadata.get_default_view("segmentation", traces_name, menu_name=menu_name)
+    elif view is not None and menu_name is not None:
+        view.update({"uiSelectionGroup": menu_name})
     validate_view_metadata(view, sources=[traces_name])
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -102,6 +102,6 @@ def main():
 
     add_traces(args.input_path, args.root, args.dataset_name, args.name,
                args.reference_name, args.reference_scale,
-               menu_item=args.menu_item, view=view,
+               menu_name=args.menu_name, view=view,
                resolution=resolution, add_default_table=bool(args.add_default_table),
                scale_factors=scale_factors, chunks=chunks, max_jobs=args.max_jobs)

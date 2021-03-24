@@ -17,7 +17,7 @@ from mobie.validation import validate_view_metadata
 def add_segmentation(input_path, input_key,
                      root, dataset_name, segmentation_name,
                      resolution, scale_factors, chunks,
-                     menu_item=None,
+                     menu_name=None,
                      node_label_path=None, node_label_key=None,
                      tmp_folder=None, target='local',
                      max_jobs=multiprocessing.cpu_count(),
@@ -34,7 +34,7 @@ def add_segmentation(input_path, input_key,
         resolution [list[float]] - resolution of the segmentation in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
-        menu_item [str] - menu item for this source.
+        menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
         node_label_path [str] - path to node labels (default: None)
         node_label_key [str] - key to node labels (default: None)
@@ -52,9 +52,9 @@ def add_segmentation(input_path, input_key,
         raise ValueError(f"Dataset {dataset_name} not found in {root}")
 
     if view is None:
-        view = metadata.get_default_view("segmentation", segmentation_name, menu_item=menu_item)
-    elif view is not None and menu_item is not None:
-        view.update({"menuItem": menu_item})
+        view = metadata.get_default_view("segmentation", segmentation_name, menu_name=menu_name)
+    elif view is not None and menu_name is not None:
+        view.update({"uiSelectionGroup": menu_name})
     validate_view_metadata(view, sources=[segmentation_name])
 
     tmp_folder = f'tmp_{dataset_name}_{segmentation_name}' if tmp_folder is None else tmp_folder
@@ -70,19 +70,21 @@ def add_segmentation(input_path, input_key,
                                              node_label_path, node_label_key,
                                              resolution, scale_factors, chunks,
                                              tmp_folder=tmp_folder, target=target,
-                                             max_jobs=max_jobs, unit=unit)
+                                             max_jobs=max_jobs, unit=unit,
+                                             source_name=segmentation_name)
     elif is_paintera(input_path, input_key):
         import_segmentation_from_paintera(input_path, input_key, data_path,
                                           resolution, scale_factors, chunks,
                                           tmp_folder=tmp_folder, target=target,
                                           max_jobs=max_jobs,
                                           postprocess_config=postprocess_config,
-                                          unit=unit)
+                                          unit=unit, source_name=segmentation_name)
     else:
         import_segmentation(input_path, input_key, data_path,
                             resolution, scale_factors, chunks,
                             tmp_folder=tmp_folder, target=target,
-                            max_jobs=max_jobs, unit=unit)
+                            max_jobs=max_jobs, unit=unit,
+                            source_name=segmentation_name)
 
     # compute the default segmentation table
     if add_default_table:
@@ -124,5 +126,5 @@ def main():
                      node_label_path=args.node_label_path, node_label_key=args.node_label_key,
                      resolution=resolution, scale_factors=scale_factors, chunks=chunks,
                      add_default_table=bool(args.add_default_table),
-                     view=view, unit=args.unit, menu_item=args.menu_item,
+                     view=view, unit=args.unit, menu_name=args.menu_name,
                      tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs)

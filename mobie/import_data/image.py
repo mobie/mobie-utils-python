@@ -4,7 +4,8 @@ from .utils import downscale, ensure_volume
 def import_image_data(in_path, in_key, out_path,
                       resolution, scale_factors, chunks,
                       tmp_folder, target, max_jobs,
-                      block_shape=None, unit='micrometer'):
+                      block_shape=None, unit='micrometer',
+                      source_name=None):
     """ Import image data to mobie format.
 
     Arguments:
@@ -20,10 +21,11 @@ def import_image_data(in_path, in_key, out_path,
         block_shape [tuple[int]] - block shape used for computation.
             By default, same as chunks. (default:None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        source_name [str] - name of the source (default: None)
     """
     in_path, in_key = ensure_volume(in_path, in_key,
                                     tmp_folder, chunks)
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='skimage', unit=unit)
+              library='skimage', unit=unit, source_name=source_name)

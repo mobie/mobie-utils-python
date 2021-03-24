@@ -23,10 +23,10 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
     assert os.path.exists(os.path.join(dataset_folder, local_xml))
 
     if source_type in ('image', 'mask'):
-        menu_item = parse_menu_name(source_type, name)
+        menu_name = parse_menu_name(source_type, name)
 
         view = metadata.get_default_view(
-            "image", name, menu_item=menu_item,
+            "image", name, menu_name=menu_name,
             color=source['color'], contrastLimits=source['contrastLimits']
         )
         new_source = metadata.get_image_metadata(
@@ -36,12 +36,12 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
 
     else:
         assert source_type == 'segmentation'
-        menu_item = parse_menu_name(source_type, name)
+        menu_name = parse_menu_name(source_type, name)
 
         seg_color = source['color']
         seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
         view = metadata.get_default_view(
-            "segmentation", name, menu_item=menu_item, color=seg_color
+            "segmentation", name, menu_name=menu_name, color=seg_color
         )
 
         if 'tableFolder' in source:
@@ -84,7 +84,7 @@ def migrate_dataset_metadata(folder, parse_menu_name):
 
 
 def migrate_bookmark(name, bookmark, all_sources):
-    menu_item = f"bookmark/{name}"
+    menu_name = f"bookmark/{name}"
 
     # check if we have a viewer transform in this bookmark
     affine = bookmark.pop('view', None)
@@ -120,15 +120,13 @@ def migrate_bookmark(name, bookmark, all_sources):
             else:  # source_type == 'segmentation'
                 this_default_settings = this_default_settings[0]['segmentationDisplay']
 
-                # TODO rename color_key to "lut" when spec changes
-                seg_color_key = 'color'  # 'lut'
-                color = settings.pop('color', this_default_settings[seg_color_key])
-                if color == 'randomFromGlasbey':
-                    color = 'glasbey'
+                lut = settings.pop('color', this_default_settings['lut'])
+                if lut == 'randomFromGlasbey':
+                    lut = 'glasbey'
 
                 this_settings = {
                     'alpha': this_default_settings['alpha'],  # did not have alpha equivalent in old spec
-                    seg_color_key: color
+                    'lut': lut
                 }
 
                 # optional keys that don't need any translation
@@ -154,13 +152,13 @@ def migrate_bookmark(name, bookmark, all_sources):
             display_settings.append(this_settings)
 
         view = metadata.get_view(names, source_types, sources, display_settings,
-                                 menu_item=menu_item, viewer_transform=viewer_transform)
+                                 menu_name=menu_name, viewer_transform=viewer_transform)
 
     # otherwise, we don't have sources and require a viewerTransform
     else:
         assert viewer_transform is not None
         view = {
-            'menuItem': menu_item,
+            'uiSelectionGroup': menu_name,
             'viewerTransform': viewer_transform
         }
 
@@ -253,9 +251,12 @@ def migrate_sources(folder):
 
 
 def default_menu_name_parser(source_type, name):
-    return f"{source_type}s/{name}"
+    return f"{source_type}s"
 
 
+# TODO add option to pass a custom parser for the source name,
+# that can also return a description, e.g. to shorten names for platy but
+# still leave the full thing in the description
 def migrate_dataset(folder, parse_menu_name=None):
     if parse_menu_name is None:
         parse_menu_name = default_menu_name_parser
