@@ -7,8 +7,9 @@ import pandas as pd
 from pybdv.metadata import indent_xml
 
 import mobie.metadata as metadata
-from mobie.tables.utils import remove_background_label_row
 from mobie.metadata.utils import write_metadata
+from mobie.tables.utils import remove_background_label_row
+from mobie.validation import validate_dataset
 
 
 #
@@ -159,13 +160,15 @@ def migrate_bookmark(name, bookmark, all_sources):
             display_settings.append(this_settings)
 
         view = metadata.get_view(names, source_types, sources, display_settings,
-                                 menu_name=menu_name, viewer_transform=viewer_transform)
+                                 is_exclusive=True, menu_name=menu_name,
+                                 viewer_transform=viewer_transform)
 
     # otherwise, we don't have sources and require a viewerTransform
     else:
         assert viewer_transform is not None
         view = {
             'uiSelectionGroup': menu_name,
+            'isExclusive': False,
             'viewerTransform': viewer_transform
         }
 
@@ -191,7 +194,7 @@ def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False):
         write_metadata(bookmark_file, {'bookmarks': new_bookmarks})
 
 
-def migrate_bookmarks(folder):
+def migrate_bookmarks(folder, parse_source_name):
     bookmark_dir = os.path.join(folder, 'misc', 'bookmarks')
     assert os.path.exists(bookmark_dir), bookmark_dir
     default_bookmark_file = os.path.join(bookmark_dir, 'default.json')
@@ -217,7 +220,7 @@ def migrate_table(table_path):
     os.remove(table_path)
 
 
-def migrate_tables(folder):
+def migrate_tables(folder, parse_source_name):
     table_root = os.path.join(folder, 'tables')
     assert os.path.exists(table_root)
     table_names = os.listdir(table_root)
@@ -247,7 +250,7 @@ def remove_authentication_field(xml):
 
 
 # only need to remove "Authentication" from the remote xmls
-def migrate_sources(folder):
+def migrate_sources(folder, parse_source_name):
     remote_folder = os.path.join(folder, 'images', 'remote')
     # dataset might not have remote sources
     if not os.path.exists(remote_folder):
@@ -257,18 +260,23 @@ def migrate_sources(folder):
         remove_authentication_field(xml)
 
 
-def default_menu_name_parser(source_type, name):
+def default_menu_name_parser(source_type, source_name):
     return f"{source_type}s"
 
 
-# TODO add option to pass a custom parser for the source name,
-# that can also return a description, e.g. to shorten names for platy but
-# still leave the full thing in the description
-def migrate_dataset(folder, parse_menu_name=None):
+# TODO we also need to change the name in the xml to the actual source name in migrate_sources
+def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
+    """Migrate dataset to spec version 0.2
+
+    Arguments:
+        folder [str] - dataset folder
+        parse_menu_name [callable] -
+        parse_source_name [callable] -
+    """
     if parse_menu_name is None:
         parse_menu_name = default_menu_name_parser
-    migrate_dataset_metadata(folder, parse_menu_name)
-    migrate_bookmarks(folder)
-    migrate_tables(folder)
-    migrate_sources(folder)
-    # TODO validate - need to allow for views without sourceDisplays!
+    migrate_dataset_metadata(folder, parse_menu_name, parse_source_name)
+    migrate_bookmarks(folder, parse_source_name)
+    migrate_tables(folder, parse_source_name)
+    migrate_sources(folder, parse_source_name)
+    validate_dataset(folder)

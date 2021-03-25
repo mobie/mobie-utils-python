@@ -3,11 +3,12 @@ import os
 import json
 from glob import glob
 
-from .utils import _assert_true, _assert_in, validate_with_schema
+from .utils import _assert_equal, _assert_true, _assert_in, validate_with_schema
 from .metadata import validate_source_metadata, validate_view_metadata
 
 
-def validate_dataset(dataset_folder, assert_true=_assert_true, assert_in=_assert_in):
+def validate_dataset(dataset_folder, assert_true=_assert_true,
+                     assert_in=_assert_in, assert_equal=_assert_equal):
     # check the source metadata
     source_metadata_path = os.path.join(dataset_folder, "dataset.json")
     msg = f"Cannot find metadata file at {source_metadata_path}"
@@ -21,7 +22,8 @@ def validate_dataset(dataset_folder, assert_true=_assert_true, assert_in=_assert
     # check the sources
     for name, metadata in dataset_metadata["sources"].items():
         validate_source_metadata(name, metadata, dataset_folder,
-                                 assert_true=assert_true)
+                                 assert_true=assert_true,
+                                 assert_equal=assert_equal)
 
     # check the bookmarks
     bookmark_folder = os.path.join(dataset_folder, 'misc', 'bookmarks')

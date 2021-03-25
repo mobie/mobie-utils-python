@@ -63,7 +63,8 @@ class TestTraces(unittest.TestCase):
         # check the segmentation metadata
         metadata = read_dataset_metadata(dataset_folder)
         self.assertIn(trace_name, metadata['sources'])
-        validate_source_metadata(trace_name, metadata['sources'][trace_name], dataset_folder)
+        validate_source_metadata(trace_name, metadata['sources'][trace_name], dataset_folder,
+                                 assert_true=self.assertTrue, assert_equal=self.assertEqual)
 
         # check the table
         table_path = os.path.join(dataset_folder, 'tables', trace_name, 'default.tsv')

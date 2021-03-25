@@ -30,9 +30,12 @@ def create_bookmark_view(sources, all_sources, display_settings,
         display_group_names = [f'{source_type}-group-{i}' for i, source_type in enumerate(source_types)]
 
     menu_name = "bookmark"
-    view = get_view(display_group_names, source_types, sources,
-                    display_settings, menu_name,
-                    source_transforms, viewer_transform)
+    view = get_view(display_group_names, source_types,
+                    sources, display_settings,
+                    is_exclusive=True,
+                    menu_name=menu_name,
+                    source_transforms=source_transforms,
+                    viewer_transform=viewer_transform)
     return view
 
 

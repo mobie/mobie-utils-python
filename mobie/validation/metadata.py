@@ -1,10 +1,11 @@
 import os
 from jsonschema import ValidationError
-from .utils import _assert_true, validate_with_schema
+from pybdv.metadata import get_name
+from .utils import _assert_true, _assert_equal, validate_with_schema
 
 
 def validate_source_metadata(name, metadata, dataset_folder=None,
-                             assert_true=_assert_true):
+                             assert_true=_assert_true, assert_equal=_assert_equal):
     # static validation with json schema
     try:
         validate_with_schema(metadata, 'source')
@@ -21,8 +22,10 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             path = os.path.join(dataset_folder, location)
             msg = f"Could not find xml for {storage} at {path}"
             assert_true(os.path.exists(path), msg)
-        if 'tableDataRootLocation' in metadata:
-            table_folder = os.path.join(dataset_folder, metadata['tableDataRootLocation'])
+            bdv_name = get_name(path, setup_id=0)
+            assert_equal(name, bdv_name)
+        if 'tableDataLocation' in metadata:
+            table_folder = os.path.join(dataset_folder, metadata['tableDataLocation'])
             msg = f"Could not find table root folder at {table_folder}"
             assert_true(os.path.isdir(table_folder), msg)
             default_table = os.path.join(table_folder, 'default.tsv')

@@ -65,7 +65,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                   scale_factors=scale_factors,
                   chunks=chunks,
                   max_jobs=max_jobs,
-                  unit=unit)
+                  unit=unit,
+                  source_name=traces_name)
 
     # compute the default segmentation table
     if add_default_table:

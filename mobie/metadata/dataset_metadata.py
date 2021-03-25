@@ -160,8 +160,8 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
         # copy table if we have it
         if source_type == 'segmentation':
-            if 'tableDataRootLocation' in metadata:
-                copy_tables(src_folder, dst_folder, metadata['tableDataRootLocation'])
+            if 'tableDataLocation' in metadata:
+                copy_tables(src_folder, dst_folder, metadata['tableDataLocation'])
             # link the id look-up-table (platybrowser specific functionality)
             link_id_lut(src_folder, dst_folder, name)
 

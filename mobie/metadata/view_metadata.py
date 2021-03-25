@@ -100,7 +100,8 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
     return trafo
 
 
-def get_view(names, source_types, sources, display_settings, menu_name,
+def get_view(names, source_types, sources, display_settings,
+             is_exclusive, menu_name,
              source_transforms=None, viewer_transform=None):
     """ Create view metadata for multi source views.
 
@@ -109,6 +110,7 @@ def get_view(names, source_types, sources, display_settings, menu_name,
         source_types [list[str]] - list of source types in this view.
         sources [list[list[str]]] - nested list of source names in this view.
         display_settings [list[dict]] - list of display settings in this view.
+        is_exclusive [bool] - is this an exclusive view.
         menu_name [str] - menu name for this view
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
@@ -117,7 +119,7 @@ def get_view(names, source_types, sources, display_settings, menu_name,
     if len(names) != len(source_types) != len(sources) != len(display_settings):
         lens = f"{len(names)} {len(source_types)}, {len(sources)}, {len(display_settings)}"
         raise ValueError(f"Different length of names, types, sources and settings: {lens}")
-    view = {"uiSelectionGroup": menu_name}
+    view = {"isExclusive": is_exclusive, "uiSelectionGroup": menu_name}
 
     source_displays = []
     for name, source_type, source_list, display_setting in zip(names, source_types, sources, display_settings):
@@ -183,6 +185,7 @@ def get_default_view(source_type, source_name, menu_name=None,
             )
         ]
 
-    view = get_view([source_name], [source_type], [[source_name]], [kwargs], menu_name,
+    view = get_view([source_name], [source_type], [[source_name]], [kwargs],
+                    is_exclusive=False, menu_name=menu_name,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view

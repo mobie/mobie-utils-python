@@ -51,7 +51,8 @@ def validate_project(root,
         dataset_folder = os.path.join(root, dataset)
         msg = f"Cannot find a dataset {dataset} at {dataset_folder}"
         assert_true(os.path.isdir(dataset_folder), msg)
-        validate_dataset(dataset_folder, assert_true=assert_true, assert_in=assert_in)
+        validate_dataset(dataset_folder, assert_true=assert_true, assert_in=assert_in,
+                         assert_equal=assert_equal)
 
 
 def main():
