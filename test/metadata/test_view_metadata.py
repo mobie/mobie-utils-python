@@ -17,7 +17,8 @@ class TestViewMetadata(unittest.TestCase):
             {'contrastLimits': [0., 255.], 'color': 'white'},
             {'contrastLimits': [0., 2000.], 'color': 'red'},
             {'showImagesIn3d': True},
-            {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]}
+            {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]},
+            {'blendingMode': 'avg'},
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('image', 'my-image', **kwargs)
@@ -50,7 +51,8 @@ class TestViewMetadata(unittest.TestCase):
             {'contrastLimits': [-10., 5.]},
             {'contrastLimits': [1., 2., 3.]},
             {'showImagesIn3d': "foobar"},
-            {'resolution3dView': [1., 2., 3., 4.]}
+            {'resolution3dView': [1., 2., 3., 4.]},
+            {'blendingMode': 'summe'}
         ]
         for kwargs in invalid_kwargs:
             if 'uiSelectionGroup' in kwargs:

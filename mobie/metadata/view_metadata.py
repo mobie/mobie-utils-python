@@ -11,7 +11,7 @@ def get_image_display(name, sources, **kwargs):
         "name": name,
         "sources": sources
     }
-    additional_image_kwargs = ["resolution3dView", "showImagesIn3d"]
+    additional_image_kwargs = ["blendingMode", "resolution3dView", "showImagesIn3d"]
     for kwarg_name in additional_image_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
