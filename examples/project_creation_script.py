@@ -169,7 +169,7 @@ mobie.add_segmentation(
 source_list = [[raw_name], [segmentation_name]]
 settings = [
     {"color": "white", "contrastLimits": [0., 255.]},
-    {"lut": "glasbey", "alpha": 0.75}
+    {"lut": "glasbey", "opacity": 0.75}
 ]
 viewer_transform = {"affine": [2., 0., 0., 0.,
                                0., 2., 0., 0.,

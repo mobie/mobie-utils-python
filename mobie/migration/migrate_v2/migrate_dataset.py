@@ -121,6 +121,7 @@ def migrate_bookmark(name, bookmark, all_sources):
             if source_type == 'image':
                 this_default_settings = this_default_settings[0]['imageDisplay']
                 this_settings = {
+                    'opacity': this_default_settings['opacity'],  # did not have opacity equivalent in old spec
                     'color': settings.pop('color', this_default_settings['color']),
                     'contrastLimits': settings.pop('contrastLimits', this_default_settings['contrastLimits'])
                 }
@@ -133,7 +134,7 @@ def migrate_bookmark(name, bookmark, all_sources):
                     lut = 'glasbey'
 
                 this_settings = {
-                    'alpha': this_default_settings['alpha'],  # did not have alpha equivalent in old spec
+                    'opacity': this_default_settings['opacity'],  # did not have opacity equivalent in old spec
                     'lut': lut
                 }
 

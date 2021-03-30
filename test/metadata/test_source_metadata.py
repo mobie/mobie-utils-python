@@ -38,7 +38,7 @@ class TestSourceMetadata(unittest.TestCase):
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
-        source = get_image_metadata(name, "/path/to/bdv alpha.xml")
+        source = get_image_metadata(name, "/path/to/bdv xyz.xml")
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 

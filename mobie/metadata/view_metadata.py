@@ -5,10 +5,12 @@ def get_image_display(name, sources, **kwargs):
         raise ValueError(f"Invalid sources: {sources}")
     color = kwargs.pop("color", "white")
     contrast_limits = kwargs.pop("contrastLimits",  [0.0, 255.0])
+    opacity = kwargs.pop("opacity", 1.)
     image_display = {
         "color": color,
         "contrastLimits": contrast_limits,
         "name": name,
+        "opacity": opacity,
         "sources": sources
     }
     additional_image_kwargs = ["blendingMode", "resolution3dView", "showImagesIn3d"]
@@ -24,11 +26,11 @@ def get_image_display(name, sources, **kwargs):
 def get_segmentation_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
-    # TODO find a good default alpha value
-    alpha = kwargs.pop("alpha", 0.75)
+    # TODO find a good default opacity value
+    opacity = kwargs.pop("opacity", 0.75)
     lut = kwargs.pop("lut", "glasbey")
     segmentation_display = {
-        "alpha": alpha,
+        "opacity": opacity,
         "lut": lut,
         "name": name,
         "sources": sources

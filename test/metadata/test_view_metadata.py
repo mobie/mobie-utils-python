@@ -18,7 +18,7 @@ class TestViewMetadata(unittest.TestCase):
             {'contrastLimits': [0., 2000.], 'color': 'red'},
             {'showImagesIn3d': True},
             {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]},
-            {'blendingMode': 'avg'},
+            {'blendingMode': 'average'},
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('image', 'my-image', **kwargs)
@@ -70,8 +70,8 @@ class TestViewMetadata(unittest.TestCase):
 
         # test custom segmentation settings
         custom_kwargs = [
-            {'alpha': 0.5, 'lut': 'glasbey'},
-            {'alpha': 0.9, 'lut': 'viridis',
+            {'opacity': 0.5, 'lut': 'glasbey'},
+            {'opacity': 0.9, 'lut': 'viridis',
              'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]},
             {'selectedSegmentIds': ['my-seg;0;1', 'my-seg;0;2', 'my-seg;1;10']}
         ]
@@ -81,7 +81,7 @@ class TestViewMetadata(unittest.TestCase):
 
         # test missing fields
         view = get_default_view('segmentation', 'my-seg')
-        view['sourceDisplays'][0]['segmentationDisplay'].pop('alpha')
+        view['sourceDisplays'][0]['segmentationDisplay'].pop('opacity')
         with self.assertRaises(ValidationError):
             validate_with_schema(view, 'view')
 
@@ -93,12 +93,12 @@ class TestViewMetadata(unittest.TestCase):
 
         # test invalid values
         invalid_kwargs = [
-            {'alpha': 10},
+            {'opacity': 10},
             {'lut': "red"},
             {'lut': "foobar"},
             {'selectedSegmentIds': ['my-seg,0,2']},
             {'selectedSegmentIds': ['my-seg/abc;0;2']},
-            {'selectedSegmentIds': ['my-segc;alpha;2']}
+            {'selectedSegmentIds': ['my-segc;abba;2']}
         ]
         for kwargs in invalid_kwargs:
             view = get_default_view('segmentation', 'my-seg', **kwargs)
