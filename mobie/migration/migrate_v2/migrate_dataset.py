@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from glob import glob
 
 import pandas as pd
-from pybdv.metadata import indent_xml
+from pybdv.metadata import indent_xml, write_name
 
 import mobie.metadata as metadata
 from mobie.metadata.utils import write_metadata
@@ -64,7 +64,7 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
     return new_source
 
 
-def migrate_dataset_metadata(folder, parse_menu_name):
+def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
     in_file = os.path.join(folder, 'images', 'images.json')
     assert os.path.exists(in_file), in_file
     with open(in_file, 'r') as f:
@@ -85,7 +85,7 @@ def migrate_dataset_metadata(folder, parse_menu_name):
 
 
 def migrate_bookmark(name, bookmark, all_sources):
-    menu_name = f"bookmark/{name}"
+    menu_name = "bookmark"
 
     # check if we have a viewer transform in this bookmark
     affine = bookmark.pop('view', None)
@@ -223,7 +223,9 @@ def migrate_table(table_path):
 
 def migrate_tables(folder, parse_source_name):
     table_root = os.path.join(folder, 'tables')
-    assert os.path.exists(table_root)
+    # we might not have tables
+    if not os.path.exists(table_root):
+        return
     table_names = os.listdir(table_root)
     for table_name in table_names:
         table_folder = os.path.join(table_root, table_name)
@@ -250,22 +252,25 @@ def remove_authentication_field(xml):
     tree.write(xml)
 
 
-# only need to remove "Authentication" from the remote xmls
+# write the source name into the xml
+# remove "Authentication" from the remote xmls
 def migrate_sources(folder, parse_source_name):
-    remote_folder = os.path.join(folder, 'images', 'remote')
-    # dataset might not have remote sources
-    if not os.path.exists(remote_folder):
-        return
-    xmls = glob(os.path.join(remote_folder, '*.xml'))
-    for xml in xmls:
-        remove_authentication_field(xml)
+    sources = metadata.read_dataset_metadata(folder)['sources']
+    for source_name, source in sources.items():
+        source_type = list(source.keys())[0]
+        storage = source[source_type]['imageDataLocations']
+        for storage_type, loc in storage.items():
+            xml = os.path.join(folder, loc)
+            write_name(xml, 0, source_name)
+            if storage_type == 'remote':
+                remove_authentication_field(xml)
 
 
 def default_menu_name_parser(source_type, source_name):
     return f"{source_type}s"
 
 
-# TODO we also need to change the name in the xml to the actual source name in migrate_sources
+# TODO apply 'parse_source_name' where necessary
 def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
     """Migrate dataset to spec version 0.2
 
