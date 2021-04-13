@@ -59,7 +59,7 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
     if 'remote' in xml_locations:
         remote_xml = os.path.join('images', xml_locations['remote'])
         assert os.path.exists(os.path.join(dataset_folder, remote_xml))
-        new_source[source_type]['imageDataLocations']['remote'] = remote_xml
+        new_source[source_type]['imageDataLocations']['s3store'] = remote_xml
 
     return new_source
 

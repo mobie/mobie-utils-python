@@ -11,7 +11,7 @@ def get_image_metadata(source_name, xml_path, view=None):
     source_metadata = {
         "image": {
             "imageDataLocations": {
-                "local": xml_path
+                "fileSystem": xml_path
             },
             "view": view
         }
@@ -25,7 +25,7 @@ def get_segmentation_metadata(source_name, xml_path, view=None, table_location=N
     source_metadata = {
         "segmentation": {
             "imageDataLocations": {
-                "local": xml_path
+                "fileSystem": xml_path
             },
             "view": view
         }

@@ -55,10 +55,10 @@ def add_remote_dataset_metadata(
     for name, metadata in sources.items():
         source_type = list(metadata.keys())[0]
 
-        # the xml paths for the image dict,
+        # the xml paths for the source,
         # which are relative to the 'images' folder
         storage = metadata[source_type]['imageDataLocations']
-        xml = storage['local']
+        xml = storage['fileSystem']
         xml_remote = xml.replace('local', 'remote')
 
         # the absolute xml paths
@@ -74,8 +74,8 @@ def add_remote_dataset_metadata(
                           region=region,
                           bdv_type=bdv_type)
 
-        # add the remote storage to the image dict
-        storage['remote'] = xml_remote
+        # add the remote storage to the source
+        storage['s3store'] = xml_remote
         metadata[source_type]['imageDataLocations'] = storage
         new_sources[name] = metadata
 

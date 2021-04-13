@@ -99,14 +99,14 @@ def make_squashed_link(src_file, dst_file, override=False):
 
 
 def copy_xml_file(xml_in, xml_out, storage='local'):
-    if storage == 'local':
+    if storage == 'file':
         data_path = get_data_path(xml_in, return_absolute_path=True)
         bdv_format = get_bdv_format(xml_in)
         xml_dir = os.path.split(xml_out)[0]
         data_path = os.path.relpath(data_path, start=xml_dir)
         copy_xml_with_newpath(xml_in, xml_out, data_path,
                               path_type='relative', data_format=bdv_format)
-    elif storage == 'remote':
+    elif storage == 's3store':
         shutil.copyfile(xml_in, xml_out)
     else:
         raise ValueError("Invalid storage spec %s" % storage)
