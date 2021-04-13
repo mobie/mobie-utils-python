@@ -98,8 +98,8 @@ def make_squashed_link(src_file, dst_file, override=False):
     os.symlink(rel_path, dst_file)
 
 
-def copy_xml_file(xml_in, xml_out, storage='local'):
-    if storage == 'file':
+def copy_xml_file(xml_in, xml_out, storage='fileSystem'):
+    if storage == 'fileSystem':
         data_path = get_data_path(xml_in, return_absolute_path=True)
         bdv_format = get_bdv_format(xml_in)
         xml_dir = os.path.split(xml_out)[0]
