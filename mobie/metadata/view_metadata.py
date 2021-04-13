@@ -26,8 +26,7 @@ def get_image_display(name, sources, **kwargs):
 def get_segmentation_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
-    # TODO find a good default opacity value
-    opacity = kwargs.pop("opacity", 0.75)
+    opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     segmentation_display = {
         "opacity": opacity,

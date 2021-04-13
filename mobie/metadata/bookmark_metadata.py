@@ -102,3 +102,8 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     bookmarks[bookmark_name] = view
     metadata['bookmarks'] = bookmarks
     write_metadata(bookmark_file, metadata)
+
+
+# TODO convenience function for grid views
+def add_grid_view_bookmark():
+    pass
