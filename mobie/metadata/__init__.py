@@ -1,4 +1,4 @@
-from .bookmark_metadata import add_additional_bookmark, add_dataset_bookmark
+from .bookmark_metadata import add_additional_bookmark, add_dataset_bookmark, add_grid_bookmark
 from .dataset_metadata import (add_view_to_dataset, copy_dataset_folder,
                                create_dataset_structure, create_dataset_metadata,
                                read_dataset_metadata, write_dataset_metadata)

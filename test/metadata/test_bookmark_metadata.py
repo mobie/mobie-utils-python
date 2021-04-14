@@ -17,7 +17,9 @@ class TestBookmarkMetadata(unittest.TestCase):
     shape = (32, 64, 64)
     dataset_name = 'test'
     raw_name = 'test-raw'
+    extra_name = 'extra-im'
     seg_name = 'test-seg'
+    extra_seg_name = 'extra-seg'
 
     def init_dataset(self):
         data_path = os.path.join(self.test_folder, 'data.h5')
@@ -36,8 +38,18 @@ class TestBookmarkMetadata(unittest.TestCase):
                   resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
                   tmp_folder=tmp_folder)
 
+        tmp_folder = os.path.join(self.test_folder, 'tmp-init-extra')
+        add_image(data_path, data_key, self.root, self.dataset_name, self.extra_name,
+                  resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
+                  tmp_folder=tmp_folder)
+
         tmp_folder = os.path.join(self.test_folder, 'tmp-init-seg')
         add_segmentation(seg_path, data_key, self.root, self.dataset_name, self.seg_name,
+                         resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
+                         tmp_folder=tmp_folder)
+
+        tmp_folder = os.path.join(self.test_folder, 'tmp-init-extra_seg')
+        add_segmentation(seg_path, data_key, self.root, self.dataset_name, self.extra_seg_name,
                          resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
                          tmp_folder=tmp_folder)
 
@@ -88,6 +100,46 @@ class TestBookmarkMetadata(unittest.TestCase):
         self.assertTrue(os.path.exists(bookmark_file))
         bookmarks = read_metadata(bookmark_file)["bookmarks"]
         self.assertIn(bookmark_name, bookmarks)
+
+    def test_add_grid_bookmark(self):
+        from mobie.metadata import add_grid_bookmark
+        dataset_folder = os.path.join(self.root, self.dataset_name)
+
+        # test vanilla grid bookmark
+        bookmark_name = 'simple-grid'
+        sources = [[self.raw_name, self.seg_name], [self.extra_name, self.extra_seg_name]]
+        add_grid_bookmark(dataset_folder, bookmark_name, sources)
+        dataset_metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(bookmark_name, dataset_metadata["views"])
+
+        # test bookmark with positions
+        bookmark_name = 'grid-with-pos'
+        sources = [[self.raw_name, self.seg_name], [self.extra_name, self.extra_seg_name]]
+        positions = [[0, 0], [1, 1]]
+        add_grid_bookmark(dataset_folder, bookmark_name, sources,
+                          positions=positions)
+        dataset_metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(bookmark_name, dataset_metadata["views"])
+
+        # test bookmark with custom settings
+        bookmark_name = 'custom-setting-grid'
+        sources = [[self.raw_name, self.seg_name], [self.extra_name, self.extra_seg_name]]
+        display_groups = {
+            self.raw_name: 'ims1',
+            self.extra_name: 'ims2',
+            self.seg_name: 'segs',
+            self.extra_seg_name: 'segs'
+        }
+        display_group_settings = {
+            'ims1': {'color': 'white', 'opacity': 1.},
+            'ims2': {'color': 'green', 'opacity': 0.75},
+            'segs': {'lut': 'glasbey', 'opacity': 0.6}
+        }
+        add_grid_bookmark(dataset_folder, bookmark_name, sources,
+                          display_groups=display_groups,
+                          display_group_settings=display_group_settings)
+        dataset_metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(bookmark_name, dataset_metadata["views"])
 
 
 if __name__ == '__main__':

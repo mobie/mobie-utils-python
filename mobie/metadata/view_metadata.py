@@ -139,13 +139,16 @@ def get_view(names, source_types, sources, display_settings,
         all_sources = set([source for source_list in sources for source in source_list])
         for source_transform in source_transforms:
             trafo_type = list(source_transform.keys())[0]
-            if trafo_type not in ("affine", "autoGrid"):
+            if trafo_type not in ("affine", "grid"):
                 msg = f"Invalid source transform type {trafo_type}, expect one of 'affine', 'autoGrid'"
                 raise ValueError(msg)
 
             trafo = source_transform[trafo_type]
-            trafo_sources = trafo["sources"]
-            invalid_sources = list(set(trafo_sources) - all_sources)
+            if trafo_type == 'grid':
+                trafo_sources = set([source for grid_source in trafo['sources'] for source in grid_source])
+            else:
+                trafo_sources = set(trafo["sources"])
+            invalid_sources = list(trafo_sources - all_sources)
             if invalid_sources:
                 msg = f"Invalid sources in transform: {invalid_sources}"
                 raise ValueError(msg)
