@@ -47,15 +47,16 @@ def validate_view_metadata(view, sources=None, assert_true=_assert_true):
 
     # dynamic validation of sources
     all_display_sources = []
-    displays = view["sourceDisplays"]
-    for display in displays:
-        display_metadata = list(display.values())[0]
-        display_sources = display_metadata["sources"]
-        all_display_sources.extend(display_sources)
-        if sources is not None:
-            wrong_sources = list(set(display_sources) - set(sources))
-            msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
-            assert_true(len(wrong_sources) == 0, msg)
+    displays = view.get("sourceDisplays")
+    if displays is not None:
+        for display in displays:
+            display_metadata = list(display.values())[0]
+            display_sources = display_metadata["sources"]
+            all_display_sources.extend(display_sources)
+            if sources is not None:
+                wrong_sources = list(set(display_sources) - set(sources))
+                msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
+                assert_true(len(wrong_sources) == 0, msg)
 
     # TODO validate table root location for auto grid
     source_transformations = view.get("sourceTransformations")

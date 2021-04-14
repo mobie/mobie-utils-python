@@ -130,12 +130,32 @@ def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
                     'contrastLimits': settings.pop('contrastLimits', this_default_settings['contrastLimits'])
                 }
 
+                # showImagesIn3d, need to add 's' to the fieldname
+                show_ims = settings.pop('showImageIn3d', None)
+                if show_ims is not None:
+                    this_settings['showImagesIn3d'] = show_ims
+
+                # 3d viewer resolution, need to cast to list
+                res_3d = settings.pop('resolution3dView', None)
+                if res_3d is not None and res_3d > 0:
+                    assert isinstance(res_3d, float)
+                    this_settings['resolution3dView'] = 3 * [res_3d]
+
+                # images might have these, obsolete keys, need to get rid of them
+                obsolete_keys = ('showSelectedSegmentsIn3d', 'tables', 'selectedLabelIds')
+                for key in obsolete_keys:
+                    settings.pop(key, None)
+
             else:  # source_type == 'segmentation'
                 this_default_settings = this_default_settings[0]['segmentationDisplay']
 
                 lut = settings.pop('color', this_default_settings['lut'])
                 if lut == 'randomFromGlasbey':
                     lut = 'glasbey'
+                elif lut == 'A-R-G-B Column':
+                    lut = 'argbColumn'
+                # make sure lut name does not start with a capital later
+                lut = lut[0].lower() + lut[1:]
 
                 this_settings = {
                     'opacity': this_default_settings['opacity'],  # did not have opacity equivalent in old spec
@@ -143,7 +163,7 @@ def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
                 }
 
                 # optional keys that don't need any translation
-                optional_keys = ("colorByColumn", "showSelectedSegmentsIn3d", "tables")
+                optional_keys = ("colorByColumn", "showSelectedSegmentsIn3d", "tables", "valueLimits")
                 for key in optional_keys:
                     val = settings.pop(key, None)
                     if val is not None:
@@ -152,11 +172,20 @@ def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
                 # selected segment id entry format is "<source-name>;<timepoint>;<label-id>"
                 selected_ids = settings.pop("selectedLabelIds", None)
                 if selected_ids is not None:
+                    selected_ids = [int(sid) for sid in selected_ids]
                     selected_ids = [f"{source_name};0;{sid}" for sid in selected_ids]
                     this_settings["selectedSegmentIds"] = selected_ids
 
-                # segmentation might have contrastLimits, which we can just ignore
-                settings.pop('contrastLimits', None)
+                # 3d viewer resolution, need to cast to list
+                res_3d = settings.pop('resolution3dView', None)
+                if res_3d is not None and res_3d > 0:
+                    assert isinstance(res_3d, float)
+                    this_settings['resolution3dView'] = 3 * [res_3d]
+
+                # segmentations might have these, obsolete keys, need to get rid of them
+                obsolete_keys = ('showImageIn3d', 'contrastLimits')
+                for key in obsolete_keys:
+                    settings.pop(key, None)
 
             assert not settings, f"Not all settings fields were parsed: {list(settings.keys())}"
             names.append(source_name)
@@ -222,10 +251,19 @@ def migrate_bookmarks(folder, parse_source_name):
 #
 
 def migrate_table(table_path):
-    table = pd.read_csv(table_path, sep='\t')
-    table = remove_background_label_row(table)
     out_path = table_path.replace('.csv', '.tsv')
-    table.to_csv(out_path, sep='\t', index=False)
+
+    if os.path.islink(table_path):
+        link_location = os.readlink(table_path).replace('.csv', '.tsv')
+        table_folder = os.path.split(table_path)[0]
+        abs_link = os.path.abspath(os.path.join(table_folder, link_location))
+        assert os.path.exists(abs_link), abs_link
+        os.symlink(link_location, out_path)
+    else:
+        table = pd.read_csv(table_path, sep='\t')
+        table = remove_background_label_row(table)
+        table.to_csv(out_path, sep='\t', index=False)
+
     os.remove(table_path)
 
 

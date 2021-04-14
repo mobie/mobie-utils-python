@@ -31,7 +31,7 @@ def validate_dataset(dataset_folder, assert_true=_assert_true,
     bookmark_files = glob(os.path.join(bookmark_folder, '*.json'))
     for bookmark_file in bookmark_files:
         with open(bookmark_file, 'r') as f:
-            bookmarks = json.load(f)
+            bookmarks = json.load(f)['bookmarks']
         for name, bookmark in bookmarks.items():
             validate_view_metadata(bookmark, all_sources, assert_true)
 
