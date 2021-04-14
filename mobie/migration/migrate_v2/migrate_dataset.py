@@ -17,15 +17,13 @@ from mobie.validation import validate_dataset
 #
 
 
-def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
+def migrate_source_metadata(name, source, dataset_folder, menu_name):
     source_type = source['type']
     xml_locations = source['storage']
     local_xml = os.path.join('images', xml_locations['local'])
     assert os.path.exists(os.path.join(dataset_folder, local_xml))
 
     if source_type in ('image', 'mask'):
-        menu_name = parse_menu_name(source_type, name)
-
         view = metadata.get_default_view(
             "image", name, menu_name=menu_name,
             color=source['color'], contrastLimits=source['contrastLimits']
@@ -37,7 +35,6 @@ def migrate_source_metadata(name, source, dataset_folder, parse_menu_name):
 
     else:
         assert source_type == 'segmentation'
-        menu_name = parse_menu_name(source_type, name)
 
         seg_color = source['color']
         seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
@@ -72,8 +69,11 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
 
     new_sources = {}
     for name, source in sources_in.items():
-        new_sources[name] = migrate_source_metadata(name, source,
-                                                    folder, parse_menu_name)
+        # NOTE parse meu name needs to be called before  parse source name
+        menu_name = parse_menu_name(source['type'], name)
+        if parse_source_name is not None:
+            name = parse_source_name(name)
+        new_sources[name] = migrate_source_metadata(name, source, folder, menu_name)
 
     dataset_metadata = {
         "is2d": False,
@@ -84,7 +84,7 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
     os.remove(in_file)
 
 
-def migrate_bookmark(name, bookmark, all_sources):
+def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
     menu_name = "bookmark"
 
     # check if we have a viewer transform in this bookmark
@@ -114,6 +114,10 @@ def migrate_bookmark(name, bookmark, all_sources):
         names, source_types, sources, display_settings = [], [], [], []
 
         for source_name, settings in layers.items():
+
+            if parse_source_name is not None:
+                source_name = parse_source_name(source_name)
+
             this_source = all_sources[source_name]
             source_type = list(this_source.keys())[0]
             this_default_settings = this_source[source_type]['view']['sourceDisplays']
@@ -177,7 +181,8 @@ def migrate_bookmark(name, bookmark, all_sources):
     return view
 
 
-def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False):
+def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False,
+                          parse_source_name=None):
     dataset_metadata = metadata.read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata['sources']
 
@@ -186,7 +191,8 @@ def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False):
 
     new_bookmarks = {}
     for name, bookmark in bookmarks.items():
-        new_bookmarks[name] = migrate_bookmark(name, bookmark, all_sources)
+        new_bookmarks[name] = migrate_bookmark(name, bookmark, all_sources,
+                                               parse_source_name=parse_source_name)
 
     if is_default:
         dataset_metadata['views'] = new_bookmarks
@@ -201,12 +207,14 @@ def migrate_bookmarks(folder, parse_source_name):
     default_bookmark_file = os.path.join(bookmark_dir, 'default.json')
 
     assert os.path.exists(default_bookmark_file), default_bookmark_file
-    migrate_bookmark_file(default_bookmark_file, folder, is_default=True)
+    migrate_bookmark_file(default_bookmark_file, folder, is_default=True,
+                          parse_source_name=parse_source_name)
     os.remove(default_bookmark_file)
 
     bookmark_files = glob(os.path.join(bookmark_dir, '*.json'))
     for bookmark_file in bookmark_files:
-        migrate_bookmark_file(bookmark_file, folder)
+        migrate_bookmark_file(bookmark_file, folder,
+                              parse_source_name=parse_source_name)
 
 
 #
@@ -221,7 +229,7 @@ def migrate_table(table_path):
     os.remove(table_path)
 
 
-def migrate_tables(folder, parse_source_name):
+def migrate_tables(folder):
     table_root = os.path.join(folder, 'tables')
     # we might not have tables
     if not os.path.exists(table_root):
@@ -254,7 +262,7 @@ def remove_authentication_field(xml):
 
 # write the source name into the xml
 # remove "Authentication" from the remote xmls
-def migrate_sources(folder, parse_source_name):
+def migrate_sources(folder):
     sources = metadata.read_dataset_metadata(folder)['sources']
     for source_name, source in sources.items():
         source_type = list(source.keys())[0]
@@ -270,7 +278,6 @@ def default_menu_name_parser(source_type, source_name):
     return f"{source_type}s"
 
 
-# TODO apply 'parse_source_name' where necessary
 def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
     """Migrate dataset to spec version 0.2
 
@@ -283,6 +290,6 @@ def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
         parse_menu_name = default_menu_name_parser
     migrate_dataset_metadata(folder, parse_menu_name, parse_source_name)
     migrate_bookmarks(folder, parse_source_name)
-    migrate_tables(folder, parse_source_name)
-    migrate_sources(folder, parse_source_name)
+    migrate_tables(folder)
+    migrate_sources(folder)
     validate_dataset(folder)
