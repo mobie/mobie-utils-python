@@ -78,7 +78,7 @@ def migrate_bookmarks(misc_folder, old_bookmark_name='manuscript_bookmarks'):
     subprocess.run(['git', 'rm', old_bookmark_path])
 
 
-def migrate_all_bookmakrs(root, pattern):
+def migrate_all_bookmarks(root, pattern):
     folders = glob(os.path.join(root, pattern))
     for folder in folders:
         misc_folder = os.path.join(folder, 'misc')
