@@ -96,9 +96,9 @@ class TestBookmarkMetadata(unittest.TestCase):
         add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
                                 sources, display_settings)
 
-        bookmark_file = os.path.join(dataset_folder, "misc", "bookmarks", bookmark_file_name)
+        bookmark_file = os.path.join(dataset_folder, "misc", "views", bookmark_file_name)
         self.assertTrue(os.path.exists(bookmark_file))
-        bookmarks = read_metadata(bookmark_file)["bookmarks"]
+        bookmarks = read_metadata(bookmark_file)["views"]
         self.assertIn(bookmark_name, bookmarks)
 
     def test_add_grid_bookmark(self):

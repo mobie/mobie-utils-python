@@ -72,7 +72,7 @@ class TestViewMetadata(unittest.TestCase):
         custom_kwargs = [
             {'opacity': 0.5, 'lut': 'glasbey'},
             {'opacity': 0.9, 'lut': 'viridis',
-             'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a", "b"]},
+             'colorByColumn': 'colname', 'showSelectedSegmentsIn3d': True, "tables": ["a.csv", "b.tsv"]},
             {'selectedSegmentIds': ['my-seg;0;1', 'my-seg;0;2', 'my-seg;1;10']}
         ]
         for kwargs in custom_kwargs:
