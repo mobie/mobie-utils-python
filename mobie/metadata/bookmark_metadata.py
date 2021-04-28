@@ -91,10 +91,10 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     """
     if not bookmark_file_name.endswith('.json'):
         bookmark_file_name += '.json'
-    bookmark_file = os.path.join(dataset_folder, "misc", "bookmarks", bookmark_file_name)
+    bookmark_file = os.path.join(dataset_folder, "misc", "views", bookmark_file_name)
 
     metadata = read_metadata(bookmark_file)
-    bookmarks = metadata.get("bookmarks", {})
+    bookmarks = metadata.get("views", {})
     _check_bookmark(bookmark_name, bookmarks, overwrite)
 
     all_sources = read_dataset_metadata(dataset_folder)['sources']
@@ -104,7 +104,7 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     validate_with_schema(view, 'view')
 
     bookmarks[bookmark_name] = view
-    metadata['bookmarks'] = bookmarks
+    metadata['views'] = bookmarks
     write_metadata(bookmark_file, metadata)
 
 

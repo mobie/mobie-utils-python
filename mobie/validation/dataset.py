@@ -25,15 +25,15 @@ def validate_dataset(dataset_folder, assert_true=_assert_true,
                                  assert_true=assert_true,
                                  assert_equal=assert_equal)
 
-    # check the bookmarks
-    bookmark_folder = os.path.join(dataset_folder, 'misc', 'bookmarks')
+    # check the additional views
+    views_folder = os.path.join(dataset_folder, 'misc', 'views')
     all_sources = list(dataset_metadata["sources"].keys())
-    bookmark_files = glob(os.path.join(bookmark_folder, '*.json'))
-    for bookmark_file in bookmark_files:
-        with open(bookmark_file, 'r') as f:
-            bookmarks = json.load(f)['bookmarks']
-        for name, bookmark in bookmarks.items():
-            validate_view_metadata(bookmark, all_sources, assert_true)
+    view_files = glob(os.path.join(views_folder, '*.json'))
+    for view_file in view_files:
+        with open(view_file, 'r') as f:
+            views = json.load(f)['views']
+        for name, view in views.items():
+            validate_view_metadata(view, all_sources, assert_true)
 
 
 def main():

@@ -73,7 +73,7 @@ def create_dataset_structure(root, dataset_name):
     os.makedirs(os.path.join(dataset_folder, 'tables'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'images', 'local'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'images', 'remote'), exist_ok=True)
-    os.makedirs(os.path.join(dataset_folder, 'misc', 'bookmarks'), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, 'misc', 'views'), exist_ok=True)
     return dataset_folder
 
 
@@ -180,12 +180,12 @@ def copy_misc_data(src_folder, dst_folder, copy_misc=None):
     misc_src = os.path.join(src_folder, 'misc')
     misc_dst = os.path.join(dst_folder, 'misc')
 
-    # copy the bookmarks
-    bookmark_src = os.path.join(misc_src, 'bookmarks')
-    bookmark_dst = os.path.join(misc_dst, 'bookmarks')
+    # copy the views
+    view_src = os.path.join(misc_src, 'views')
+    view_dst = os.path.join(misc_dst, 'views')
 
-    for bkmrk in glob(os.path.join(bookmark_src, '*.json')):
-        bkmrk_out = os.path.join(bookmark_dst, os.path.split(bkmrk)[1])
+    for bkmrk in glob(os.path.join(view_src, '*.json')):
+        bkmrk_out = os.path.join(view_dst, os.path.split(bkmrk)[1])
         shutil.copyfile(bkmrk, bkmrk_out)
 
     # copy the leveling.json file

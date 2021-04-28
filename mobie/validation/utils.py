@@ -7,11 +7,11 @@ import requests
 
 
 SCHEMA_URLS = {
-    "bookmarks": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/bookmarks.schema.json",
     "dataset": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/dataset.schema.json",
     "project": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/project.schema.json",
     "source": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/source.schema.json",
-    "view": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/view.schema.json"
+    "view": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/view.schema.json",
+    "views": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/views.schema.json"
 }
 
 
