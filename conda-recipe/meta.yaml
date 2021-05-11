@@ -24,7 +24,7 @@ requirements:
   run:
     - python >=3.6
     - elf >=0.2.4
-    - numba <=0.50
+    - numba
     - cluster_tools >=0.3.4
     - pandas
     - paintera_tools >=0.2.1
