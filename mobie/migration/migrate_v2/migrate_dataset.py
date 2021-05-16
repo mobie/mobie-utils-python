@@ -58,7 +58,7 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
         assert os.path.exists(os.path.join(dataset_folder, remote_xml))
         new_source[source_type]['imageDataLocations']['s3store'] = remote_xml
 
-    return new_source
+    return new_source, view
 
 
 def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
@@ -67,18 +67,20 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
     with open(in_file, 'r') as f:
         sources_in = json.load(f)
 
-    new_sources = {}
+    new_sources, new_views = {}, {}
     for name, source in sources_in.items():
         # NOTE parse meu name needs to be called before  parse source name
         menu_name = parse_menu_name(source['type'], name)
         if parse_source_name is not None:
             name = parse_source_name(name)
-        new_sources[name] = migrate_source_metadata(name, source, folder, menu_name)
+        source_meta, view = migrate_source_metadata(name, source, folder, menu_name)
+        new_sources[name] = source_meta
+        new_views[name] = view
 
     dataset_metadata = {
         "is2d": False,
         "sources": new_sources,
-        "views": {}
+        "views": new_views
     }
     metadata.write_dataset_metadata(folder, dataset_metadata)
     os.remove(in_file)

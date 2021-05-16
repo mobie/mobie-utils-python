@@ -2,32 +2,26 @@ import os
 import warnings
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .view_metadata import get_default_view
-from ..validation import validate_source_metadata
+from ..validation import validate_source_metadata, validate_view_metadata
 
 
-def get_image_metadata(source_name, xml_path, view=None):
-    if view is None:
-        view = get_default_view("image", source_name)
+def get_image_metadata(source_name, xml_path):
     source_metadata = {
         "image": {
             "imageDataLocations": {
                 "fileSystem": xml_path
-            },
-            "view": view
+            }
         }
     }
     return source_metadata
 
 
-def get_segmentation_metadata(source_name, xml_path, view=None, table_location=None):
-    if view is None:
-        view = get_default_view("image", source_name)
+def get_segmentation_metadata(source_name, xml_path, table_location=None):
     source_metadata = {
         "segmentation": {
             "imageDataLocations": {
                 "fileSystem": xml_path
-            },
-            "view": view
+            }
         }
     }
     if table_location is not None:
@@ -57,12 +51,13 @@ def add_source_metadata(
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
+    view_metadata = dataset_metadata["views"]
 
     # validate the arguments
     if source_type not in ('image', 'segmentation'):
         raise ValueError(f"Expect source_type to be 'image' or 'segmentation', got {source_type}")
 
-    if source_name in sources_metadata:
+    if source_name in sources_metadata or source_name in view_metadata:
         msg = f"A source with name {source_name} already exists for the dataset {dataset_folder}"
         if overwrite:
             warnings.warn(msg)
@@ -73,15 +68,21 @@ def add_source_metadata(
     relative_xml_path = os.path.relpath(xml_path, dataset_folder)
 
     if source_type == "image":
-        source_metadata = get_image_metadata(source_name, relative_xml_path, view)
+        source_metadata = get_image_metadata(source_name, relative_xml_path)
     else:
         relative_table_folder = None if table_folder is None else os.path.relpath(table_folder, dataset_folder)
-        source_metadata = get_segmentation_metadata(source_name, relative_xml_path,
-                                                    view, relative_table_folder)
-
+        source_metadata = get_segmentation_metadata(source_name, relative_xml_path, relative_table_folder)
     validate_source_metadata(source_name, source_metadata, dataset_folder)
+
+    if view is None:
+        view = get_default_view(source_type, source_name)
+    validate_view_metadata(view)
+
     sources_metadata[source_name] = source_metadata
+    view_metadata[source_name] = view
+
     dataset_metadata["sources"] = sources_metadata
+    dataset_metadata["views"] = view_metadata
     write_dataset_metadata(dataset_folder, dataset_metadata)
 
 

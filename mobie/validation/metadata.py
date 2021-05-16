@@ -32,10 +32,6 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             msg = f"Could not find default table at {default_table}"
             assert_true(os.path.exists(default_table), msg)
 
-    # dynamic validation of view metadata
-    view = metadata['view']
-    validate_view_metadata(view, sources=[name], assert_true=assert_true)
-
 
 def validate_view_metadata(view, sources=None, assert_true=_assert_true):
     # static validation with json schema

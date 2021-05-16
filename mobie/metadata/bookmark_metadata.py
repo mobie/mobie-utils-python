@@ -127,9 +127,10 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
         overwrite [bool] - whether to overwrite existing bookmarks (default: False)
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
+    views = dataset_metadata['views']
 
     if bookmark_file_name is None:  # bookmark goes into dataset.json:bookmarks
-        bookmarks = dataset_metadata['views']
+        bookmarks = views
     else:  # bookmark goes into extra bookmark file
         if not bookmark_file_name.endswith('.json'):
             bookmark_file_name += '.json'
@@ -168,7 +169,7 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                 # check if we have display setting parameters
                 if display_group_settings is None:
                     # if not, we just take the first source's display settings here
-                    display_setting = all_sources[source_name][source_type]['view']
+                    display_setting = views[source_name]
                     setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
                     display_setting = display_setting['sourceDisplays'][0][setting_key]
                     display_setting.pop('name', None)
