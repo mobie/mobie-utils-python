@@ -12,13 +12,14 @@ def main():
     parser.add_argument('--version', '-v', type=int, default=2, help=msg)
     parser.add_argument('--pattern', '-p', type=str, default='*')
     parser.add_argument('--anon', '-a', type=int, default=1)
+    parser.add_argument('--update_view_spec', '-u', default=0, type=int)
 
     args = parser.parse_args()
     version = args.version
     if version == 1:
         migrate_project_v1(args.root, args.pattern, bool(args.anon))
     elif version == 2:
-        migrate_project_v2(args.root)
+        migrate_project_v2(args.root, update_view_spec=bool(args.update_view_spec))
     else:
         raise ValueError(f"Invalid version {version}")
 
