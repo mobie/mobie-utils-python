@@ -58,16 +58,6 @@ def get_affine_source_transform(sources, parameters, timepoints=None):
     return {"affine": trafo}
 
 
-def get_auto_grid_source_transform(sources, table_location, timepoints=None):
-    trafo = {
-        "sources": sources,
-        "tableDataLocation": table_location
-    }
-    if timepoints is not None:
-        trafo[timepoints] = timepoints
-    return {"autoGrid": trafo}
-
-
 def get_viewer_transform(affine=None, normalized_affine=None, position=None, timepoint=None):
     # don't allow empty transform
     if all(param is None for param in (affine, normalized_affine, position, timepoint)):
@@ -139,8 +129,8 @@ def get_view(names, source_types, sources, display_settings,
         all_sources = set([source for source_list in sources for source in source_list])
         for source_transform in source_transforms:
             trafo_type = list(source_transform.keys())[0]
-            if trafo_type not in ("affine", "grid"):
-                msg = f"Invalid source transform type {trafo_type}, expect one of 'affine', 'autoGrid'"
+            if trafo_type not in ("affine", "grid", "crop"):
+                msg = f"Invalid source transform type {trafo_type}, expect one of 'affine', 'grid', 'crop'"
                 raise ValueError(msg)
 
             trafo = source_transform[trafo_type]
