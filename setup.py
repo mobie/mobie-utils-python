@@ -18,8 +18,8 @@ setup(
             "mobie.add_traces = mobie.traces:main",
             "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
             "mobie.migrate_project = mobie.migration.migrate_project:main",
-            "mobie.validate_dataset = mobie.validation.validate_dataset:main",
-            "mobie.validate_project = mobie.validation.validate_project:main"
+            "mobie.validate_dataset = mobie.validation.dataset:main",
+            "mobie.validate_project = mobie.validation.project:main"
         ]
     },
 )
