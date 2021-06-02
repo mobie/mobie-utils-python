@@ -1,6 +1,7 @@
 import json
 import os
 from .migrate_dataset import migrate_dataset
+from .migrate_data_spec import migrate_data_spec
 from .migrate_view_spec import migrate_view_spec
 from ...metadata import write_project_metadata
 
@@ -26,14 +27,26 @@ def _update_view_spec(root, ds_list):
         migrate_view_spec(ds_folder)
 
 
-def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_view_spec=False):
-    ds_file = os.path.join(root, 'project.json') if update_view_spec else os.path.join(root, 'datasets.json')
+def _update_data_spec(root, ds_list):
+    for ds in ds_list:
+        ds_folder = os.path.join(root, ds)
+        assert os.path.exists(ds_folder), ds_folder
+        migrate_data_spec(ds_folder)
+
+
+def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_view_spec=False, update_data_spec=False):
+    assert not (update_view_spec and update_data_spec)
+    already_v2 = update_view_spec or update_data_spec
+
+    ds_file = os.path.join(root, 'project.json') if already_v2 else os.path.join(root, 'datasets.json')
     with open(ds_file, 'r') as f:
         metadata = json.load(f)
     ds_list = metadata['datasets']
 
     if update_view_spec:
         _update_view_spec(root, ds_list)
+    elif update_data_spec:
+        _update_data_spec(root, ds_list)
     else:
         _migrate_project(root, ds_list, metadata, ds_file,
                          parse_source_name, parse_menu_name)

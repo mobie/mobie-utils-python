@@ -56,7 +56,11 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
     if 'remote' in xml_locations:
         remote_xml = os.path.join('images', xml_locations['remote'])
         assert os.path.exists(os.path.join(dataset_folder, remote_xml))
-        new_source[source_type]['imageDataLocations']['s3store'] = remote_xml
+        new_source[source_type]['imageData']['gitHub'] = {"source": remote_xml,
+                                                          "format": "bdv.n5.s3"}
+        if source_type == 'segmentation' and table_location is not None:
+            new_source[source_type]['tableData']['gitHub'] = {"source": table_location,
+                                                              "format": "tsv"}
 
     return new_source, view
 
@@ -78,7 +82,7 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
         new_views[name] = view
 
     dataset_metadata = {
-        "is2d": False,
+        "is2D": False,
         "sources": new_sources,
         "views": new_views
     }
@@ -306,9 +310,9 @@ def migrate_sources(folder):
     sources = metadata.read_dataset_metadata(folder)['sources']
     for source_name, source in sources.items():
         source_type = list(source.keys())[0]
-        storage = source[source_type]['imageDataLocations']
+        storage = source[source_type]['imageData']
         for storage_type, loc in storage.items():
-            xml = os.path.join(folder, loc)
+            xml = os.path.join(folder, loc["source"])
             write_name(xml, 0, source_name)
             if storage_type == 'remote':
                 remove_authentication_field(xml)
