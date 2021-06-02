@@ -8,7 +8,7 @@ from mobie.validation.utils import validate_with_schema
 class TestDatasetMetadata(unittest.TestCase):
     def get_dataset_metadata(self):
         dataset_metadata = {
-            "is2d": False,
+            "is2D": False,
             "description": "My dataset.",
             "sources": {
                 "image1": metadata.get_image_metadata("image1", "/images/image1.xml"),

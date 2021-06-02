@@ -5,27 +5,39 @@ from .view_metadata import get_default_view
 from ..validation import validate_source_metadata, validate_view_metadata
 
 
-def get_image_metadata(source_name, xml_path):
+def _get_image_metadata(source_name, xml_path, type_):
+    # eventually we need to support more data formats here (ome.zarr)
     source_metadata = {
-        "image": {
-            "imageDataLocations": {
-                "fileSystem": xml_path
+        type_: {
+            "imageData": {
+                "fileSystem": {
+                    "format": "bdv.n5",
+                    "source": xml_path
+                }
             }
         }
     }
     return source_metadata
 
 
-def get_segmentation_metadata(source_name, xml_path, table_location=None):
-    source_metadata = {
-        "segmentation": {
-            "imageDataLocations": {
-                "fileSystem": xml_path
-            }
+def _get_table_metadata(table_location):
+    table_metadata = {
+        "fileSystem": {
+            "format": "tsv",
+            "source": table_location
         }
     }
+    return table_metadata
+
+
+def get_image_metadata(source_name, xml_path):
+    return _get_image_metadata(source_name, xml_path, "image")
+
+
+def get_segmentation_metadata(source_name, xml_path, table_location=None):
+    source_metadata = _get_image_metadata(source_name, xml_path, "segmentation")
     if table_location is not None:
-        source_metadata["segmentation"]["tableDataLocation"] = table_location
+        source_metadata["segmentation"]["tableData"] = _get_table_metadata(table_location)
     return source_metadata
 
 

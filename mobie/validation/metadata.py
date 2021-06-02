@@ -17,8 +17,11 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     metadata = metadata[source_type]
     # dynamic validation of paths
     if dataset_folder is not None:
-        data_locations = metadata['imageDataLocations']
-        for storage, location in data_locations.items():
+        data_locations = metadata['imageData']
+        for storage, storage_descr in data_locations.items():
+            if storage_descr['format'] == 's3Store':  # we cannot reliably check s3
+                continue
+            location = storage_descr['source']
             path = os.path.join(dataset_folder, location)
             msg = f"Could not find xml for {storage} at {path}"
             assert_true(os.path.exists(path), msg)

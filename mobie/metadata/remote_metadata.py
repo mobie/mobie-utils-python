@@ -29,6 +29,10 @@ def add_remote_project_metadata(
     # TODO print instructions on how to upload the data
 
 
+# TODO update for new data spec:
+# - make adding github metadata optional
+# - add "s3Store" with the correct url to "imageData"
+# - update the table data spec
 def add_remote_dataset_metadata(
     root,
     dataset_name,
@@ -57,8 +61,8 @@ def add_remote_dataset_metadata(
 
         # the xml paths for the source,
         # which are relative to the 'images' folder
-        storage = metadata[source_type]['imageDataLocations']
-        xml = storage['fileSystem']
+        storage = metadata[source_type]['imageData']
+        xml = storage['fileSystem']['source']
         xml_remote = xml.replace('local', 'remote')
 
         # the absolute xml paths
@@ -75,8 +79,8 @@ def add_remote_dataset_metadata(
                           bdv_type=bdv_type)
 
         # add the remote storage to the source
-        storage['s3store'] = xml_remote
-        metadata[source_type]['imageDataLocations'] = storage
+        storage['s3Store'] = {"format": bdv_type, "source": xml_remote}
+        metadata[source_type]['imageData'] = storage
         new_sources[name] = metadata
 
     ds_metadata["sources"] = new_sources

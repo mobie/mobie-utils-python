@@ -11,9 +11,17 @@ class TestSourceMetadata(unittest.TestCase):
         source = get_image_metadata(name, "/path/to/bdv.xml")
         validate_with_schema(source, 'source')
 
+        source = get_image_metadata(name, "/path/to/bdv.xml")
+        source["image"]["imageData"]["gitHub"] = {"format": "bdv.n5.s3", "source": "path/to/bdv.xml"}
+        validate_with_schema(source, 'source')
+
+        source = get_image_metadata(name, "/path/to/bdv.xml")
+        source["image"]["imageData"]["s3Store"] = {"format": "bdv.n5.s3", "source": "https://s3.com/bdv.xml"}
+        validate_with_schema(source, 'source')
+
         # check missing fields
         source = get_image_metadata(name, "/path/to/bdv.xml")
-        source["image"].pop("imageDataLocations")
+        source["image"].pop("imageData")
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -29,16 +37,12 @@ class TestSourceMetadata(unittest.TestCase):
             validate_with_schema(source, 'source')
 
         source = get_image_metadata(name, "/path/to/bdv.xml")
-        source["image"]["imageDataLocations"]["foo"] = "bar"
+        source["image"]["imageData"]["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
-        # check invalid values
-        source = get_image_metadata(name, "/path/to/bdv.xxl")
-        with self.assertRaises(ValidationError):
-            validate_with_schema(source, 'source')
-
-        source = get_image_metadata(name, "/path/to/bdv xyz.xml")
+        source = get_image_metadata(name, "/path/to/bdv.xml")
+        source["image"]["imageData"]["fileSystem"]["format"] = "tiff"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -55,7 +59,7 @@ class TestSourceMetadata(unittest.TestCase):
 
         # check missing fields
         source = get_segmentation_metadata(name, "/path/to/bdv.xml")
-        source["segmentation"].pop("imageDataLocations")
+        source["segmentation"].pop("imageData")
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
@@ -71,13 +75,19 @@ class TestSourceMetadata(unittest.TestCase):
             validate_with_schema(source, 'source')
 
         source = get_segmentation_metadata(name, "/path/to/bdv.xml")
-        source["segmentation"]["imageDataLocations"]["foo"] = "bar"
+        source["segmentation"]["imageData"]["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 
-        # check invalid values
         source = get_segmentation_metadata(name, "/path/to/bdv.xml",
-                                           table_location="/path/to /table")
+                                           table_location="/path/to/tables")
+        source["segmentation"]["tableData"]["fileSystem"]["format"] = "excel"
+        with self.assertRaises(ValidationError):
+            validate_with_schema(source, 'source')
+
+        source = get_segmentation_metadata(name, "/path/to/bdv.xml",
+                                           table_location="/path/to/tables")
+        source["segmentation"]["tableData"]["foo"] = "bar"
         with self.assertRaises(ValidationError):
             validate_with_schema(source, 'source')
 

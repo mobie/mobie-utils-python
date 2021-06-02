@@ -56,9 +56,9 @@ class TestRemoteMetadata(unittest.TestCase):
         expected_bdv_format = "bdv.n5.s3"
         for name, source in sources.items():
             source_type = list(source.keys())[0]
-            xml_locations = source[source_type]["imageDataLocations"]
-            self.assertIn("s3store", xml_locations)
-            xml_path = os.path.join(dataset_folder, xml_locations["s3store"])
+            xml_locations = source[source_type]["imageData"]
+            self.assertIn("s3Store", xml_locations)
+            xml_path = os.path.join(dataset_folder, xml_locations["s3Store"]["source"])
             self.assertTrue(os.path.exists(xml_path))
             bdv_format = get_bdv_format(xml_path)
             self.assertEqual(bdv_format, expected_bdv_format)

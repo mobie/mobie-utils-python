@@ -38,7 +38,7 @@ def create_dataset_metadata(dataset_folder,
     if os.path.exists(path):
         raise RuntimeError(f"Dataset metadata at {path} already exists")
     metadata = {
-        "is2d": is2d,
+        "is2D": is2d,
         "sources": {},
         "timepoints": n_timepoints,
         # we assume views are already validated
@@ -106,7 +106,7 @@ def copy_xml_file(xml_in, xml_out, storage='fileSystem'):
         data_path = os.path.relpath(data_path, start=xml_dir)
         copy_xml_with_newpath(xml_in, xml_out, data_path,
                               path_type='relative', data_format=bdv_format)
-    elif storage == 's3store':
+    elif storage == 'gitHub':
         shutil.copyfile(xml_in, xml_out)
     else:
         raise ValueError("Invalid storage spec %s" % storage)
@@ -146,6 +146,7 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
 def copy_sources(src_folder, dst_folder, exclude_sources=[]):
     dataset_metadata = read_dataset_metadata(src_folder)
     sources = dataset_metadata["sources"]
+    copyable_formats = ('bdv.n5', 'bdv.hdf5', 'bdv.n5.s3')
 
     new_sources = {}
     for name, metadata in sources.items():
@@ -157,7 +158,13 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
         metadata = metadata[source_type]
 
         # copy the xmls for the different storages
-        for storage, relative_xml in metadata['imageDataLocations'].items():
+        for storage, storage_descr in metadata['imageData'].items():
+            if storage == "s3Store":  # we don't need to copy the xml if it's on s3
+                continue
+            file_format = storage_descr['format']
+            if file_format not in copyable_formats:
+                raise RuntimeError(f"Cannot copy image data with foramt {file_format}")
+            relative_xml = storage_descr['source']
             in_path = os.path.join(src_folder, relative_xml)
             out_path = os.path.join(dst_folder, relative_xml)
             # copy the xml
@@ -165,8 +172,8 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
         # copy table if we have it
         if source_type == 'segmentation':
-            if 'tableDataLocation' in metadata:
-                copy_tables(src_folder, dst_folder, metadata['tableDataLocation'])
+            if 'tableData' in metadata:
+                copy_tables(src_folder, dst_folder, metadata['tableData']['source'])
             # link the id look-up-table (platybrowser specific functionality)
             link_id_lut(src_folder, dst_folder, name)
 
