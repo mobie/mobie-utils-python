@@ -61,8 +61,8 @@ def add_segmentation(input_path, input_key,
 
     # import the segmentation data
     dataset_folder = os.path.join(root, dataset_name)
-    data_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', 'local', f'{segmentation_name}.xml')
+    data_path = os.path.join(dataset_folder, 'images', f'{segmentation_name}.n5')
+    xml_path = os.path.join(dataset_folder, 'images', f'{segmentation_name}.xml')
     if node_label_path is not None:
         if node_label_key is None:
             raise ValueError("Expect node_label_key if node_label_path is given")

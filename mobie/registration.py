@@ -71,8 +71,8 @@ def add_registered_source(input_path, input_key, transformation,
     validate_view_metadata(view, sources=[source_name])
 
     dataset_folder = os.path.join(root, dataset_name)
-    data_path = os.path.join(dataset_folder, 'images', 'local', f'{source_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', 'local', f'{source_name}.xml')
+    data_path = os.path.join(dataset_folder, 'images', f'{source_name}.n5')
+    xml_path = os.path.join(dataset_folder, 'images', f'{source_name}.xml')
     data_key = 'setup0/timepoint0/s0'
 
     interpolation = 'linear' if source_type == 'image' else 'nearest'

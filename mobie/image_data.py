@@ -68,8 +68,8 @@ def add_image(input_path, input_key,
     tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
 
     # import the image data and add the metadata
-    data_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', 'local', f'{image_name}.xml')
+    data_path = os.path.join(dataset_folder, 'images', f'{image_name}.n5')
+    xml_path = os.path.join(dataset_folder, 'images', f'{image_name}.xml')
     import_image_data(input_path, input_key, data_path,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,

@@ -17,18 +17,14 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     metadata = metadata[source_type]
     # dynamic validation of paths
     if dataset_folder is not None:
-        data_locations = metadata['imageData']
-        for storage, storage_descr in data_locations.items():
-            if storage_descr['format'] == 's3Store':  # we cannot reliably check s3
-                continue
-            location = storage_descr['source']
-            path = os.path.join(dataset_folder, location)
-            msg = f"Could not find xml for {storage} at {path}"
-            assert_true(os.path.exists(path), msg)
-            bdv_name = get_name(path, setup_id=0)
-            assert_equal(name, bdv_name)
-        if 'tableDataLocation' in metadata:
-            table_folder = os.path.join(dataset_folder, metadata['tableDataLocation'])
+        storage = metadata['imageData']
+        path = os.path.join(dataset_folder, storage['relativePath'])
+        msg = f"Could not find xml for at {path}"
+        assert_true(os.path.exists(path), msg)
+        bdv_name = get_name(path, setup_id=0)
+        assert_equal(name, bdv_name)
+        if 'tableData' in metadata:
+            table_folder = os.path.join(dataset_folder, metadata['tableData']['relativePath'])
             msg = f"Could not find table root folder at {table_folder}"
             assert_true(os.path.isdir(table_folder), msg)
             default_table = os.path.join(table_folder, 'default.tsv')

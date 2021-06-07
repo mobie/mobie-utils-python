@@ -22,7 +22,7 @@ class TestProjectMetadata(unittest.TestCase):
         else:
             return "project"
 
-    def test_dataset_metadata(self):
+    def test_project_metadata(self):
         schema = self.get_schema()
 
         metadata = self.get_project_metadata()
@@ -32,6 +32,12 @@ class TestProjectMetadata(unittest.TestCase):
         metadata = self.get_project_metadata()
         metadata["description"] = "Lorem ipsum."
         metadata["references"] = ["https://my-publication.com"]
+        validate_with_schema(metadata, schema)
+
+        metadata = self.get_project_metadata()
+        metadata["s3Root"] = [{
+            "endpoint": "https://s3.com", "bucket": "my_bucket", "region": "us-west-1"
+        }]
         validate_with_schema(metadata, schema)
 
         # check missing fields

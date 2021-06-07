@@ -53,12 +53,12 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
     dataset_folder = os.path.join(root, dataset_name)
     # get the path to the reference data
-    reference_xml = os.path.join(dataset_folder, 'images', 'local', f'{reference_name}.xml')
+    reference_xml = os.path.join(dataset_folder, 'images', f'{reference_name}.xml')
     reference_path = get_data_path(reference_xml, return_absolute_path=True)
 
     # import the segmentation data
-    data_path = os.path.join(dataset_folder, 'images', 'local', f'{traces_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', 'local', f'{traces_name}.xml')
+    data_path = os.path.join(dataset_folder, 'images', f'{traces_name}.n5')
+    xml_path = os.path.join(dataset_folder, 'images', f'{traces_name}.xml')
     import_traces(input_folder, data_path,
                   reference_path, reference_scale,
                   resolution=resolution,

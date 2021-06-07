@@ -10,10 +10,8 @@ def _get_image_metadata(source_name, xml_path, type_):
     source_metadata = {
         type_: {
             "imageData": {
-                "fileSystem": {
-                    "format": "bdv.n5",
-                    "source": xml_path
-                }
+                "format": "bdv.n5",
+                "relativePath": xml_path
             }
         }
     }
@@ -22,10 +20,8 @@ def _get_image_metadata(source_name, xml_path, type_):
 
 def _get_table_metadata(table_location):
     table_metadata = {
-        "fileSystem": {
-            "format": "tsv",
-            "source": table_location
-        }
+        "format": "tsv",
+        "relativePath": table_location
     }
     return table_metadata
 

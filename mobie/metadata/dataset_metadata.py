@@ -71,8 +71,7 @@ def create_dataset_structure(root, dataset_name):
     """
     dataset_folder = os.path.join(root, dataset_name)
     os.makedirs(os.path.join(dataset_folder, 'tables'), exist_ok=True)
-    os.makedirs(os.path.join(dataset_folder, 'images', 'local'), exist_ok=True)
-    os.makedirs(os.path.join(dataset_folder, 'images', 'remote'), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, 'images'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'misc', 'views'), exist_ok=True)
     return dataset_folder
 
@@ -98,18 +97,12 @@ def make_squashed_link(src_file, dst_file, override=False):
     os.symlink(rel_path, dst_file)
 
 
-def copy_xml_file(xml_in, xml_out, storage='fileSystem'):
-    if storage == 'fileSystem':
-        data_path = get_data_path(xml_in, return_absolute_path=True)
-        bdv_format = get_bdv_format(xml_in)
-        xml_dir = os.path.split(xml_out)[0]
-        data_path = os.path.relpath(data_path, start=xml_dir)
-        copy_xml_with_newpath(xml_in, xml_out, data_path,
-                              path_type='relative', data_format=bdv_format)
-    elif storage == 'gitHub':
-        shutil.copyfile(xml_in, xml_out)
-    else:
-        raise ValueError("Invalid storage spec %s" % storage)
+def copy_xml_file(xml_in, xml_out):
+    data_path = get_data_path(xml_in, return_absolute_path=True)
+    bdv_format = get_bdv_format(xml_in)
+    xml_dir = os.path.split(xml_out)[0]
+    data_path = os.path.relpath(data_path, start=xml_dir)
+    copy_xml_with_newpath(xml_in, xml_out, data_path, path_type='relative', data_format=bdv_format)
 
 
 def link_id_lut(src_folder, dst_folder, name):
@@ -146,7 +139,6 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
 def copy_sources(src_folder, dst_folder, exclude_sources=[]):
     dataset_metadata = read_dataset_metadata(src_folder)
     sources = dataset_metadata["sources"]
-    copyable_formats = ('bdv.n5', 'bdv.hdf5', 'bdv.n5.s3')
 
     new_sources = {}
     for name, metadata in sources.items():
@@ -157,18 +149,16 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
         source_type = list(metadata.keys())[0]
         metadata = metadata[source_type]
 
-        # copy the xmls for the different storages
-        for storage, storage_descr in metadata['imageData'].items():
-            if storage == "s3Store":  # we don't need to copy the xml if it's on s3
-                continue
-            file_format = storage_descr['format']
-            if file_format not in copyable_formats:
-                raise RuntimeError(f"Cannot copy image data with foramt {file_format}")
-            relative_xml = storage_descr['source']
+        # copy the xml file (if we have a bdv format)
+        storage = metadata['imageData']
+        format_ = storage['format'].startswith('bdv')
+        if format_:
+            relative_xml = storage['relativePath']
             in_path = os.path.join(src_folder, relative_xml)
             out_path = os.path.join(dst_folder, relative_xml)
-            # copy the xml
-            copy_xml_file(in_path, out_path, storage)
+            copy_xml_file(in_path, out_path)
+        else:
+            print("Image data for source {name} has format {foramt}, which cannot be copied.")
 
         # copy table if we have it
         if source_type == 'segmentation':

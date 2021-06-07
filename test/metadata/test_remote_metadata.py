@@ -1,14 +1,14 @@
 import os
 import unittest
+import xml.etree.ElementTree as ET
 from shutil import rmtree
 
 import numpy as np
 
 from elf.io import open_file
 from mobie import add_image
-from mobie.metadata import read_dataset_metadata
+from mobie.metadata import read_dataset_metadata, read_project_metadata
 from mobie.validation.utils import validate_with_schema
-from pybdv.metadata import get_bdv_format
 
 
 class TestRemoteMetadata(unittest.TestCase):
@@ -41,6 +41,12 @@ class TestRemoteMetadata(unittest.TestCase):
         except OSError:
             pass
 
+    def get_path_in_bucket(self, xml):
+        tree = ET.parse(xml)
+        root = tree.getroot()
+        img = root.find('SequenceDescription').find('S3ImageLoader')
+        return img.find('Key').text
+
     def test_remote_metadata(self):
         from mobie.metadata import add_remote_project_metadata
 
@@ -53,16 +59,19 @@ class TestRemoteMetadata(unittest.TestCase):
         validate_with_schema(dataset_metadata, "dataset")
 
         sources = dataset_metadata['sources']
-        expected_bdv_format = "bdv.n5.s3"
         for name, source in sources.items():
             source_type = list(source.keys())[0]
-            xml_locations = source[source_type]["imageData"]
-            self.assertIn("s3Store", xml_locations)
-            xml_path = os.path.join(dataset_folder, xml_locations["s3Store"]["source"])
+            xml = source[source_type]["imageData"]["relativePath"]
+            xml_path = os.path.join(dataset_folder, xml)
             self.assertTrue(os.path.exists(xml_path))
-            bdv_format = get_bdv_format(xml_path)
-            self.assertEqual(bdv_format, expected_bdv_format)
-            # TODO parse bucket_name and service_endpoint from the xml and make sure they are correct
+
+        proj_metadata = read_project_metadata(self.root)
+        validate_with_schema(proj_metadata, "project")
+        s3_root = proj_metadata["s3Root"]
+        self.assertEqual(len(s3_root), 1)
+        s3_root = s3_root[0]
+        self.assertEqual(s3_root["endpoint"], service_endpoint)
+        self.assertEqual(s3_root["bucket"], bucket_name)
 
 
 if __name__ == '__main__':

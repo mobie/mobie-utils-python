@@ -1,9 +1,20 @@
 import os
-from copy import deepcopy
 
-from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
-from .project_metadata import get_datasets
-from ..xml_utils import copy_xml_as_n5_s3
+from .dataset_metadata import read_dataset_metadata
+from .project_metadata import get_datasets, read_project_metadata, write_project_metadata
+from ..xml_utils import add_s3_to_xml
+
+
+def _add_s3_to_project(root, bucket_name, service_endpoint, region):
+    metadata = read_project_metadata(root)
+    s3_roots = metadata.get('s3Root', [])
+    s3_roots.append({
+        "endpoint": service_endpoint,
+        "bucket": bucket_name,
+        "region": region
+    })
+    metadata['s3Root'] = s3_roots
+    write_project_metadata(root, metadata)
 
 
 def add_remote_project_metadata(
@@ -25,14 +36,11 @@ def add_remote_project_metadata(
         add_remote_dataset_metadata(root, dataset_name, bucket_name,
                                     service_endpoint=service_endpoint,
                                     region=region)
+    _add_s3_to_project(root, bucket_name, service_endpoint, region)
 
     # TODO print instructions on how to upload the data
 
 
-# TODO update for new data spec:
-# - make adding github metadata optional
-# - add "s3Store" with the correct url to "imageData"
-# - update the table data spec
 def add_remote_dataset_metadata(
     root,
     dataset_name,
@@ -49,39 +57,23 @@ def add_remote_dataset_metadata(
         service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: 'https://s3.embl.de'.
         region [str] - the region. Only relevant if aws.s3 is used. (default: 'us-west-2')
     """
-    bdv_type = 'bdv.n5.s3'
 
     dataset_folder = os.path.join(root, dataset_name)
     ds_metadata = read_dataset_metadata(dataset_folder)
     sources = ds_metadata["sources"]
-    new_sources = deepcopy(sources)
 
     for name, metadata in sources.items():
         source_type = list(metadata.keys())[0]
 
-        # the xml paths for the source,
-        # which are relative to the 'images' folder
-        storage = metadata[source_type]['imageData']
-        xml = storage['fileSystem']['source']
-        xml_remote = xml.replace('local', 'remote')
-
-        # the absolute xml paths
+        # the xml path for the source, which are relative to the dataset root folder
+        xml = metadata[source_type]['imageData']['relativePath']
+        # the absolute xml path
         xml_path = os.path.join(dataset_folder, xml)
-        xml_remote_path = os.path.join(dataset_folder, xml_remote)
         path_in_bucket = os.path.join(dataset_name, xml.replace('.xml', '.n5'))
 
         # copy to the xml for remote data
-        copy_xml_as_n5_s3(xml_path, xml_remote_path,
-                          service_endpoint=service_endpoint,
-                          bucket_name=bucket_name,
-                          path_in_bucket=path_in_bucket,
-                          region=region,
-                          bdv_type=bdv_type)
-
-        # add the remote storage to the source
-        storage['s3Store'] = {"format": bdv_type, "source": xml_remote}
-        metadata[source_type]['imageData'] = storage
-        new_sources[name] = metadata
-
-    ds_metadata["sources"] = new_sources
-    write_dataset_metadata(dataset_folder, ds_metadata)
+        add_s3_to_xml(xml_path,
+                      service_endpoint=service_endpoint,
+                      bucket_name=bucket_name,
+                      path_in_bucket=path_in_bucket,
+                      region=region)

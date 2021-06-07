@@ -44,54 +44,46 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
     tree.write(xml_out)
 
 
-# should be generalized and moved to pybdv at some point
-def copy_xml_as_n5_s3(in_xml, out_xml,
-                      service_endpoint, bucket_name, path_in_bucket,
-                      region='us-west-2', bdv_type='bdv.n5.s3'):
+def add_s3_to_xml(xml, path_in_bucket,
+                  service_endpoint=None, bucket_name=None, region=None):
     """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
 
     Arguments:
-        in_xml [str] - path to the input xml
-        out_xml [str] - path to the output xml
-        service_endpoint [str] - url of the s3 service end-point.
-            For EMBL: 'https://s3.embl.de'.
-        bucket_name [str] - name of the bucket
+        xml [str] - path to the xml file
         path_in_bucket [str] - file paths inside of the bucket
+        service_endpoint [str] - url of the s3 service end-point.
+            By default the s3 root for the project will be used (default: None)
+        bucket_name [str] - name of the bucket. By default the s3 root for the project will be used (default: None)
         region [str] - the region. Only relevant if aws.s3 is used.
-            Default: 'us-west-2'
+            By default the s3 root for the project will be used (default: None)
     """
-    bdv_types = ('bdv.n5.s3', 'ome.zarr.s3')
-    if bdv_type not in bdv_types:
-        raise ValueError(f"Invalid bdv type {bdv_type}, expected one of {bdv_types}")
 
     # check if we have an xml already
-    tree = ET.parse(in_xml)
+    tree = ET.parse(xml)
     root = tree.getroot()
 
     # load the sequence description
     seqdesc = root.find('SequenceDescription')
 
-    # update the image loader
-    # remove the old image loader
-    imgload = seqdesc.find('ImageLoader')
-    seqdesc.remove(imgload)
-
-    # write the new image loader
-    imgload = ET.SubElement(seqdesc, 'ImageLoader')
-    imgload.set('format', bdv_type)
-    el = ET.SubElement(imgload, 'Key')
+    # add the s3 imageloader
+    s3_imgload = ET.SubElement(seqdesc, 'S3ImageLoader')
+    s3_imgload.set('format', 'bdv.n5.s3')
+    el = ET.SubElement(s3_imgload, 'Key')
     el.text = path_in_bucket
 
-    el = ET.SubElement(imgload, 'SigningRegion')
-    el.text = region
-    el = ET.SubElement(imgload, 'ServiceEndpoint')
-    el.text = service_endpoint
-    el = ET.SubElement(imgload, 'BucketName')
-    el.text = bucket_name
+    if region is not None:
+        el = ET.SubElement(s3_imgload, 'SigningRegion')
+        el.text = region
+    if service_endpoint is not None:
+        el = ET.SubElement(s3_imgload, 'ServiceEndpoint')
+        el.text = service_endpoint
+    if bucket_name is not None:
+        el = ET.SubElement(s3_imgload, 'BucketName')
+        el.text = bucket_name
 
     indent_xml(root)
     tree = ET.ElementTree(root)
-    tree.write(out_xml)
+    tree.write(xml)
 
 
 def read_path_in_bucket(xml):

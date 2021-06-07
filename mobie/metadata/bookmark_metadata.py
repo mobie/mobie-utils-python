@@ -3,6 +3,7 @@ import warnings
 
 from .dataset_metadata import add_view_to_dataset, read_dataset_metadata, write_dataset_metadata
 from .utils import read_metadata, write_metadata
+from .source_metadata import _get_table_metadata
 from .view_metadata import get_view
 from ..validation.utils import validate_with_schema
 from ..tables.grid_view_table import check_grid_view_table, compute_grid_view_table
@@ -191,7 +192,7 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
 
     grid_transform = {
         'sources': sources,
-        'tableDataLocation': table_folder
+        'tableData': _get_table_metadata(table_folder)
     }
     if positions is not None:
         if len(positions) != len(sources):
