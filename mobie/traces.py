@@ -4,17 +4,16 @@ import os
 from pybdv.metadata import get_data_path
 
 import mobie.metadata as metadata
+import mobie.utils as utils
 from mobie.import_data import import_traces
 from mobie.tables import compute_trace_default_table
-from mobie.utils import get_base_parser, parse_spatial_args, parse_view
-from mobie.validation import validate_view_metadata
 
 
 # TODO make cluster tools task so this can be safely run on login nodes
 def add_traces(input_folder, root, dataset_name, traces_name,
                reference_name, reference_scale,
                resolution, scale_factors, chunks,
-               menu_name=None, view=None,
+               menu_name=None, file_format="bdv.n5", view=None,
                max_jobs=multiprocessing.cpu_count(),
                add_default_table=True,
                seg_infos={}, unit='micrometer'):
@@ -34,6 +33,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         menu_name [str] - menu item for this source.
             If none is given will be created based on the image name. (default: None)
+        file_format [str] - the file format used to store the data internally (default: bdv.n5)
         view [dict] - default view settings for this source (default: None)
         chunks [list[int]] - chunks for the data.
         max_jobs [int] - number of jobs (default: number of cores)
@@ -41,24 +41,26 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         seg_infos [dict] - segmentation information that will be added to the table (default: {})
         unit [str] - physical unit of the coordinate system (default: micrometer)
     """
-    # check that we have this dataset
-    if not metadata.dataset_exists(root, dataset_name):
-        raise ValueError(f"Dataset {dataset_name} not found in {root}")
+    view = utils.require_dataset_and_view(root, dataset_name, file_format,
+                                          source_type="segmentation",
+                                          source_name=traces_name,
+                                          menu_name=menu_name, view=view,
+                                          is_default_dataset=False)
 
-    if view is None:
-        view = metadata.get_default_view("segmentation", traces_name, menu_name=menu_name)
-    elif view is not None and menu_name is not None:
-        view.update({"uiSelectionGroup": menu_name})
-    validate_view_metadata(view, sources=[traces_name])
-
-    dataset_folder = os.path.join(root, dataset_name)
     # get the path to the reference data
-    reference_xml = os.path.join(dataset_folder, 'images', f'{reference_name}.xml')
-    reference_path = get_data_path(reference_xml, return_absolute_path=True)
+    dataset_folder = os.path.join(root, dataset_name)
+    # NOTE: we require that the reference data and traces are in the same file format
+    # and that it is a file format that can be read locally, i.e. has 'relativePath'
+    source_metadata = metadata.read_dataset_metadata(dataset_folder)['sources'][reference_name]
+    source_metadata = source_metadata[list(source_metadata.keys())[0]]['imageData']
+    assert file_format in source_metadata
+    assert 'relativePath' in source_metadata[file_format]
+    reference_path = os.path.join(dataset_folder, source_metadata[file_format]['relativePath'])
+    if file_format.startswith('bdv'):
+        reference_path = get_data_path(reference_path, return_absolute_path=True)
 
+    data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, traces_name)
     # import the segmentation data
-    data_path = os.path.join(dataset_folder, 'images', f'{traces_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', f'{traces_name}.xml')
     import_traces(input_folder, data_path,
                   reference_path, reference_scale,
                   resolution=resolution,
@@ -79,12 +81,12 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         table_folder = None
 
     metadata.add_source_metadata(dataset_folder, 'segmentation',
-                                 traces_name, xml_path,
+                                 traces_name, image_metadata_path,
                                  view=view, table_folder=table_folder)
 
 
 def main():
-    parser = get_base_parser("Add traces to MoBIE dataset")
+    parser = utils.get_base_parser("Add traces to MoBIE dataset")
     parser.add_argument('--reference_name', type=str,
                         help="name of the reference data volume",
                         required=True)
@@ -95,8 +97,8 @@ def main():
 
     args = parser.parse_args()
 
-    resolution, scale_factors, chunks, transformation = parse_spatial_args(args)
-    view = parse_view(args)
+    resolution, scale_factors, chunks, transformation = utils.parse_spatial_args(args)
+    view = utils.parse_view(args)
 
     if transformation is not None:
         raise NotImplementedError("Transformation is currently not supported")

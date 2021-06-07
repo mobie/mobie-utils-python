@@ -3,10 +3,9 @@ import os
 import warnings
 
 import mobie.metadata as metadata
+import mobie.utils as utils
 from mobie.import_data.utils import downscale, add_max_id
 from mobie.tables import compute_default_table
-from mobie.utils import get_base_parser, parse_spatial_args, parse_view
-from mobie.validation import validate_view_metadata
 
 try:
     from mobie.import_data.registration import apply_registration
@@ -18,12 +17,13 @@ except ImportError as e:
 def add_registered_source(input_path, input_key, transformation,
                           root, dataset_name, source_name,
                           resolution, scale_factors, chunks, method,
-                          menu_name=None, shape=None, source_type='image',
+                          menu_name=None, file_format="bdv.n5",
+                          shape=None, source_type='image',
                           view=None, add_default_table=True,
                           fiji_executable=None, elastix_directory=None,
                           tmp_folder=None, target='local',
                           max_jobs=multiprocessing.cpu_count(),
-                          bounding_box=None):
+                          bounding_box=None, is_default_dataset=False):
     """ Add a volume after registration in elastix format.
 
     Arguments:
@@ -45,6 +45,7 @@ def add_registered_source(input_path, input_key, transformation,
             'transformix': apply transformation using transformix
         menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
+        file_format [str] - the file format used to store the data internally (default: bdv.n5)
         shape [tuple[int]] - shape of the output volume. If None, the shape specified in
             the elastix transformation file will be used. (default: None)
         source_type [str] - type of the data, can be either 'image', 'segmentation' or 'mask'
@@ -55,25 +56,22 @@ def add_registered_source(input_path, input_key, transformation,
         max_jobs [int] - number of jobs (default: number of cores)
         bounding_box [list[list[int]]] - bounding box where the registration is applied.
             needs to be specified in the output dataset space (default: None)
+        is_default_dataset [bool] - whether to set new dataset as default dataset.
+            Only applies if the dataset is created. (default: False)
     """
     if apply_registration is None:
         raise ValueError("Could not import 'apply_registration' functionality")
 
-    # check that we have this dataset
-    if not metadata.dataset_exists(root, dataset_name):
-        raise ValueError(f"Dataset {dataset_name} not found in {root}")
-    tmp_folder = f'tmp_{source_name}' if tmp_folder is None else tmp_folder
-
-    if view is None:
-        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name)
-    elif view is not None and menu_name is not None:
-        view.update({"uiSelectionGroup": menu_name})
-    validate_view_metadata(view, sources=[source_name])
+    view = utils.require_dataset_and_view(root, dataset_name, file_format,
+                                          source_type=source_type, source_name=source_name,
+                                          menu_name=menu_name, view=view,
+                                          is_default_dataset=is_default_dataset)
 
     dataset_folder = os.path.join(root, dataset_name)
-    data_path = os.path.join(dataset_folder, 'images', f'{source_name}.n5')
-    xml_path = os.path.join(dataset_folder, 'images', f'{source_name}.xml')
+    tmp_folder = f'tmp_{source_name}' if tmp_folder is None else tmp_folder
+
     data_key = 'setup0/timepoint0/s0'
+    data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, source_name)
 
     interpolation = 'linear' if source_type == 'image' else 'nearest'
     # the resolution might be changed after the registration, which we need to take into account
@@ -121,13 +119,13 @@ def add_registered_source(input_path, input_key, transformation,
 
     # add the segmentation to the image dict
     metadata.add_source_metadata(dataset_folder, source_type,
-                                 source_name, xml_path,
+                                 source_name, image_metadata_path,
                                  view=view, table_folder=table_folder)
 
 
 if __name__ == '__main__':
     description = "Apply transformation defined in elastix format to source and add it to MoBIE dataset."
-    parser = get_base_parser(description, transformation_file=True)
+    parser = utils.get_base_parser(description, transformation_file=True)
 
     descr = """method used to apply the registration transformation:
             'affine': apply transformation using elf/nifty functionality.
@@ -150,12 +148,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    resolution, scale_factors, chunks = parse_spatial_args(args, parse_transformation=False)
-    view = parse_view(args)
+    resolution, scale_factors, chunks = utils.parse_spatial_args(args, parse_transformation=False)
+    view = utils.parse_view(args)
     add_registered_source(args.input_path, args.input_key, args.transformation,
                           args.root, args.dataset_name, args.name,
                           resolution, scale_factors, chunks,
                           method=args.method, menu_name=args.menu_name,
                           shape=args.shape, source_type=args.source_type,
                           add_default_table=bool(args.add_default_table),
-                          tmp_folder=args.tmp_folder, targer=args.target, max_jobs=args.max_jobs)
+                          tmp_folder=args.tmp_folder, targer=args.target, max_jobs=args.max_jobs,
+                          is_default_dataset=bool(args.is_default_dataset))

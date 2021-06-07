@@ -9,7 +9,8 @@ class TestProjectMetadata(unittest.TestCase):
         project_metadata = {
             "datasets": ["alpha", "beta", "gamma"],
             "defaultDataset": "alpha",
-            "specVersion": "0.2.0"
+            "specVersion": "0.2.0",
+            "imageDataFormats": ["bdv.n5"]
         }
         return project_metadata
 
@@ -28,16 +29,14 @@ class TestProjectMetadata(unittest.TestCase):
         metadata = self.get_project_metadata()
         validate_with_schema(metadata, schema)
 
-        # check optional fields
+        # check optional fields and additional values
         metadata = self.get_project_metadata()
         metadata["description"] = "Lorem ipsum."
         metadata["references"] = ["https://my-publication.com"]
         validate_with_schema(metadata, schema)
 
         metadata = self.get_project_metadata()
-        metadata["s3Root"] = [{
-            "endpoint": "https://s3.com", "bucket": "my_bucket", "region": "us-west-1"
-        }]
+        metadata["imageDataFormats"] = ["bdv.n5", "bdv.n5.s3", "bdv.hdf5"]
         validate_with_schema(metadata, schema)
 
         # check missing fields
@@ -57,6 +56,11 @@ class TestProjectMetadata(unittest.TestCase):
         metadata["specVersion"] = "0.3.3"
         with self.assertRaises(ValidationError):
             validate_with_schema(metadata, "project")
+
+        metadata = self.get_project_metadata()
+        metadata["imageDataFormats"] = ["bdv.n5", "tiff"]
+        with self.assertRaises(ValidationError):
+            validate_with_schema(metadata, schema)
 
 
 if __name__ == '__main__':

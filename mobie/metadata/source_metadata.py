@@ -1,39 +1,51 @@
 import os
 import warnings
+from pybdv.metadata import get_bdv_format
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .view_metadata import get_default_view
 from ..validation import validate_source_metadata, validate_view_metadata
 
 
-def _get_image_metadata(source_name, xml_path, type_):
-    # eventually we need to support more data formats here (ome.zarr)
+def _get_file_format(path):
+    if os.path.exists(path) and path.endswith('.xml'):
+        file_format = get_bdv_format(path)
+    else:
+        raise ValueError(f"Could not infer file format from {path}")
+    return file_format
+
+
+def _get_image_metadata(dataset_folder, path, type_, file_format):
+    file_format = _get_file_format(path) if file_format is None else file_format
+
+    if file_format.startswith("bdv"):
+        format_ = {"relativePath": os.path.relpath(path, dataset_folder)}
+    elif file_format == "openOrganelle.s3":
+        format_ = {"s3Address": path}
+    else:
+        raise ValueError(f"Invalid file format {file_format}")
+
     source_metadata = {
-        type_: {
-            "imageData": {
-                "format": "bdv.n5",
-                "relativePath": xml_path
-            }
-        }
+        type_: {"imageData": {file_format: format_}}
     }
     return source_metadata
 
 
 def _get_table_metadata(table_location):
     table_metadata = {
-        "format": "tsv",
-        "relativePath": table_location
+        "tsv": {"relativePath": table_location}
     }
     return table_metadata
 
 
-def get_image_metadata(source_name, xml_path):
-    return _get_image_metadata(source_name, xml_path, "image")
+def get_image_metadata(dataset_folder, metadata_path, file_format=None):
+    return _get_image_metadata(dataset_folder, metadata_path, "image", file_format=file_format)
 
 
-def get_segmentation_metadata(source_name, xml_path, table_location=None):
-    source_metadata = _get_image_metadata(source_name, xml_path, "segmentation")
+def get_segmentation_metadata(dataset_folder, metadata_path, table_location=None, file_format=None):
+    source_metadata = _get_image_metadata(dataset_folder, metadata_path, "segmentation", file_format=file_format)
     if table_location is not None:
-        source_metadata["segmentation"]["tableData"] = _get_table_metadata(table_location)
+        relative_table_location = os.path.relpath(table_location, dataset_folder)
+        source_metadata["segmentation"]["tableData"] = _get_table_metadata(relative_table_location)
     return source_metadata
 
 
@@ -41,7 +53,7 @@ def add_source_metadata(
     dataset_folder,
     source_type,
     source_name,
-    xml_path,
+    image_metadata_path,
     view=None,
     table_folder=None,
     overwrite=True
@@ -72,14 +84,12 @@ def add_source_metadata(
         else:
             raise ValueError(msg)
 
-    # create the metadata for this source
-    relative_xml_path = os.path.relpath(xml_path, dataset_folder)
-
     if source_type == "image":
-        source_metadata = get_image_metadata(source_name, relative_xml_path)
+        source_metadata = get_image_metadata(dataset_folder, image_metadata_path)
     else:
-        relative_table_folder = None if table_folder is None else os.path.relpath(table_folder, dataset_folder)
-        source_metadata = get_segmentation_metadata(source_name, relative_xml_path, relative_table_folder)
+        source_metadata = get_segmentation_metadata(dataset_folder,
+                                                    image_metadata_path,
+                                                    table_folder)
     validate_source_metadata(source_name, source_metadata, dataset_folder)
 
     if view is None:

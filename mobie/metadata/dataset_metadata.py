@@ -62,7 +62,7 @@ def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True):
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def create_dataset_structure(root, dataset_name):
+def create_dataset_structure(root, dataset_name, file_formats):
     """ Make the folder structure for a new dataset.
 
     Arguments:
@@ -71,8 +71,9 @@ def create_dataset_structure(root, dataset_name):
     """
     dataset_folder = os.path.join(root, dataset_name)
     os.makedirs(os.path.join(dataset_folder, 'tables'), exist_ok=True)
-    os.makedirs(os.path.join(dataset_folder, 'images'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'misc', 'views'), exist_ok=True)
+    for file_format in file_formats:
+        os.makedirs(os.path.join(dataset_folder, 'images', file_format), exist_ok=True)
     return dataset_folder
 
 
@@ -95,14 +96,6 @@ def make_squashed_link(src_file, dst_file, override=False):
     dst_folder = os.path.split(dst_file)[0]
     rel_path = os.path.relpath(src_file, dst_folder)
     os.symlink(rel_path, dst_file)
-
-
-def copy_xml_file(xml_in, xml_out):
-    data_path = get_data_path(xml_in, return_absolute_path=True)
-    bdv_format = get_bdv_format(xml_in)
-    xml_dir = os.path.split(xml_out)[0]
-    data_path = os.path.relpath(data_path, start=xml_dir)
-    copy_xml_with_newpath(xml_in, xml_out, data_path, path_type='relative', data_format=bdv_format)
 
 
 def link_id_lut(src_folder, dst_folder, name):
@@ -136,6 +129,20 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
         make_squashed_link(src_file, dst_file)
 
 
+def copy_xml_file(xml_in, xml_out, file_format):
+    if file_format in ('bdv.hdf5', 'bdv.n5'):
+        data_path = get_data_path(xml_in, return_absolute_path=True)
+        bdv_format = get_bdv_format(xml_in)
+        xml_dir = os.path.split(xml_out)[0]
+        data_path = os.path.relpath(data_path, start=xml_dir)
+        copy_xml_with_newpath(xml_in, xml_out, data_path,
+                              path_type='relative', data_format=bdv_format)
+    elif file_format == 'bdv.n5.s3':
+        shutil.copyfile(xml_in, xml_out)
+    else:
+        raise ValueError(f"Invalid file format {file_format}")
+
+
 def copy_sources(src_folder, dst_folder, exclude_sources=[]):
     dataset_metadata = read_dataset_metadata(src_folder)
     sources = dataset_metadata["sources"]
@@ -151,14 +158,14 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
         # copy the xml file (if we have a bdv format)
         storage = metadata['imageData']
-        format_ = storage['format'].startswith('bdv')
-        if format_:
-            relative_xml = storage['relativePath']
-            in_path = os.path.join(src_folder, relative_xml)
-            out_path = os.path.join(dst_folder, relative_xml)
-            copy_xml_file(in_path, out_path)
-        else:
-            print("Image data for source {name} has format {foramt}, which cannot be copied.")
+        for file_format, storage in metadata['imageData'].items():
+            if file_format.startswith('bdv'):
+                rel_path = storage['relativePath']
+                in_path = os.path.join(src_folder, rel_path)
+                out_path = os.path.join(dst_folder, rel_path)
+                copy_xml_file(in_path, out_path, file_format)
+            else:
+                print(f"Image data for source {name} in format {format} cannot be copied.")
 
         # copy table if we have it
         if source_type == 'segmentation':

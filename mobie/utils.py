@@ -2,9 +2,70 @@ import argparse
 import json
 import multiprocessing
 import os
+from copy import deepcopy
 
 from cluster_tools.cluster_tasks import BaseClusterTask
 import mobie.metadata as metadata
+from mobie.validation import validate_view_metadata
+
+FILE_FORMATS = [
+    "bdv.hdf5",
+    "bdv.n5",
+    "bdv.n5.s3",
+    "openOrganelle.s3"
+]
+
+
+def get_internal_paths(dataset_folder, file_format, name):
+    if file_format not in FILE_FORMATS:
+        raise ValueError(f"Unknown file format {file_format}.")
+
+    if file_format == 'bdv.hdf5':
+        data_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.h5')
+        xml_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.xml')
+        return data_path, xml_path
+
+    elif file_format == 'bdv.n5':
+        data_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.n5')
+        xml_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.xml')
+        return data_path, xml_path
+
+    raise ValueError(f"Data creation for the file format {file_format} is not supported.")
+
+
+def require_dataset(root, dataset_name, file_format):
+    # check if we have the project and dataset already
+    proj_exists = metadata.project_exists(root)
+    if proj_exists:
+        if not metadata.has_file_format(root, file_format):
+            raise ValueError("")
+        ds_exists = metadata.dataset_exists(root, dataset_name)
+    else:
+        metadata.create_project_metadata(root, [file_format])
+        ds_exists = False
+    return ds_exists
+
+
+def require_dataset_and_view(root, dataset_name, file_format,
+                             source_type, source_name, menu_name,
+                             view, is_default_dataset):
+    ds_exists = require_dataset(root, dataset_name, file_format)
+
+    dataset_folder = os.path.join(root, dataset_name)
+    if view is None:
+        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name)
+    elif view is not None and menu_name is not None:
+        view.update({"uiSelectionGroup": menu_name})
+    validate_view_metadata(view, sources=[source_name])
+
+    if not ds_exists:
+        metadata.create_dataset_structure(root, dataset_name, [file_format])
+        default_view = deepcopy(view)
+        default_view.update({"uiSelectionGroup": "bookmark"})
+        metadata.create_dataset_metadata(dataset_folder, views={'default': default_view})
+        metadata.add_dataset(root, dataset_name, is_default_dataset)
+
+    return view
 
 
 # TODO default arguments for scale-factors and chunks
@@ -54,6 +115,10 @@ def get_base_parser(description, transformation_file=False):
                         help="computation target")
     parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count(),
                         help="number of jobs")
+
+    hlp = "whether to set new dataset as default dataset. Only applies if the dataset is being created."
+    parser.add_argument("--is_default_dataset", type=int, default=0, help=hlp)
+
     return parser
 
 
@@ -106,7 +171,8 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
     if copy_misc is not None and not callable(copy_misc):
         raise ValueError("copy_misc must be callable")
 
-    dst_folder = metadata.create_dataset_structure(root, dst_dataset)
+    file_formats = metadata.get_file_formats(root)
+    dst_folder = metadata.create_dataset_structure(root, dst_dataset, file_formats)
     src_folder = os.path.join(root, src_dataset)
     metadata.copy_dataset_folder(src_folder, dst_folder, copy_misc=copy_misc)
 

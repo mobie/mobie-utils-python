@@ -11,8 +11,8 @@ class TestDatasetMetadata(unittest.TestCase):
             "is2D": False,
             "description": "My dataset.",
             "sources": {
-                "image1": metadata.get_image_metadata("image1", "/images/image1.xml"),
-                "seg1": metadata.get_segmentation_metadata("seg1", "/images/seg1.xml")
+                "image1": metadata.get_image_metadata("image1", "/images/image1.xml", file_format="bdv.n5"),
+                "seg1": metadata.get_segmentation_metadata("seg1", "/images/seg1.xml", file_format="bdv.n5")
             },
             "views": {
                 "default": metadata.get_default_view("image", "image1")
@@ -48,7 +48,8 @@ class TestDatasetMetadata(unittest.TestCase):
 
         # check invalid names
         ds_metadata = self.get_dataset_metadata()
-        ds_metadata["sources"]["foo bar"] = metadata.get_image_metadata("image2", '/images/image2.xml')
+        ds_metadata["sources"]["foo bar"] = metadata.get_image_metadata("image2", '/images/image2.xml',
+                                                                        file_format="bdv.n5")
         with self.assertRaises(ValidationError):
             validate_with_schema(ds_metadata, "dataset")
 

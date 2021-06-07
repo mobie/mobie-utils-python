@@ -8,13 +8,14 @@ from ..__version__ import SPEC_VERSION
 #
 
 
-def create_project_metadata(root, description=None, references=None):
+def create_project_metadata(root, file_formats, description=None, references=None):
     os.makedirs(root, exist_ok=True)
     path = os.path.join(root, "project.json")
     if os.path.exists(path):
         raise RuntimeError(f"Project metadata at {path} already exists")
     metadata = {
         "specVersion": SPEC_VERSION,
+        "imageDataFormats": file_formats,
         "datasets": []
     }
     if description is not None:
@@ -65,3 +66,13 @@ def add_dataset(root, dataset_name, is_default):
 
 def get_datasets(root):
     return read_project_metadata(root)['datasets']
+
+
+def get_file_formats(root):
+    metadata = read_project_metadata(root)
+    return metadata['imageDataFormats']
+
+
+def has_file_format(root, file_format):
+    file_formats = get_file_formats(root)
+    return file_format in file_formats

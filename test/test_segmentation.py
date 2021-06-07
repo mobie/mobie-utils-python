@@ -60,7 +60,7 @@ class TestSegmentation(unittest.TestCase):
         validate_source_metadata(name, metadata['sources'][name], dataset_folder)
 
         # check the segmentation data
-        seg_path = os.path.join(dataset_folder, 'images', f'{name}.n5')
+        seg_path = os.path.join(dataset_folder, 'images', 'bdv.n5', f'{name}.n5')
         self.assertTrue(os.path.exists(seg_path))
         key = get_key(False, 0, 0, 0)
         with open_file(seg_path, 'r') as f:

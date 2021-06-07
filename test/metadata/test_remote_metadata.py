@@ -1,6 +1,5 @@
 import os
 import unittest
-import xml.etree.ElementTree as ET
 from shutil import rmtree
 
 import numpy as np
@@ -8,6 +7,7 @@ import numpy as np
 from elf.io import open_file
 from mobie import add_image
 from mobie.metadata import read_dataset_metadata, read_project_metadata
+from mobie.xml_utils import parse_s3_xml
 from mobie.validation.utils import validate_with_schema
 
 
@@ -41,12 +41,6 @@ class TestRemoteMetadata(unittest.TestCase):
         except OSError:
             pass
 
-    def get_path_in_bucket(self, xml):
-        tree = ET.parse(xml)
-        root = tree.getroot()
-        img = root.find('SequenceDescription').find('S3ImageLoader')
-        return img.find('Key').text
-
     def test_remote_metadata(self):
         from mobie.metadata import add_remote_project_metadata
 
@@ -61,17 +55,20 @@ class TestRemoteMetadata(unittest.TestCase):
         sources = dataset_metadata['sources']
         for name, source in sources.items():
             source_type = list(source.keys())[0]
-            xml = source[source_type]["imageData"]["relativePath"]
+            storage = source[source_type]["imageData"]
+            self.assertIn("bdv.n5.s3", storage)
+            xml = storage["bdv.n5.s3"]["relativePath"]
             xml_path = os.path.join(dataset_folder, xml)
             self.assertTrue(os.path.exists(xml_path))
+            _, ep, bn, _ = parse_s3_xml(xml_path)
+            self.assertEqual(ep, service_endpoint)
+            self.assertEqual(bn, bucket_name)
 
         proj_metadata = read_project_metadata(self.root)
         validate_with_schema(proj_metadata, "project")
-        s3_root = proj_metadata["s3Root"]
-        self.assertEqual(len(s3_root), 1)
-        s3_root = s3_root[0]
-        self.assertEqual(s3_root["endpoint"], service_endpoint)
-        self.assertEqual(s3_root["bucket"], bucket_name)
+        file_formats = proj_metadata["imageDataFormats"]
+        self.assertIn('bdv.n5', file_formats)
+        self.assertIn('bdv.n5.s3', file_formats)
 
 
 if __name__ == '__main__':
