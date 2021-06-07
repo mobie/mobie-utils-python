@@ -99,3 +99,14 @@ def update_transformation_parameter(xml_path, parameter):
         raise ValueError("Expected affine transformation with 12 parameters, got {len(parameter)}")
     write_affine(xml_path, setup_id=0, affine=parameter,
                  overwrite=True, timepoint=0)
+
+
+def _parse_s3_xml(xml):
+    tree = ET.parse(xml)
+    root = tree.getroot()
+    img = root.find('SequenceDescription').find("ImageLoader")
+    path_in_bucket = img.find("Key").text
+    endpoint = img.find("ServiceEndpoint").text
+    bucket_name = img.find("BucketName").text
+    region = img.find("SigningRegion").text
+    return path_in_bucket, endpoint, bucket_name, region

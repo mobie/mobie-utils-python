@@ -183,3 +183,13 @@ def get_default_view(source_type, source_name, menu_name=None,
                     is_exclusive=False, menu_name=menu_name,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view
+
+
+def is_grid_view(view):
+    trafos = view.get("sorceTransforms", None)
+    if trafos is None:
+        return False
+    for trafo in trafos:
+        if list(trafo.keys())[0] == 'grid':
+            return True
+    return False

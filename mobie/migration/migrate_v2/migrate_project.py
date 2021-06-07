@@ -12,12 +12,16 @@ def _migrate_project(root, ds_list, metadata, ds_file,
         ds_folder = os.path.join(root, ds)
         assert os.path.exists(ds_folder), ds_folder
         print("Migrate dataset:", ds)
-        migrate_dataset(ds_folder, parse_menu_name=parse_menu_name,
-                        parse_source_name=parse_source_name)
+        endpoint, bucket, region = migrate_dataset(ds_folder, parse_menu_name=parse_menu_name,
+                                                   parse_source_name=parse_source_name)
 
     metadata['specVersion'] = '0.2.0'
-    write_project_metadata(root, metadata)
+    if endpoint is not None:
+        metadata["s3Root"] = [
+            {'endpoint': endpoint, 'bucket': bucket, 'region': region}
+        ]
     os.remove(ds_file)
+    return metadata
 
 
 def _update_view_spec(root, ds_list):
@@ -27,11 +31,16 @@ def _update_view_spec(root, ds_list):
         migrate_view_spec(ds_folder)
 
 
-def _update_data_spec(root, ds_list):
+def _update_data_spec(root, ds_list, metadata):
     for ds in ds_list:
         ds_folder = os.path.join(root, ds)
         assert os.path.exists(ds_folder), ds_folder
-        migrate_data_spec(ds_folder)
+        endpoint, bucket, region = migrate_data_spec(ds_folder)
+    if endpoint is not None:
+        metadata["s3Root"] = [
+            {'endpoint': endpoint, 'bucket': bucket, 'region': region}
+        ]
+    return metadata
 
 
 def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_view_spec=False, update_data_spec=False):
@@ -46,7 +55,8 @@ def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_v
     if update_view_spec:
         _update_view_spec(root, ds_list)
     elif update_data_spec:
-        _update_data_spec(root, ds_list)
+        metadata = _update_data_spec(root, ds_list, metadata)
     else:
-        _migrate_project(root, ds_list, metadata, ds_file,
-                         parse_source_name, parse_menu_name)
+        metadata = _migrate_project(root, ds_list, metadata, ds_file,
+                                    parse_source_name, parse_menu_name)
+    write_project_metadata(root, metadata)

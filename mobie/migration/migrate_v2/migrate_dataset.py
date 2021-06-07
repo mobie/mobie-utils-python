@@ -1,15 +1,16 @@
 import json
 import os
-import xml.etree.ElementTree as ET
 from glob import glob
+from subprocess import run
 
 import pandas as pd
-from pybdv.metadata import indent_xml, write_name
+from pybdv.metadata import write_name
 
 import mobie.metadata as metadata
 from mobie.metadata.utils import write_metadata
 from mobie.tables.utils import remove_background_label_row
 from mobie.validation import validate_dataset
+from mobie.xml_utils import add_s3_to_xml, _parse_s3_xml
 
 
 #
@@ -54,15 +55,14 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
         )
 
     if 'remote' in xml_locations:
-        remote_xml = os.path.join('images', xml_locations['remote'])
-        assert os.path.exists(os.path.join(dataset_folder, remote_xml))
-        new_source[source_type]['imageData']['gitHub'] = {"source": remote_xml,
-                                                          "format": "bdv.n5.s3"}
-        if source_type == 'segmentation' and table_location is not None:
-            new_source[source_type]['tableData']['gitHub'] = {"source": table_location,
-                                                              "format": "tsv"}
+        remote_xml = os.path.join(dataset_folder, 'images', xml_locations['remote'])
+        path_in_bucket, endpoint, bucket_name, region = _parse_s3_xml(remote_xml)
+        add_s3_to_xml(remote_xml, path_in_bucket)
+        s3_config = (endpoint, bucket_name, region)
+    else:
+        s3_config = (None, None, None)
 
-    return new_source, view
+    return new_source, view, s3_config
 
 
 def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
@@ -77,7 +77,7 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
         menu_name = parse_menu_name(source['type'], name)
         if parse_source_name is not None:
             name = parse_source_name(name)
-        source_meta, view = migrate_source_metadata(name, source, folder, menu_name)
+        source_meta, view, s3_config = migrate_source_metadata(name, source, folder, menu_name)
         new_sources[name] = source_meta
         new_views[name] = view
 
@@ -88,6 +88,8 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
     }
     metadata.write_dataset_metadata(folder, dataset_metadata)
     os.remove(in_file)
+
+    return s3_config
 
 
 def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
@@ -291,31 +293,20 @@ def migrate_tables(folder):
 #
 
 
-def remove_authentication_field(xml):
-    root = ET.parse(xml).getroot()
-    # get the image loader node
-    imgload = root.find('SequenceDescription').find('ImageLoader')
-    # remove the field
-    el = imgload.find("Authentication")
-    imgload.remove(el)
-
-    indent_xml(root)
-    tree = ET.ElementTree(root)
-    tree.write(xml)
-
-
 # write the source name into the xml
-# remove "Authentication" from the remote xmls
+# remove the remote folder if it exists
 def migrate_sources(folder):
     sources = metadata.read_dataset_metadata(folder)['sources']
     for source_name, source in sources.items():
         source_type = list(source.keys())[0]
         storage = source[source_type]['imageData']
-        for storage_type, loc in storage.items():
-            xml = os.path.join(folder, loc["source"])
-            write_name(xml, 0, source_name)
-            if storage_type == 'remote':
-                remove_authentication_field(xml)
+        xml = os.path.join(folder, storage["relativePath"])
+        write_name(xml, 0, source_name)
+
+    remote_folder = os.path.join(folder, "images", "remote")
+    if os.path.exists(remote_folder):
+        cmd = ['git', 'rm', '-r', remote_folder]
+        run(cmd)
 
 
 def default_menu_name_parser(source_type, source_name):
@@ -332,8 +323,9 @@ def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
     """
     if parse_menu_name is None:
         parse_menu_name = default_menu_name_parser
-    migrate_dataset_metadata(folder, parse_menu_name, parse_source_name)
+    s3_config = migrate_dataset_metadata(folder, parse_menu_name, parse_source_name)
     migrate_bookmarks(folder, parse_source_name)
     migrate_tables(folder)
     migrate_sources(folder)
     validate_dataset(folder)
+    return s3_config
