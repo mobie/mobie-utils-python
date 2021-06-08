@@ -75,7 +75,7 @@ def create_dataset_structure(root, dataset_name, file_formats):
     os.makedirs(os.path.join(dataset_folder, 'tables'), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, 'misc', 'views'), exist_ok=True)
     for file_format in file_formats:
-        os.makedirs(os.path.join(dataset_folder, 'images', file_format), exist_ok=True)
+        os.makedirs(os.path.join(dataset_folder, 'images', file_format.replace('.', '-')), exist_ok=True)
     return dataset_folder
 
 

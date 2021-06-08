@@ -43,10 +43,10 @@ def _to_bdv_s3(file_format,
                dataset_folder, dataset_name, storage,
                service_endpoint, bucket_name, region):
     new_format = file_format + '.s3'
-    os.makedirs(os.path.join(dataset_folder, 'images', new_format), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, 'images', new_format.replace('.', '-')), exist_ok=True)
 
     xml = storage['relativePath']
-    xml_remote = xml.replace(file_format, new_format)
+    xml_remote = xml.replace(file_format.replace('.', '-'), new_format.replace('.', '-'))
 
     # the absolute xml paths
     xml_path = os.path.join(dataset_folder, xml)

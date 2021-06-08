@@ -12,6 +12,8 @@ FILE_FORMATS = [
     "bdv.hdf5",
     "bdv.n5",
     "bdv.n5.s3",
+    "bdv.ome.zarr",
+    "bdv.ome.zarr.s3",
     "openOrganelle.s3"
 ]
 
@@ -20,14 +22,20 @@ def get_internal_paths(dataset_folder, file_format, name):
     if file_format not in FILE_FORMATS:
         raise ValueError(f"Unknown file format {file_format}.")
 
+    file_format_ = file_format.replace('.', '-')
     if file_format == 'bdv.hdf5':
-        data_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.h5')
-        xml_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.xml')
+        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.h5')
+        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
         return data_path, xml_path
 
     elif file_format == 'bdv.n5':
-        data_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.n5')
-        xml_path = os.path.join(dataset_folder, 'images', file_format, f'{name}.xml')
+        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.n5')
+        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
+        return data_path, xml_path
+
+    elif file_format == 'bdv.ome.zarr':
+        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.ome.zarr')
+        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
         return data_path, xml_path
 
     raise ValueError(f"Data creation for the file format {file_format} is not supported.")

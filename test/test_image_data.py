@@ -151,7 +151,7 @@ class TestImageData(unittest.TestCase):
         validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
 
         # check the raw data
-        xml_path = os.path.join(dataset_folder, 'images', 'bdv.n5', f'{raw_name}.xml')
+        xml_path = os.path.join(dataset_folder, 'images', 'bdv-n5', f'{raw_name}.xml')
         raw_path = get_data_path(xml_path, return_absolute_path=True)
         key = get_key(False, 0, 0, 0)
         with open_file(raw_path, 'r') as f:
@@ -168,7 +168,7 @@ class TestImageData(unittest.TestCase):
         validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
-        im_path = os.path.join(dataset_folder, 'images', 'bdv.n5', f'{name}.n5')
+        im_path = os.path.join(dataset_folder, 'images', 'bdv-n5', f'{name}.n5')
         self.assertTrue(os.path.exists(im_path))
         key = get_key(False, 0, 0, 0)
         with open_file(im_path, 'r') as f:
