@@ -40,13 +40,24 @@ def migrate_data_spec(dataset_folder):
     views = dataset_metadata['views']
     new_views = {}
     for name, view in views.items():
+
         if metadata.is_grid_view(view):
             new_view = deepcopy(view)
-            table_location = new_view["grid"].pop("tableDataLocation")
-            new_view["grid"]["tableData"] = _get_table_metadata(table_location)
+            new_trafos = []
+            for trafo in view["sourceTransforms"]:
+                if "grid" in trafo:
+                    new_trafo = deepcopy(trafo)
+                    table_location = new_trafo["grid"].pop("tableDataLocation")
+                    new_trafo["grid"]["tableData"] = _get_table_metadata(table_location)
+                else:
+                    new_trafo = trafo
+                new_trafos.append(new_trafo)
+            new_view["sourceTransforms"] = new_trafos
             new_views[name] = new_view
+
         else:
             new_views[name] = view
+
     dataset_metadata['views'] = new_views
 
     metadata.write_dataset_metadata(dataset_folder, dataset_metadata)

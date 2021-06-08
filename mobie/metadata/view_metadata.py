@@ -186,7 +186,7 @@ def get_default_view(source_type, source_name, menu_name=None,
 
 
 def is_grid_view(view):
-    trafos = view.get("sorceTransforms", None)
+    trafos = view.get("sourceTransforms", None)
     if trafos is None:
         return False
     for trafo in trafos:
