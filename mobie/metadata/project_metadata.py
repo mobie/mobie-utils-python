@@ -46,7 +46,7 @@ def project_exists(root):
 
 def dataset_exists(root, dataset_name):
     project = read_project_metadata(root)
-    return dataset_name in project['datasets']
+    return dataset_name in project.get('datasets', [])
 
 
 def add_dataset(root, dataset_name, is_default):

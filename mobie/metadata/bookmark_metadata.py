@@ -109,6 +109,8 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     write_metadata(bookmark_file, metadata)
 
 
+# FIXME the grid table needs to have at least two columns, but it's currently created
+# with only a single column
 def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                       display_groups=None, display_group_settings=None,
                       positions=None, bookmark_file_name=None,
@@ -120,7 +122,7 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
         name [str] - name of this bookmark
         sources [list[list[str]]] - sources to be arranged in the grid
         table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
-        display_groups [dict[str, list[str]]] - (default: None)
+        display_groups [dict[str, str] - (default: None)
         display_group_settings [dict[str, dict]] - (default: None)
         positions [list[list[int]]] - (default: None)
         bookmark_file_name [str] - name of the bookmark file,

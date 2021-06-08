@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from warnings import warn
 
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .project_metadata import get_datasets, read_project_metadata, write_project_metadata
@@ -38,17 +39,24 @@ def add_remote_project_metadata(
     write_project_metadata(root, metadata)
 
 
-def _to_bdv_n5_s3(dataset_folder, dataset_name, storage,
-                  service_endpoint, bucket_name, region):
-    os.makedirs(os.path.join(dataset_folder, 'images', 'bdv.n5.s3'), exist_ok=True)
+def _to_bdv_s3(file_format,
+               dataset_folder, dataset_name, storage,
+               service_endpoint, bucket_name, region):
+    new_format = file_format + '.s3'
+    os.makedirs(os.path.join(dataset_folder, 'images', new_format), exist_ok=True)
 
     xml = storage['relativePath']
-    xml_remote = xml.replace('bdv.n5', 'bdv.n5.s3')
+    xml_remote = xml.replace(file_format, new_format)
 
     # the absolute xml paths
     xml_path = os.path.join(dataset_folder, xml)
     xml_remote_path = os.path.join(dataset_folder, xml_remote)
-    path_in_bucket = os.path.join(dataset_name, xml.replace('.xml', '.n5'))
+    data_extension = '.' + file_format.lstrip('.bdv')
+    data_rel_path = xml.replace('.xml', data_extension)
+    data_abs_path = os.path.join(dataset_folder, data_rel_path)
+    if not os.path.exists(data_abs_path):
+        warn(f"Could not find data path at {data_abs_path} corresponding to xml {xml_path}")
+    path_in_bucket = os.path.join(dataset_name, data_rel_path)
 
     # copy to the xml for remote data
     copy_xml_as_n5_s3(xml_path, xml_remote_path,
@@ -56,8 +64,8 @@ def _to_bdv_n5_s3(dataset_folder, dataset_name, storage,
                       bucket_name=bucket_name,
                       path_in_bucket=path_in_bucket,
                       region=region,
-                      bdv_type='bdv.n5.s3')
-    return {'relativePath': xml_remote}
+                      bdv_type=new_format)
+    return new_format, {'relativePath': xml_remote}
 
 
 def add_remote_dataset_metadata(
@@ -89,12 +97,12 @@ def add_remote_dataset_metadata(
         source_type = list(metadata.keys())[0]
 
         for file_format, storage in metadata[source_type]['imageData'].items():
-            # currently we only know how to add s3 data for bdv.n5
-            if file_format == 'bdv.n5':
-                s3_storage = _to_bdv_n5_s3(dataset_folder, dataset_name, storage,
-                                           service_endpoint, bucket_name, region)
-                new_metadata[source_type]['imageData']['bdv.n5.s3'] = s3_storage
-                new_file_formats.add('bdv.n5.s3')
+            # currently we only know how to add s3 data for bdv.n5 and bdv.ome.zarr
+            if file_format in ('bdv.n5', 'bdv.ome.zarr'):
+                new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
+                                                    service_endpoint, bucket_name, region)
+                new_metadata[source_type]['imageData'][new_format] = s3_storage
+                new_file_formats.add(new_format)
 
         new_sources[name] = new_metadata
 

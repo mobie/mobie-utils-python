@@ -58,7 +58,7 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
         region [str] - the region. Only relevant if aws.s3 is used.
             Default: 'us-west-2'
     """
-    bdv_types = ('bdv.n5.s3', 'ome.zarr.s3')
+    bdv_types = ('bdv.n5.s3', 'bdv.ome.zarr.s3')
     if bdv_type not in bdv_types:
         raise ValueError(f"Invalid bdv type {bdv_type}, expected one of {bdv_types}")
 
