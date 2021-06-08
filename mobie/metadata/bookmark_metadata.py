@@ -1,5 +1,6 @@
 import os
 import warnings
+from copy import deepcopy
 
 from .dataset_metadata import add_view_to_dataset, read_dataset_metadata, write_dataset_metadata
 from .utils import read_metadata, write_metadata
@@ -172,11 +173,11 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                 # check if we have display setting parameters
                 if display_group_settings is None:
                     # if not, we just take the first source's display settings here
-                    display_setting = views[source_name]
+                    display_setting = deepcopy(views[source_name])
                     setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
                     display_setting = display_setting['sourceDisplays'][0][setting_key]
-                    display_setting.pop('name', None)
-                    display_setting.pop('sources', None)
+                    display_setting.pop('name')
+                    display_setting.pop('sources')
                 else:
                     display_setting = display_group_settings[display_name]
                 display_settings.append(display_setting)
