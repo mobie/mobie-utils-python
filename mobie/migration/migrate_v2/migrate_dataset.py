@@ -20,8 +20,7 @@ from mobie.validation import validate_dataset
 def migrate_source_metadata(name, source, dataset_folder, menu_name):
     source_type = source['type']
     xml_locations = source['storage']
-    local_xml = os.path.join('images', xml_locations['local'])
-    assert os.path.exists(os.path.join(dataset_folder, local_xml))
+    xml_path = os.path.join(dataset_folder, 'images', xml_locations['local'])
 
     if source_type in ('image', 'mask'):
         view = metadata.get_default_view(
@@ -29,7 +28,7 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
             color=source['color'], contrastLimits=source['contrastLimits']
         )
         new_source = metadata.get_image_metadata(
-            name, local_xml, view=view
+            dataset_folder, xml_path
         )
         source_type = 'image'
 
@@ -43,19 +42,18 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
         )
 
         if 'tableFolder' in source:
-            table_location = source['tableFolder']
-            assert os.path.exists(os.path.join(dataset_folder, table_location))
+            table_location = os.path.join(dataset_folder, source['tableFolder'])
+            assert os.path.exists(table_location), table_location
         else:
             table_location = None
 
         new_source = metadata.get_segmentation_metadata(
-            name, local_xml,
-            view=view, table_location=table_location
+            dataset_folder, xml_path, table_location=table_location
         )
 
     if 'remote' in xml_locations:
         remote_xml = os.path.join('images', xml_locations['remote'])
-        new_source[source_type]['imageData']['bdv.n5.s3'] = remote_xml
+        new_source[source_type]['imageData']['bdv.n5.s3'] = {'relativePath': remote_xml}
         has_remote = True
     else:
         has_remote = False
@@ -93,7 +91,7 @@ def migrate_dataset_metadata(folder, parse_menu_name, parse_source_name):
     return list(file_formats)
 
 
-def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
+def migrate_bookmark(name, bookmark, all_sources, all_views, parse_source_name=None):
     menu_name = "bookmark"
 
     # check if we have a viewer transform in this bookmark
@@ -129,7 +127,7 @@ def migrate_bookmark(name, bookmark, all_sources, parse_source_name=None):
 
             this_source = all_sources[source_name]
             source_type = list(this_source.keys())[0]
-            this_default_settings = this_source[source_type]['view']['sourceDisplays']
+            this_default_settings = all_views[source_name]['sourceDisplays']
 
             if source_type == 'image':
                 this_default_settings = this_default_settings[0]['imageDisplay']
@@ -223,13 +221,14 @@ def migrate_bookmark_file(bookmark_file, dataset_folder, is_default=False,
                           parse_source_name=None):
     dataset_metadata = metadata.read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata['sources']
+    all_views = dataset_metadata['views']
 
     with open(bookmark_file) as f:
         bookmarks = json.load(f)
 
     new_bookmarks = {}
     for name, bookmark in bookmarks.items():
-        new_bookmarks[name] = migrate_bookmark(name, bookmark, all_sources,
+        new_bookmarks[name] = migrate_bookmark(name, bookmark, all_sources, all_views,
                                                parse_source_name=parse_source_name)
 
     if is_default:
@@ -312,11 +311,11 @@ def migrate_sources(folder):
     sources = metadata.read_dataset_metadata(folder)['sources']
     for source_name, source in sources.items():
         source_type = list(source.keys())[0]
-        storage = source[source_type]['imageDataLocations']
+        storage = source[source_type]['imageData']
         for storage_type, loc in storage.items():
-            xml = os.path.join(folder, loc)
+            xml = os.path.join(folder, loc['relativePath'])
             write_name(xml, 0, source_name)
-            if storage_type == 'remote':
+            if storage_type == 'bdv.n5.s3':
                 remove_authentication_field(xml)
 
 
