@@ -16,6 +16,7 @@ setup(
             "mobie.add_registered_source = mobie.registration:main",
             "mobie.add_segmentation = mobie.segmentation:main",
             "mobie.add_traces = mobie.traces:main",
+            "mobie.add_open_organelle_dataset = mobie.open_organelle:main",
             "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
             "mobie.migrate_project = mobie.migration.migrate_project:main",
             "mobie.validate_dataset = mobie.validation.dataset:main",
