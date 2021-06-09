@@ -195,7 +195,8 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
 
     grid_transform = {
         'sources': sources,
-        'tableData': _get_table_metadata(table_folder)
+        'tableData': _get_table_metadata(table_folder),
+        'tables': ['default.tsv']
     }
     if positions is not None:
         if len(positions) != len(sources):

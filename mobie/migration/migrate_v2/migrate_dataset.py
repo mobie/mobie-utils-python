@@ -35,17 +35,23 @@ def migrate_source_metadata(name, source, dataset_folder, menu_name):
     else:
         assert source_type == 'segmentation'
 
-        seg_color = source['color']
-        seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
-        view = metadata.get_default_view(
-            "segmentation", name, menu_name=menu_name, lut=seg_color
-        )
-
         if 'tableFolder' in source:
             table_location = os.path.join(dataset_folder, source['tableFolder'])
             assert os.path.exists(table_location), table_location
         else:
             table_location = None
+
+        seg_color = source['color']
+        seg_color = 'glasbey' if seg_color == 'randomFromGlasbey' else seg_color
+        if table_location is None:
+            view = metadata.get_default_view(
+                "segmentation", name, menu_name=menu_name, lut=seg_color
+            )
+        else:
+            view = metadata.get_default_view(
+                "segmentation", name, menu_name=menu_name, lut=seg_color,
+                tables=['default.tsv']
+            )
 
         new_source = metadata.get_segmentation_metadata(
             dataset_folder, xml_path, table_location=table_location

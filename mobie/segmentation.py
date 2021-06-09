@@ -55,6 +55,8 @@ def add_segmentation(input_path, input_key,
                                           source_name=segmentation_name,
                                           menu_name=menu_name, view=view,
                                           is_default_dataset=is_default_dataset)
+    if add_default_table:
+        view['sourceDisplays'][0]['segmentationDisplay']['tables'] = ['default.tsv']
 
     dataset_folder = os.path.join(root, dataset_name)
     tmp_folder = f'tmp_{dataset_name}_{segmentation_name}' if tmp_folder is None else tmp_folder

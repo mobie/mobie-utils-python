@@ -1,9 +1,11 @@
 import json
 import os
 from .migrate_dataset import migrate_dataset
-from .migrate_data_spec import migrate_data_spec
-from .migrate_view_spec import migrate_view_spec
+from .intermediate.migrate_data_spec import migrate_data_spec
+from .intermediate.migrate_table_spec import migrate_table_spec
+from .intermediate.migrate_view_spec import migrate_view_spec
 from ...metadata import write_project_metadata
+from ...validation import validate_project
 
 
 def _migrate_project(root, ds_list, metadata, ds_file,
@@ -37,9 +39,17 @@ def _update_data_spec(root, ds_list, metadata):
     return metadata
 
 
-def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_view_spec=False, update_data_spec=False):
-    assert not (update_view_spec and update_data_spec)
-    already_v2 = update_view_spec or update_data_spec
+def _update_table_spec(root, ds_list):
+    for ds in ds_list:
+        ds_folder = os.path.join(root, ds)
+        assert os.path.exists(ds_folder), ds_folder
+        migrate_table_spec(ds_folder)
+
+
+def migrate_project(root, parse_menu_name=None, parse_source_name=None,
+                    update_view_spec=False, update_data_spec=False, update_table_spec=False):
+    assert sum((update_view_spec, update_data_spec, update_table_spec)) <= 1
+    already_v2 = update_view_spec or update_data_spec or update_table_spec
 
     ds_file = os.path.join(root, 'project.json') if already_v2 else os.path.join(root, 'datasets.json')
     with open(ds_file, 'r') as f:
@@ -50,7 +60,11 @@ def migrate_project(root, parse_menu_name=None, parse_source_name=None, update_v
         _update_view_spec(root, ds_list)
     elif update_data_spec:
         metadata = _update_data_spec(root, ds_list, metadata)
+    elif update_table_spec:
+        _update_table_spec(root, ds_list)
     else:
         metadata = _migrate_project(root, ds_list, metadata, ds_file,
                                     parse_source_name, parse_menu_name)
+
     write_project_metadata(root, metadata)
+    validate_project(root)
