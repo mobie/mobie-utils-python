@@ -25,7 +25,7 @@ def validate_dataset(dataset_folder, assert_true=_assert_true,
                                  assert_true=assert_true,
                                  assert_equal=assert_equal)
 
-    # check the additional views
+    # check the sources
     views_folder = os.path.join(dataset_folder, 'misc', 'views')
     all_sources = list(dataset_metadata["sources"].keys())
     view_files = glob(os.path.join(views_folder, '*.json'))
@@ -33,7 +33,10 @@ def validate_dataset(dataset_folder, assert_true=_assert_true,
         with open(view_file, 'r') as f:
             views = json.load(f)['views']
         for name, view in views.items():
-            validate_view_metadata(view, all_sources, assert_true)
+            validate_view_metadata(view,
+                                   sources=all_sources,
+                                   dataset_folder=dataset_folder,
+                                   assert_true=assert_true)
 
 
 def main():

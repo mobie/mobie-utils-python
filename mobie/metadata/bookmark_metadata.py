@@ -110,8 +110,6 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     write_metadata(bookmark_file, metadata)
 
 
-# FIXME the grid table needs to have at least two columns, but it's currently created
-# with only a single column
 def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                       display_groups=None, display_group_settings=None,
                       positions=None, bookmark_file_name=None,
@@ -188,10 +186,9 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
     table_folder_path = os.path.join(dataset_folder, table_folder)
     os.makedirs(table_folder_path, exist_ok=True)
     default_table_path = os.path.join(table_folder_path, 'default.tsv')
-    if os.path.exists(default_table_path):
-        check_grid_view_table(sources, default_table_path, positions=positions)
-    else:
+    if not os.path.exists(default_table_path):
         compute_grid_view_table(sources, default_table_path, positions=positions)
+    check_grid_view_table(sources, default_table_path, positions=positions)
 
     grid_transform = {
         'sources': sources,
