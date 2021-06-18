@@ -41,6 +41,9 @@ def migrate_table_spec(dataset_folder):
                 for trafo_name, trafo_vals in trafo.items():
                     if trafo_name == 'grid':
                         new_view['sourceTransforms'][ii][trafo_name]['tables'] = ['default.tsv']
+                    if 'names' in trafo_vals:
+                        names = new_view['sourceTransforms'][ii][trafo_name].pop('names')
+                        new_view['sourceTransforms'][ii][trafo_name]['sourceNamesAfterTransform'] = names
 
         new_views[name] = new_view
 
