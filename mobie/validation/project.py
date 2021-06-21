@@ -53,6 +53,7 @@ def validate_project(root,
         assert_true(os.path.isdir(dataset_folder), msg)
         validate_dataset(dataset_folder, assert_true=assert_true, assert_in=assert_in,
                          assert_equal=assert_equal)
+    print("The project at", root, "is a valid MoBIE project.")
 
 
 def main():
