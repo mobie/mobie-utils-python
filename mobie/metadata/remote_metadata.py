@@ -68,6 +68,23 @@ def _to_bdv_s3(file_format,
     return new_format, {'relativePath': xml_remote}
 
 
+def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
+                    service_endpoint, bucket_name, region):
+    rel_path = storage['relativePath']
+    abs_path = os.path.join(dataset_folder, rel_path)
+    if not os.path.exists(abs_path):
+        warn(f"Could not find dataat {abs_path}")
+    # build the s3 address
+    s3_address = '/'.join([
+        service_endpoint.rstrip('/'),
+        bucket_name,
+        dataset_name,
+        rel_path
+    ])
+    # TODO support (optional) signing region here?
+    return 'ome.zarr.s3', {'s3Address': s3_address}
+
+
 def add_remote_dataset_metadata(
     root,
     dataset_name,
@@ -103,6 +120,13 @@ def add_remote_dataset_metadata(
                                                     service_endpoint, bucket_name, region)
                 new_metadata[source_type]['imageData'][new_format] = s3_storage
                 new_file_formats.add(new_format)
+            elif file_format == 'ome.zarr':
+                new_format, s3_storage = _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
+                                                         service_endpoint, bucket_name, region)
+                new_metadata[source_type]['imageData'][new_format] = s3_storage
+                new_file_formats.add(new_format)
+            else:
+                warn(f"Data in the {file_format} format cannot be uploaded to s3.")
 
         new_sources[name] = new_metadata
 

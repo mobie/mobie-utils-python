@@ -25,6 +25,7 @@ def _get_image_metadata(dataset_folder, path, type_, file_format):
         format_ = {"relativePath": os.path.relpath(path, dataset_folder)}
     elif file_format == "ome.zarr":
         format_ = {"relativePath": os.path.relpath(path, dataset_folder)}
+    # TODO support (optional) signing address for s3 formats?
     elif file_format == "ome.zarr.s3":
         format_ = {"s3Address": path}
     elif file_format == "openOrganelle.s3":
