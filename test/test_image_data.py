@@ -58,8 +58,8 @@ class TestImageData(unittest.TestCase):
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
         add_image(im_folder, '*.tif', self.root, dataset_name, raw_name,
                   resolution=(0.25, 1, 1), chunks=(16, 64, 64),
-                  scale_factors=scales,
-                  tmp_folder=self.tmp_folder)
+                  scale_factors=scales, tmp_folder=self.tmp_folder,
+                  target='local', max_jobs=8)
 
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
@@ -67,24 +67,49 @@ class TestImageData(unittest.TestCase):
         with h5py.File(path, 'a') as f:
             f.create_dataset(key, data=np.random.rand(*shape))
 
-    def init_h5_dataset(self, dataset_name, raw_name, shape):
+    def init_h5_dataset(self, dataset_name, raw_name, shape, file_format='bdv.n5'):
 
         data_path = os.path.join(self.test_folder, 'data.h5')
         data_key = 'data'
         self.make_hdf5_data(data_path, data_key, shape)
 
+        n_jobs = 1 if file_format == 'bdv.hdf5' else 8
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
         add_image(data_path, data_key, self.root, dataset_name, raw_name,
-                  resolution=(1, 1, 1), chunks=(64, 64, 64),
+                  resolution=(1, 1, 1), chunks=(32, 32, 32),
                   scale_factors=scales,
-                  tmp_folder=self.tmp_folder)
+                  tmp_folder=self.tmp_folder,
+                  file_format=file_format,
+                  target='local', max_jobs=n_jobs)
 
     def test_init_from_hdf5(self):
         dataset_name = 'test'
         raw_name = 'test-raw'
-        shape = (128, 128, 128)
+        shape = (64, 64, 64)
         self.init_h5_dataset(dataset_name, raw_name, shape)
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
+
+    #
+    # tests with different output data formats
+    #
+
+    def test_bdv_hdf5(self):
+        dataset_name = 'test'
+        raw_name = 'test-raw'
+        shape = (64, 64, 64)
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format='bdv.hdf5')
+
+    def test_bdv_ome_zarr(self):
+        dataset_name = 'test'
+        raw_name = 'test-raw'
+        shape = (64, 64, 64)
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format='bdv.ome.zarr')
+
+    def test_ome_zarr(self):
+        dataset_name = 'test'
+        raw_name = 'test-raw'
+        shape = (64, 64, 64)
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format='ome.zarr')
 
     #
     # tests with existing dataset
@@ -102,7 +127,7 @@ class TestImageData(unittest.TestCase):
         scales = [[2, 2, 2]]
         add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
                   resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                  tmp_folder=tmp_folder)
+                  tmp_folder=tmp_folder, target='local', max_jobs=8)
 
     def test_add_image_with_dataset(self):
         self.init_dataset()
@@ -115,7 +140,8 @@ class TestImageData(unittest.TestCase):
         add_image(self.im_path, self.im_key,
                   self.root, self.dataset_name, im_name,
                   resolution=(1, 1, 1), scale_factors=scales,
-                  chunks=(64, 64, 64), tmp_folder=tmp_folder)
+                  chunks=(64, 64, 64), tmp_folder=tmp_folder,
+                  target='local', max_jobs=8)
         self.check_data(dataset_folder, im_name)
 
     def test_cli(self):
@@ -146,17 +172,27 @@ class TestImageData(unittest.TestCase):
     # data validation
     #
 
-    def check_dataset(self, dataset_folder, exp_shape, raw_name):
+    def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format='bdv.n5'):
         # validate the full project
         validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
 
         # check the raw data
-        xml_path = os.path.join(dataset_folder, 'images', 'bdv-n5', f'{raw_name}.xml')
-        raw_path = get_data_path(xml_path, return_absolute_path=True)
-        key = get_key(False, 0, 0, 0)
+        folder_name = file_format.replace('.', '-')
+        if file_format.startswith('bdv'):
+            xml_path = os.path.join(dataset_folder, 'images', folder_name, f'{raw_name}.xml')
+            raw_path = get_data_path(xml_path, return_absolute_path=True)
+            is_h5 = file_format == 'bdv.hdf5'
+            key = get_key(is_h5, 0, 0, 0)
+        else:
+            self.assertEqual(file_format, 'ome.zarr')
+            raw_path = os.path.join(dataset_folder, 'images', folder_name, f'{raw_name}.ome.zarr')
+            key = 's0'
+
         with open_file(raw_path, 'r') as f:
-            shape = f[key].shape
+            data = f[key][:]
+            shape = data.shape
         self.assertEqual(shape, exp_shape)
+        self.assertFalse(np.allclose(data, 0.))
 
     def check_data(self, dataset_folder, name):
         exp_data = self.data

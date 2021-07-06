@@ -7,10 +7,14 @@ from ..validation import validate_source_metadata, validate_view_metadata
 
 
 def _get_file_format(path):
-    if os.path.exists(path) and path.endswith('.xml'):
+    if not os.path.exists(path):
+        raise ValueError(f"{path} does not exist.")
+    elif path.endswith('.xml'):
         file_format = get_bdv_format(path)
+    elif path.endswith('.ome.zarr'):
+        file_format = 'ome.zarr'
     else:
-        raise ValueError(f"Could not infer file format from {path}")
+        raise ValueError(f"Could not infer file format from {path}.")
     return file_format
 
 
@@ -19,6 +23,10 @@ def _get_image_metadata(dataset_folder, path, type_, file_format):
 
     if file_format.startswith("bdv"):
         format_ = {"relativePath": os.path.relpath(path, dataset_folder)}
+    elif file_format == "ome.zarr":
+        format_ = {"relativePath": os.path.relpath(path, dataset_folder)}
+    elif file_format == "ome.zarr.s3":
+        format_ = {"s3Address": path}
     elif file_format == "openOrganelle.s3":
         format_ = {"s3Address": path}
     else:

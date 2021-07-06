@@ -57,7 +57,10 @@ def downscale(in_path, in_key, out_path,
 
     block_shape = chunks if block_shape is None else block_shape
     config_dir = os.path.join(tmp_folder, 'configs')
-    write_global_config(config_dir, block_shape=block_shape)
+    # ome.zarr can also be written in 2d, all other formats require 3d
+    require3d = metadata_format != 'ome.zarr'
+    write_global_config(config_dir, block_shape=block_shape,
+                        require3d=require3d)
 
     configs = DownscalingWorkflow.get_config()
     conf = configs['copy_volume']

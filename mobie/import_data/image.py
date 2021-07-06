@@ -5,7 +5,7 @@ def import_image_data(in_path, in_key, out_path,
                       resolution, scale_factors, chunks,
                       tmp_folder, target, max_jobs,
                       block_shape=None, unit='micrometer',
-                      source_name=None):
+                      source_name=None, file_format="bdv.n5"):
     """ Import image data to mobie format.
 
     Arguments:
@@ -22,10 +22,14 @@ def import_image_data(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
         source_name [str] - name of the source (default: None)
+        file_format [str] - the file format (default: "bdv.n5")
     """
-    in_path, in_key = ensure_volume(in_path, in_key,
-                                    tmp_folder, chunks)
+    # we allow 2d data for ome.zarr file format
+    if file_format != "ome.zarr":
+        in_path, in_key = ensure_volume(in_path, in_key,
+                                        tmp_folder, chunks)
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='skimage', unit=unit, source_name=source_name)
+              library='skimage', unit=unit, source_name=source_name,
+              metadata_format=file_format)

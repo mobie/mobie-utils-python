@@ -57,7 +57,8 @@ def add_image(input_path, input_key,
                       resolution, scale_factors, chunks,
                       tmp_folder=tmp_folder, target=target,
                       max_jobs=max_jobs, unit=unit,
-                      source_name=image_name)
+                      source_name=image_name,
+                      file_format=file_format)
     metadata.add_source_metadata(dataset_folder, 'image', image_name, image_metadata_path, view=view)
 
     if transformation is not None:

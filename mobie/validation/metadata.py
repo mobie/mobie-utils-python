@@ -67,10 +67,12 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             if path is None:
                 continue
             path = os.path.join(dataset_folder, storage['relativePath'])
-            msg = f"Could not find xml for at {path}"
+            msg = f"Could not find data for {name} at {path}"
             assert_true(os.path.exists(path), msg)
-            bdv_name = get_name(path, setup_id=0)
-            assert_equal(name, bdv_name)
+            # check that source name and name in the xml agree for bdv formats
+            if path.endswith('.xml'):
+                bdv_name = get_name(path, setup_id=0)
+                assert_equal(name, bdv_name)
         if 'tableData' in metadata:
             table_folder = os.path.join(dataset_folder, metadata['tableData']['tsv']['relativePath'])
             check_tables(table_folder, assert_true)

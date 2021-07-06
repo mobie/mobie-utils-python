@@ -14,6 +14,8 @@ FILE_FORMATS = [
     "bdv.n5.s3",
     "bdv.ome.zarr",
     "bdv.ome.zarr.s3",
+    "ome.zarr",
+    "ome.zarr.s3",
     "openOrganelle.s3"
 ]
 
@@ -37,6 +39,10 @@ def get_internal_paths(dataset_folder, file_format, name):
         data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.ome.zarr')
         xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
         return data_path, xml_path
+
+    elif file_format == 'ome.zarr':
+        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.ome.zarr')
+        return data_path, data_path
 
     raise ValueError(f"Data creation for the file format {file_format} is not supported.")
 
@@ -191,7 +197,8 @@ def write_global_config(config_folder,
                         block_shape=None,
                         roi_begin=None,
                         roi_end=None,
-                        qos=None):
+                        qos=None,
+                        require3d=True):
     os.makedirs(config_folder, exist_ok=True)
 
     conf_path = os.path.join(config_folder, 'global.config')
@@ -202,16 +209,18 @@ def write_global_config(config_folder,
         global_config = BaseClusterTask.default_global_config()
 
     if block_shape is not None:
-        if len(block_shape) != 3:
+        if require3d and len(block_shape) != 3:
             raise ValueError(f"Invalid block_shape given: {block_shape}")
         global_config['block_shape'] = block_shape
 
     if roi_begin is not None:
+        # NOTE rois are only applicable if the data is 3d, so we don't add the 'require3d' check here
         if len(roi_begin) != 3:
             raise ValueError(f"Invalid roi_begin given: {roi_begin}")
         global_config['roi_begin'] = roi_begin
 
     if roi_end is not None:
+        # NOTE rois are only applicable if the data is 3d, so we don't add the 'require3d' check here
         if len(roi_end) != 3:
             raise ValueError(f"Invalid roi_end given: {roi_end}")
         global_config['roi_end'] = roi_end
