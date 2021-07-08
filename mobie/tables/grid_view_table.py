@@ -17,6 +17,7 @@ def _get_grid_to_sources(sources, positions):
 
 
 def compute_grid_view_table(sources, table_path, positions=None, **additional_columns):
+    first_col_name = 'source_annotation_id'
     grid_to_source = _get_grid_to_sources(sources, positions)
 
     if additional_columns:
@@ -24,20 +25,21 @@ def compute_grid_view_table(sources, table_path, positions=None, **additional_co
         assert all(len(val) == len(grid_to_source) for val in additional_columns.values())
         data = [[i] + [val[i] for val in additional_columns.values()]
                 for i in range(grid_to_source)]
-        columns = ['grid_id'] + list(additional_columns.keys())
+        columns = [first_col_name] + list(additional_columns.keys())
     else:
         data = [[i, source] for i, source in grid_to_source.items()]
-        columns = ['grid_id', 'source']
+        columns = [first_col_name, 'source']
 
     table = pd.DataFrame(data, columns=columns)
     table.to_csv(table_path, sep='\t', index=False)
 
 
 def check_grid_view_table(sources, table_path, positions=None):
+    first_col_name = 'source_annotation_id'
     table = pd.read_csv(table_path, sep='\t')
     grid_to_source = _get_grid_to_sources(sources, positions)
-    if 'grid_id' not in table.columns:
-        raise ValueError("Expect grid view table to have a 'grid_id' column")
+    if first_col_name not in table.columns:
+        raise ValueError(f"Expect grid view table to have a '{first_col_name}' column")
     if table.shape[0] != len(grid_to_source):
         msg = f"Expect number of rows in the table to be the same as the number of grid postions: {len(sources)}"
         raise ValueError(msg)

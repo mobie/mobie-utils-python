@@ -42,8 +42,30 @@ def get_segmentation_display(name, sources, **kwargs):
         if kwarg_val is not None:
             segmentation_display[kwarg_name] = kwarg_val
     if kwargs:
-        raise ValueError(f"Invalid keyword arguments segmentation display: {list(kwargs.keys())}")
+        raise ValueError(f"Invalid keyword arguments for segmentation display: {list(kwargs.keys())}")
     return {"segmentationDisplay": segmentation_display}
+
+
+def get_source_annotation_display(name, sources, table_data, **kwargs):
+    opacity = kwargs.pop("opacity", 0.5)
+    lut = kwargs.pop("lut", "glasbey")
+    annotation_display = {
+        "opacity": opacity,
+        "lut": lut,
+        "name": name,
+        "sources": sources,
+        "tableData": table_data
+    }
+    additional_annotation_kwargs = ["colorByColumn",
+                                    "selectedSourceAnnotationIds",
+                                    "tables", "valueLimits"]
+    for kwarg_name in additional_annotation_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            annotation_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments for source annotation display: {list(kwargs.keys())}")
+    return {"sourceAnnotationDisplay": annotation_display}
 
 
 def get_affine_source_transform(sources, parameters, timepoints=None):
@@ -93,7 +115,7 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
 
 def get_view(names, source_types, sources, display_settings,
              is_exclusive, menu_name,
-             source_transforms=None, viewer_transform=None):
+             source_transforms=None, viewer_transform=None, source_annotation_displays=None):
     """ Create view metadata for multi source views.
 
     Arguments:
@@ -105,6 +127,7 @@ def get_view(names, source_types, sources, display_settings,
         menu_name [str] - menu name for this view
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
+        source_annotation_displays [list[dict]] - (default: None)
     """
 
     if len(names) != len(source_types) != len(sources) != len(display_settings):
@@ -121,6 +144,15 @@ def get_view(names, source_types, sources, display_settings,
         else:
             raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
         source_displays.append(display)
+
+    if source_annotation_displays is not None:
+        for name, settings in source_annotation_displays.items():
+            source_map = settings.pop("sources")
+            table_data = settings.pop("tableData")
+            assert isinstance(source_map, dict)
+            display = get_source_annotation_display(name, source_map, table_data, **settings)
+            source_displays.append(display)
+
     view["sourceDisplays"] = source_displays
 
     if source_transforms is not None:
@@ -134,11 +166,14 @@ def get_view(names, source_types, sources, display_settings,
                 raise ValueError(msg)
 
             trafo = source_transform[trafo_type]
+            trafo_sources = trafo["sources"]
             if trafo_type == 'grid':
-                trafo_sources = set([source for grid_source in trafo['sources'] for source in grid_source])
+                assert isinstance(trafo_sources, dict)
+                unique_trafo_sources = set([source for grid_source in trafo_sources.values() for source in grid_source])
             else:
-                trafo_sources = set(trafo["sources"])
-            invalid_sources = list(trafo_sources - all_sources)
+                assert isinstance(trafo_sources, list)
+                unique_trafo_sources = set(trafo_sources)
+            invalid_sources = list(unique_trafo_sources - all_sources)
             if invalid_sources:
                 msg = f"Invalid sources in transform: {invalid_sources}"
                 raise ValueError(msg)

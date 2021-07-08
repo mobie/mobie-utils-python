@@ -180,6 +180,22 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                     display_setting = display_group_settings[display_name]
                 display_settings.append(display_setting)
 
+    # the sources for the grid and the source annotation display need to be dicts
+    # with (flat) grid positions mapping to the source names
+    map_sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
+
+    # create the grid view transform
+    grid_transform = {
+        "sources": map_sources
+    }
+    if positions is not None:
+        if len(positions) != len(sources):
+            msg = f"Invalid grid position length {len(positions)}, expected same length as sources: {len(sources)}"
+            raise ValueError(msg)
+        # also needs to be a map internally
+        grid_transform['positions'] = {ii: pos for ii, pos in enumerate(positions)}
+    grid_transform = [{'grid': grid_transform}]
+
     # process the table folder
     if table_folder is None:
         table_folder = os.path.join('tables', name)
@@ -190,23 +206,19 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
         compute_grid_view_table(sources, default_table_path, positions=positions)
     check_grid_view_table(sources, default_table_path, positions=positions)
 
-    grid_transform = {
-        'sources': sources,
-        'tableData': _get_table_metadata(table_folder),
-        'tables': ['default.tsv']
+    # create the source annotation display for this grid view, this will show the table for this grid view!
+    source_annotation_display = {
+        "sources": map_sources,
+        "tableData": _get_table_metadata(table_folder),
+        "tables": ["default.tsv"]
     }
-    if positions is not None:
-        if len(positions) != len(sources):
-            msg = f"Invalid grid position length {len(positions)}, expected same length as sources: {len(sources)}"
-            raise ValueError(msg)
-        grid_transform['positions'] = positions
-    grid_transform = [{'grid': grid_transform}]
 
     view = get_view(names=display_names,
                     source_types=source_types,
                     sources=display_sources,
                     display_settings=display_settings,
                     source_transforms=grid_transform,
+                    source_annotation_displays={name: source_annotation_display},
                     is_exclusive=True,
                     menu_name='bookmark')
 
