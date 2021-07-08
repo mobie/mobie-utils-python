@@ -18,7 +18,7 @@ class TestViewMetadata(unittest.TestCase):
             {'contrastLimits': [0., 2000.], 'color': 'red'},
             {'showImagesIn3d': True},
             {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]},
-            {'blendingMode': 'average'},
+            {'blendingMode': 'sumOccluding'},
         ]
         for kwargs in custom_kwargs:
             view = get_default_view('image', 'my-image', **kwargs)

@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import subprocess
 import unittest
@@ -22,6 +23,7 @@ class TestImageData(unittest.TestCase):
     root = './test-folder/data'
     dataset_name = 'test'
     shape = (128, 128, 128)
+    max_jobs = min(8, multiprocessing.cpu_count())
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
@@ -59,7 +61,7 @@ class TestImageData(unittest.TestCase):
         add_image(im_folder, '*.tif', self.root, dataset_name, raw_name,
                   resolution=(0.25, 1, 1), chunks=(16, 64, 64),
                   scale_factors=scales, tmp_folder=self.tmp_folder,
-                  target='local', max_jobs=8)
+                  target='local', max_jobs=self.max_jobs)
 
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
@@ -73,7 +75,7 @@ class TestImageData(unittest.TestCase):
         data_key = 'data'
         self.make_hdf5_data(data_path, data_key, shape)
 
-        n_jobs = 1 if file_format == 'bdv.hdf5' else 8
+        n_jobs = 1 if file_format == 'bdv.hdf5' else self.max_jobs
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
         add_image(data_path, data_key, self.root, dataset_name, raw_name,
                   resolution=(1, 1, 1), chunks=(32, 32, 32),
@@ -127,7 +129,7 @@ class TestImageData(unittest.TestCase):
         scales = [[2, 2, 2]]
         add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
                   resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                  tmp_folder=tmp_folder, target='local', max_jobs=8)
+                  tmp_folder=tmp_folder, target='local', max_jobs=self.max_jobs)
 
     def test_add_image_with_dataset(self):
         self.init_dataset()
@@ -141,7 +143,7 @@ class TestImageData(unittest.TestCase):
                   self.root, self.dataset_name, im_name,
                   resolution=(1, 1, 1), scale_factors=scales,
                   chunks=(64, 64, 64), tmp_folder=tmp_folder,
-                  target='local', max_jobs=8)
+                  target='local', max_jobs=self.max_jobs)
         self.check_data(dataset_folder, im_name)
 
     def test_cli(self):
