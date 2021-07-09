@@ -46,7 +46,7 @@ def get_segmentation_display(name, sources, **kwargs):
     return {"segmentationDisplay": segmentation_display}
 
 
-def get_source_annotation_display(name, sources, table_data, **kwargs):
+def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     annotation_display = {
@@ -54,11 +54,12 @@ def get_source_annotation_display(name, sources, table_data, **kwargs):
         "lut": lut,
         "name": name,
         "sources": sources,
-        "tableData": table_data
+        "tableData": table_data,
+        "tables": tables
     }
     additional_annotation_kwargs = ["colorByColumn",
-                                    "selectedSourceAnnotationIds",
-                                    "tables", "valueLimits"]
+                                    "selectedAnnotationIds",
+                                    "valueLimits"]
     for kwarg_name in additional_annotation_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:

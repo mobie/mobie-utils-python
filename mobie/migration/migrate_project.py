@@ -15,6 +15,7 @@ def main():
     parser.add_argument('--update_view_spec', '-u', default=0, type=int)
     parser.add_argument('--update_data_spec', '-d', default=0, type=int)
     parser.add_argument('--update_table_spec', '-t', default=0, type=int)
+    parser.add_argument('--update_grid_spec', '-g', default=0, type=int)
 
     args = parser.parse_args()
     version = args.version
@@ -24,7 +25,8 @@ def main():
         migrate_project_v2(args.root,
                            update_view_spec=bool(args.update_view_spec),
                            update_data_spec=bool(args.update_data_spec),
-                           update_table_spec=bool(args.update_table_spec))
+                           update_table_spec=bool(args.update_table_spec),
+                           update_grid_spec=bool(args.update_grid_spec))
     else:
         raise ValueError(f"Invalid version {version}")
 
