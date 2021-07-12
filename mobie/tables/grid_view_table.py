@@ -17,7 +17,7 @@ def _get_grid_to_sources(sources, positions):
 
 
 def compute_grid_view_table(sources, table_path, positions=None, **additional_columns):
-    first_col_name = 'source_annotation_id'
+    first_col_name = 'annotation_id'
     grid_to_source = _get_grid_to_sources(sources, positions)
 
     if additional_columns:
@@ -35,7 +35,7 @@ def compute_grid_view_table(sources, table_path, positions=None, **additional_co
 
 
 def check_grid_view_table(sources, table_path, positions=None):
-    first_col_name = 'source_annotation_id'
+    first_col_name = 'annotation_id'
     table = pd.read_csv(table_path, sep='\t')
     grid_to_source = _get_grid_to_sources(sources, positions)
     if first_col_name not in table.columns:

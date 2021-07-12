@@ -4,6 +4,7 @@ from copy import deepcopy
 from glob import glob
 
 import mobie.metadata as metadata
+import pandas as pd
 
 
 def update_grid_view(trafo, name):
@@ -55,6 +56,22 @@ def update_views(views):
     return new_views
 
 
+def update_tables(views, dataset_folder):
+    for name, view in views.items():
+        displays = view['sourceDisplays']
+        for disp in displays:
+            if list(disp.keys())[0] == 'sourceAnnotationDisplay':
+                props = disp['sourceAnnotationDisplay']
+                table_folder = os.path.join(
+                    dataset_folder, props['tableData']['tsv']['relativePath']
+                )
+                tables = glob(os.path.join(table_folder, "*.tsv"))
+                for table_path in tables:
+                    table = pd.read_csv(table_path, sep='\t')
+                    table = table.rename(columns={'grid_id': 'annotation_id'})
+                    table.to_csv(table_path, sep='\t', index=False)
+
+
 def migrate_grid_spec(dataset_folder):
     """ Update to the new grid and sourceAnnotationDisplay spec.
 
@@ -63,6 +80,7 @@ def migrate_grid_spec(dataset_folder):
     ds_meta = metadata.read_dataset_metadata(dataset_folder)
     views = ds_meta['views']
     new_views = update_views(views)
+    update_tables(new_views, dataset_folder)
     ds_meta['views'] = new_views
     metadata.write_dataset_metadata(dataset_folder, ds_meta)
 
@@ -72,4 +90,5 @@ def migrate_grid_spec(dataset_folder):
         with open(view_file, 'r') as f:
             views = json.load(f)['views']
             new_views = update_views(views)
+            update_tables(new_views, dataset_folder)
             metadata.utils.write_metadata(view_file, {'views': new_views})
