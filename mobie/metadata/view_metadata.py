@@ -34,7 +34,7 @@ def get_segmentation_display(name, sources, **kwargs):
         "name": name,
         "sources": sources
     }
-    additional_seg_kwargs = ["colorByColumn", "resolution3dView",
+    additional_seg_kwargs = ["blendingMode", "colorByColumn", "resolution3dView",
                              "selectedSegmentIds", "showSelectedSegmentsIn3d",
                              "tables", "valueLimits"]
     for kwarg_name in additional_seg_kwargs:
