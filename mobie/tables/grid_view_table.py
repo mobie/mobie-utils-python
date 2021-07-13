@@ -17,7 +17,7 @@ def _get_grid_to_sources(sources, positions):
 
 
 def compute_grid_view_table(sources, table_path, positions=None, **additional_columns):
-    first_col_name = 'annotation_id'
+    first_col_name = "annotation_id"
     grid_to_source = _get_grid_to_sources(sources, positions)
 
     if additional_columns:
@@ -27,16 +27,16 @@ def compute_grid_view_table(sources, table_path, positions=None, **additional_co
                 for i in range(grid_to_source)]
         columns = [first_col_name] + list(additional_columns.keys())
     else:
-        data = [[i, source] for i, source in grid_to_source.items()]
-        columns = [first_col_name, 'source']
+        data = [[i, "-".join(source)] for i, source in grid_to_source.items()]
+        columns = [first_col_name, "source"]
 
     table = pd.DataFrame(data, columns=columns)
-    table.to_csv(table_path, sep='\t', index=False)
+    table.to_csv(table_path, sep="\t", index=False)
 
 
 def check_grid_view_table(sources, table_path, positions=None):
-    first_col_name = 'annotation_id'
-    table = pd.read_csv(table_path, sep='\t')
+    first_col_name = "annotation_id"
+    table = pd.read_csv(table_path, sep="\t")
     grid_to_source = _get_grid_to_sources(sources, positions)
     if first_col_name not in table.columns:
         raise ValueError(f"Expect grid view table to have a '{first_col_name}' column")

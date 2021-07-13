@@ -110,37 +110,14 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     write_metadata(bookmark_file, metadata)
 
 
-def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
-                      display_groups=None, display_group_settings=None,
-                      positions=None, bookmark_file_name=None,
-                      overwrite=False):
-    """ Add or update a grid view.
+def make_grid_view(dataset_folder, name, sources,
+                   table_folder=None, display_groups=None,
+                   display_group_settings=None, positions=None,
+                   menu_name='bookmark'):
 
-    Arguments:
-        dataset_folder [str] - path to the dataset folder
-        name [str] - name of this bookmark
-        sources [list[list[str]]] - sources to be arranged in the grid
-        table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
-        display_groups [dict[str, str] - (default: None)
-        display_group_settings [dict[str, dict]] - (default: None)
-        positions [list[list[int]]] - (default: None)
-        bookmark_file_name [str] - name of the bookmark file,
-            will be added to 'views' in datasets.json by default (default: None)
-        overwrite [bool] - whether to overwrite existing bookmarks (default: False)
-    """
     dataset_metadata = read_dataset_metadata(dataset_folder)
-    views = dataset_metadata['views']
-
-    if bookmark_file_name is None:  # bookmark goes into dataset.json:bookmarks
-        bookmarks = views
-    else:  # bookmark goes into extra bookmark file
-        if not bookmark_file_name.endswith('.json'):
-            bookmark_file_name += '.json'
-        bookmark_file = os.path.join(dataset_folder, "misc", "bookmarks", bookmark_file_name)
-        bookmarks = read_metadata(bookmark_file).get('bookmarks', {})
-    _check_bookmark(name, bookmarks, overwrite)
-
     all_sources = dataset_metadata['sources']
+    views = dataset_metadata['views']
 
     display_names = []
     source_types = []
@@ -148,7 +125,7 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
     display_settings = []
 
     for source_position in sources:
-        assert isinstance(source_position, (list, tuple))
+        assert isinstance(source_position, (list, tuple)), f"{type(source_position)}: {source_position}"
         for source_name in source_position:
             if source_name not in all_sources:
                 raise ValueError(f"Invalid source name: {source_name}")
@@ -220,9 +197,45 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                     source_transforms=grid_transform,
                     source_annotation_displays={name: source_annotation_display},
                     is_exclusive=True,
-                    menu_name='bookmark')
+                    menu_name=menu_name)
 
     validate_with_schema(view, 'view')
+    return view
+
+
+def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
+                      display_groups=None, display_group_settings=None,
+                      positions=None, bookmark_file_name=None,
+                      overwrite=False):
+    """ Add or update a grid view.
+
+    Arguments:
+        dataset_folder [str] - path to the dataset folder
+        name [str] - name of this bookmark
+        sources [list[list[str]]] - sources to be arranged in the grid
+        table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
+        display_groups [dict[str, str] - (default: None)
+        display_group_settings [dict[str, dict]] - (default: None)
+        positions [list[list[int]]] - (default: None)
+        bookmark_file_name [str] - name of the bookmark file,
+            will be added to 'views' in datasets.json by default (default: None)
+        overwrite [bool] - whether to overwrite existing bookmarks (default: False)
+    """
+    dataset_metadata = read_dataset_metadata(dataset_folder)
+    views = dataset_metadata['views']
+
+    if bookmark_file_name is None:  # bookmark goes into dataset.json:bookmarks
+        bookmarks = views
+    else:  # bookmark goes into extra bookmark file
+        if not bookmark_file_name.endswith('.json'):
+            bookmark_file_name += '.json'
+        bookmark_file = os.path.join(dataset_folder, "misc", "bookmarks", bookmark_file_name)
+        bookmarks = read_metadata(bookmark_file).get('bookmarks', {})
+    _check_bookmark(name, bookmarks, overwrite)
+
+    view = make_grid_view(dataset_folder, name, sources,
+                          table_folder=table_folder, display_groups=display_groups,
+                          display_group_settings=display_group_settings, positions=positions)
     bookmarks[name] = view
     if bookmark_file_name is None:
         dataset_metadata['views'] = bookmarks
