@@ -121,7 +121,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
             all_display_sources.extend(display_sources)
             if sources is not None:
                 wrong_sources = list(set(display_sources) - set(sources))
-                msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
+                msg = f"Found wrong sources {wrong_sources} in sourceDisplay; expected one of {sources}"
                 assert_true(len(wrong_sources) == 0, msg)
 
     source_transformations = view.get("sourceTransformations")

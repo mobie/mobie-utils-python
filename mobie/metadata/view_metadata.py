@@ -1,3 +1,4 @@
+import numpy as np
 
 
 def get_image_display(name, sources, **kwargs):
@@ -72,9 +73,18 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
 def get_affine_source_transform(sources, parameters, timepoints=None):
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
+
+    def ensure_list(x):
+        if isinstance(x, tuple):
+            return list(x)
+        if isinstance(x, np.ndarray):
+            return x.tolist()
+        assert isinstance(x, list)
+        return x
+
     trafo = {
         "sources": sources,
-        "parameters": parameters
+        "parameters": ensure_list(parameters)
     }
     if timepoints is not None:
         trafo["timepoints"] = timepoints
