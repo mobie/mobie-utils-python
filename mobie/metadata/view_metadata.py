@@ -229,6 +229,7 @@ def get_view(names, source_types, sources, display_settings,
     view["sourceDisplays"] = source_displays
 
     if source_transforms is not None:
+
         # check that source transform types are valid and that all sources listed
         # are also present in the display sources
         all_sources = set([source for source_list in sources for source in source_list])
@@ -240,7 +241,7 @@ def get_view(names, source_types, sources, display_settings,
 
             trafo = source_transform[trafo_type]
             trafo_sources = trafo["sources"]
-            if trafo_type == 'grid':
+            if trafo_type == "grid":
                 assert isinstance(trafo_sources, dict)
                 unique_trafo_sources = set([source for grid_source in trafo_sources.values() for source in grid_source])
             else:
@@ -251,10 +252,17 @@ def get_view(names, source_types, sources, display_settings,
                 msg = f"Invalid sources in transform: {invalid_sources}"
                 raise ValueError(msg)
 
+            # we need to add 'sourceNamesAfterTransform' if they are given
+            if "sourceNamesAfterTransform" in trafo:
+                additional_names = trafo["sourceNamesAfterTransform"]
+                if isinstance(additional_names, dict):
+                    additional_names = list(additional_names.values())
+                all_sources = all_sources.union(set(additional_names))
+
         view["sourceTransforms"] = source_transforms
 
     if viewer_transform is not None:
-        viewer_transform_types = ['affine', 'normalizedAffine', 'position', 'timepoint']
+        viewer_transform_types = ["affine", "normalizedAffine", "position", "timepoint"]
         viewer_transform_type = list(viewer_transform.keys())[0]
         if len(viewer_transform) != 1 and viewer_transform_type not in viewer_transform_types:
             msg = f"Invalid viewer transform {viewer_transform_type}, expect one of {viewer_transform_types}"

@@ -231,6 +231,13 @@ class TestViewMetadata(unittest.TestCase):
                         source_transforms=[crop])
         validate_with_schema(view, "view")
 
+        # combined transformation
+        crop = get_crop_source_transform(["my-transformed-image"], np.random.rand(3), np.random.rand(3),
+                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"])
+        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
+                        is_exclusive=True, menu_name="bookmark",
+                        source_transforms=[affine, crop])
+
 
 if __name__ == '__main__':
     unittest.main()
