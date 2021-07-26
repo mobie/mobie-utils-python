@@ -148,12 +148,32 @@ def get_view(names, source_types, sources, display_settings,
 
     source_displays = []
     for name, source_type, source_list, display_setting in zip(names, source_types, sources, display_settings):
+
         if source_type == "image":
-            display = get_image_display(name, source_list, **display_setting)
+            # display settings can either be passed as arguments or return values of get_image_display
+            if "imageDisplay" in display_setting:
+                assert len(display_setting) == 1
+                assert display_setting["imageDisplay"]["name"] == name
+                _sources = display_setting["imageDisplay"]["sources"]
+                assert len(set(_sources) - set(source_list)) == 0
+                display = display_setting
+            else:
+                display = get_image_display(name, source_list, **display_setting)
+
         elif source_type == "segmentation":
-            display = get_segmentation_display(name, source_list, **display_setting)
+            # display settings can either be passed as arguments or return values of get_segmentation_display
+            if "segmentationDisplay" in display_setting:
+                assert len(display_setting) == 1
+                assert display_setting["segmentationDisplay"]["name"] == name
+                _sources = display_setting["segmentationDisplay"]["sources"]
+                assert len(set(_sources) - set(source_list)) == 0
+                display = display_setting
+            else:
+                display = get_segmentation_display(name, source_list, **display_setting)
+
         else:
             raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
+
         source_displays.append(display)
 
     if source_annotation_displays is not None:

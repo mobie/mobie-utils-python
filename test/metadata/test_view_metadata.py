@@ -177,6 +177,43 @@ class TestViewMetadata(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
+    def test_get_view(self):
+        from mobie.metadata import get_view, get_image_display, get_segmentation_display
+
+        # single image views
+        # with get_image_display arguments
+        display_args = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
+        view = get_view(["my-view"], ["image"], [["my-image"]], [display_args],
+                        is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
+        # with get_image_display return value
+        display = get_image_display("my-view", ["my-image"], **display_args)
+        view = get_view(["my-view"], ["image"], [["my-image"]], [display],
+                        is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
+        # single segmentation view
+        # with get_segmentation_display arguments
+        display_args = {"lut": "glasbey", "opacity": 1.0}
+        view = get_view(["my-view"], ["segmentation"], [["my-segmentation"]], [display_args],
+                        is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
+        # with get_image_display return value
+        display = get_segmentation_display("my-view", ["my-segmentation"], **display_args)
+        view = get_view(["my-view"], ["segmentation"], [["my-segmentation"]], [display],
+                        is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
+        # multi source view
+        image_display = get_image_display("images", ["my-image1", "my-image2"], contrastLimits=[0.0, 2.4], opacity=1.0)
+        seg_display = get_segmentation_display("segmentations", ["my-seg"], opacity=0.6, lut="glasbey")
+        view = get_view(["images", "segmentations"], ["image", "segmentation"],
+                        [["my-image1", "my-image2"], ["my-seg"]], [image_display, seg_display],
+                        is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
 
 if __name__ == '__main__':
     unittest.main()
