@@ -105,9 +105,6 @@ class TestViewMetadata(unittest.TestCase):
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, 'view')
 
-    def test_source_transforms(self):
-        from mobie.metadata import get_default_view
-
         # test view with source transformations
         trafos = [
             {'parameters': np.random.rand(12).tolist()},
@@ -212,6 +209,26 @@ class TestViewMetadata(unittest.TestCase):
         view = get_view(["images", "segmentations"], ["image", "segmentation"],
                         [["my-image1", "my-image2"], ["my-seg"]], [image_display, seg_display],
                         is_exclusive=True, menu_name="bookmark")
+        validate_with_schema(view, "view")
+
+    def test_source_transforms(self):
+        from mobie.metadata import get_affine_source_transform, get_crop_source_transform, get_view
+        settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
+
+        # affine trafo
+        affine = get_affine_source_transform(["my-image"], np.random.rand(12),
+                                             timepoints=[0, 1], source_names_after_transform=["my-transformed-image"])
+        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
+                        is_exclusive=True, menu_name="bookmark",
+                        source_transforms=[affine])
+        validate_with_schema(view, "view")
+
+        # crop trafo
+        crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
+                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"])
+        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
+                        is_exclusive=True, menu_name="bookmark",
+                        source_transforms=[crop])
         validate_with_schema(view, "view")
 
 

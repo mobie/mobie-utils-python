@@ -1,6 +1,11 @@
 import numpy as np
 
 
+#
+# display settigs
+#
+
+
 def get_image_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
@@ -70,25 +75,57 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     return {"sourceAnnotationDisplay": annotation_display}
 
 
-def get_affine_source_transform(sources, parameters, timepoints=None):
+#
+# source transformations
+#
+
+def _ensure_list(x):
+    if isinstance(x, tuple):
+        return list(x)
+    if isinstance(x, np.ndarray):
+        return x.tolist()
+    assert isinstance(x, list)
+    return x
+
+
+def get_affine_source_transform(sources, parameters,
+                                timepoints=None, source_names_after_transform=None):
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
-
-    def ensure_list(x):
-        if isinstance(x, tuple):
-            return list(x)
-        if isinstance(x, np.ndarray):
-            return x.tolist()
-        assert isinstance(x, list)
-        return x
-
     trafo = {
         "sources": sources,
-        "parameters": ensure_list(parameters)
+        "parameters": _ensure_list(parameters)
     }
     if timepoints is not None:
         trafo["timepoints"] = timepoints
+    if source_names_after_transform is not None:
+        assert len(source_names_after_transform) == len(sources)
+        trafo["sourceNamesAfterTransform"] = source_names_after_transform
     return {"affine": trafo}
+
+
+def get_crop_source_transform(sources, min, max,
+                              timepoints=None, source_names_after_transform=None,
+                              shift_to_origin=None):
+    assert len(min) == len(max) == 3
+    trafo = {
+        "sources": sources,
+        "min": _ensure_list(min),
+        "max": _ensure_list(max)
+    }
+    if timepoints is not None:
+        trafo["timepoints"] = timepoints
+    if source_names_after_transform is not None:
+        assert len(source_names_after_transform) == len(sources)
+        trafo["sourceNamesAfterTransform"] = source_names_after_transform
+    if shift_to_origin is not None:
+        trafo["shiftToOrigin"] = shift_to_origin
+    return {"crop": trafo}
+
+
+#
+# viewer transformation
+#
 
 
 def get_viewer_transform(affine=None, normalized_affine=None, position=None, timepoint=None):
@@ -124,10 +161,15 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
     return trafo
 
 
+#
+# view functionality
+#
+
+
 def get_view(names, source_types, sources, display_settings,
              is_exclusive, menu_name,
              source_transforms=None, viewer_transform=None, source_annotation_displays=None):
-    """ Create view metadata for multi source views.
+    """ Create view for a multiple sources and optional transformations.
 
     Arguments:
         names [list[str]] - names of the display groups in this view.
