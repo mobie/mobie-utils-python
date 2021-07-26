@@ -80,9 +80,9 @@ def add_traces(input_folder, root, dataset_name, traces_name,
     else:
         table_folder = None
 
-    metadata.add_source_metadata(dataset_folder, 'segmentation',
-                                 traces_name, image_metadata_path,
-                                 view=view, table_folder=table_folder)
+    metadata.add_source_to_dataset(dataset_folder, 'segmentation',
+                                   traces_name, image_metadata_path,
+                                   view=view, table_folder=table_folder)
 
 
 def main():

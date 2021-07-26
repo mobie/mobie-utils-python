@@ -100,9 +100,9 @@ def add_segmentation(input_path, input_key,
         table_folder = None
 
     # add the segmentation to the image dict
-    metadata.add_source_metadata(dataset_folder, 'segmentation',
-                                 segmentation_name, image_metadata_path,
-                                 table_folder=table_folder, view=view)
+    metadata.add_source_to_dataset(dataset_folder, 'segmentation',
+                                   segmentation_name, image_metadata_path,
+                                   table_folder=table_folder, view=view)
 
 
 def main():

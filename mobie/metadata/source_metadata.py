@@ -58,7 +58,7 @@ def get_segmentation_metadata(dataset_folder, metadata_path, table_location=None
     return source_metadata
 
 
-def add_source_metadata(
+def add_source_to_dataset(
     dataset_folder,
     source_type,
     source_name,
@@ -67,7 +67,7 @@ def add_source_metadata(
     table_folder=None,
     overwrite=True
 ):
-    """ Add metadata entry for a souce to MoBIE dataset.
+    """ Add source metadata to a MoBIE dataset.
 
     Arguments:
         dataset_folder [str] - path to the dataset folder.

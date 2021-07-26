@@ -59,7 +59,7 @@ def add_image(input_path, input_key,
                       max_jobs=max_jobs, unit=unit,
                       source_name=image_name,
                       file_format=file_format)
-    metadata.add_source_metadata(dataset_folder, 'image', image_name, image_metadata_path, view=view)
+    metadata.add_source_to_dataset(dataset_folder, 'image', image_name, image_metadata_path, view=view)
 
     if transformation is not None:
         update_transformation_parameter(image_metadata_path, transformation)

@@ -118,9 +118,9 @@ def add_registered_source(input_path, input_key, transformation,
         table_folder = None
 
     # add the segmentation to the image dict
-    metadata.add_source_metadata(dataset_folder, source_type,
-                                 source_name, image_metadata_path,
-                                 view=view, table_folder=table_folder)
+    metadata.add_source_to_dataset(dataset_folder, source_type,
+                                   source_name, image_metadata_path,
+                                   view=view, table_folder=table_folder)
 
 
 if __name__ == '__main__':
