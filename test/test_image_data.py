@@ -83,6 +83,7 @@ class TestImageData(unittest.TestCase):
                   tmp_folder=self.tmp_folder,
                   file_format=file_format,
                   target='local', max_jobs=n_jobs)
+        validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
 
     def test_init_from_hdf5(self):
         dataset_name = 'test'

@@ -3,23 +3,24 @@ import pandas as pd
 from glob import glob
 
 import numpy as np
+from elf.io import open_file
 from jsonschema import ValidationError
 from pybdv.metadata import get_name
 from .utils import _assert_true, _assert_equal, validate_with_schema
 
 
 def is_default_table(table):
-    default_table_columns = {'label_id',
-                             'anchor_x', 'anchor_y', 'anchor_z',
-                             'bb_min_x', 'bb_min_y', 'bb_min_z',
-                             'bb_max_x', 'bb_max_y', 'bb_max_z'}
+    default_table_columns = {"label_id",
+                             "anchor_x", "anchor_y", "anchor_z",
+                             "bb_min_x", "bb_min_y", "bb_min_z",
+                             "bb_max_x", "bb_max_y", "bb_max_z"}
     return len(default_table_columns - set(table.columns)) == 0
 
 
 def check_table(table, ref_label_ids):
-    if 'label_id' not in table.columns:
+    if "label_id" not in table.columns:
         return False
-    this_label_ids = set(table['label_id'].values)
+    this_label_ids = set(table["label_id"].values)
     return len(this_label_ids - ref_label_ids) == 0
 
 
@@ -36,7 +37,7 @@ def check_tables(table_folder, assert_true):
     for table_path in all_tables:
         table = _load_table(table_path)
         if is_default_table(table):
-            ref_label_ids = set(table['label_id'].values)
+            ref_label_ids = set(table["label_id"].values)
             break
 
     msg = f"Could not find default table in {table_folder}"
@@ -53,7 +54,7 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
                              assert_true=_assert_true, assert_equal=_assert_equal):
     # static validation with json schema
     try:
-        validate_with_schema(metadata, 'source')
+        validate_with_schema(metadata, "source")
     except ValidationError as e:
         msg = f"{e}"
         assert_true(False, msg)
@@ -62,19 +63,27 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     metadata = metadata[source_type]
     # dynamic validation of paths
     if dataset_folder is not None:
-        for format_, storage in metadata['imageData'].items():
-            path = storage.get('relativePath', None)
+        for format_, storage in metadata["imageData"].items():
+            path = storage.get("relativePath", None)
             if path is None:
                 continue
-            path = os.path.join(dataset_folder, storage['relativePath'])
+            path = os.path.join(dataset_folder, storage["relativePath"])
             msg = f"Could not find data for {name} at {path}"
             assert_true(os.path.exists(path), msg)
-            # check that source name and name in the xml agree for bdv formats
-            if path.endswith('.xml'):
+
+            # check that the source name and name in the xml agree for bdv formats
+            if format_.startswith("bdv"):
                 bdv_name = get_name(path, setup_id=0)
                 assert_equal(name, bdv_name)
-        if 'tableData' in metadata:
-            table_folder = os.path.join(dataset_folder, metadata['tableData']['tsv']['relativePath'])
+
+            # check that the source name and name in the ome.zarr metadata agree
+            if format_ == "ome.zarr":
+                with open_file(path, "r") as f:
+                    ome_name = f.attrs["multiscales"][0]["name"]
+                assert_equal(name, ome_name)
+
+        if "tableData" in metadata:
+            table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
             check_tables(table_folder, assert_true)
 
 
@@ -87,13 +96,13 @@ def check_grid_tables(table_folder, tables, assert_true):
 
         table = _load_table(table_path)
         msg = f"Table {table_path} does not contain the grid_id column"
-        assert_true('grid_id' in table.columns, msg)
+        assert_true("grid_id" in table.columns, msg)
 
         n_cols = table.shape[1]
         msg = f"Table {table_path} contains only a single column"
         assert_true(n_cols > 1, msg)
 
-        this_grid_ids = table['grid_id'].values
+        this_grid_ids = table["grid_id"].values
         if ref_grid_ids is None:
             ref_grid_ids = this_grid_ids
         else:
@@ -104,7 +113,7 @@ def check_grid_tables(table_folder, tables, assert_true):
 def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true):
     # static validation with json schema
     try:
-        validate_with_schema(view, 'view')
+        validate_with_schema(view, "view")
     except ValidationError as e:
         msg = f"{e}"
         assert_true(False, msg)
@@ -130,7 +139,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
         for transform in source_transformations:
             transform_type = list(transform.keys())[0]
             transform_metadata = list(transform.values())[0]
-            transform_name = transform_metadata['name']
+            transform_name = transform_metadata["name"]
 
             # validate the sources for this source transform
             transform_sources = transform_metadata["sources"]
