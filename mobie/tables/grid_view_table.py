@@ -24,11 +24,19 @@ def compute_grid_view_table(sources, table_path, **additional_columns):
 def check_grid_view_table(sources, table_path):
     first_col_name = "annotation_id"
     table = pd.read_csv(table_path, sep="\t")
+
     if first_col_name not in table.columns:
         raise ValueError(f"Expect grid view table to have a '{first_col_name}' column")
-    if table.shape[0] != len(sources):
-        msg = f"Expect number of rows in the table to be the same as the number of grid postions: {len(sources)}"
+
+    # check that keys of sources are a subset of the annotation ids in the table
+    source_ids = set(range(len(list))) if isinstance(sources, list) else set(sources.keys())
+    table_ids = set(table[first_col_name])
+    missing_ids = list(source_ids - table_ids)
+
+    if missing_ids:
+        msg = f"The annotation ids {missing_ids} are missing from the table."
         raise ValueError(msg)
+
     if table.shape[1] == 1:
         msg = "Expect grid view table to have at least two columns"
         raise ValueError(msg)
