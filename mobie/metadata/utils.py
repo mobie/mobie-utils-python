@@ -31,3 +31,10 @@ class NPTypesEncoder(json.JSONEncoder):
         if isinstance(obj, self.float_types):
             return float(obj)
         return json.JSONEncoder.default(self, obj)
+
+
+def get_table_metadata(table_location):
+    table_metadata = {
+        "tsv": {"relativePath": table_location}
+    }
+    return table_metadata

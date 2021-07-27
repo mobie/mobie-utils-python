@@ -1,13 +1,10 @@
 import os
 import warnings
-from copy import deepcopy
 
 from .dataset_metadata import add_view_to_dataset, read_dataset_metadata, write_dataset_metadata
 from .utils import read_metadata, write_metadata
-from .source_metadata import _get_table_metadata
-from .view_metadata import get_view
+from .view_metadata import get_view, get_grid_view
 from ..validation.utils import validate_with_schema
-from ..tables.grid_view_table import check_grid_view_table, compute_grid_view_table
 
 # TODO add more convenience for source and viewer transforms ?
 
@@ -110,99 +107,6 @@ def add_additional_bookmark(dataset_folder, bookmark_file_name, bookmark_name,
     write_metadata(bookmark_file, metadata)
 
 
-def make_grid_view(dataset_folder, name, sources,
-                   table_folder=None, display_groups=None,
-                   display_group_settings=None, positions=None,
-                   menu_name='bookmark'):
-
-    dataset_metadata = read_dataset_metadata(dataset_folder)
-    all_sources = dataset_metadata['sources']
-    views = dataset_metadata['views']
-
-    display_names = []
-    source_types = []
-    display_sources = []
-    display_settings = []
-
-    for source_position in sources:
-        assert isinstance(source_position, (list, tuple)), f"{type(source_position)}: {source_position}"
-        for source_name in source_position:
-            if source_name not in all_sources:
-                raise ValueError(f"Invalid source name: {source_name}")
-
-            source_type = list(all_sources[source_name].keys())[0]
-
-            if display_groups is None:
-                display_name = f'{name}_{source_type}s'
-            else:
-                display_name = display_groups[source_name]
-
-            if display_name in display_names:
-                display_id = display_names.index(display_name)
-                display_sources[display_id].append(source_name)
-            else:
-                display_names.append(display_name)
-                source_types.append(source_type)
-                display_sources.append([source_name])
-
-                # check if we have display setting parameters
-                if display_group_settings is None:
-                    # if not, we just take the first source's display settings here
-                    display_setting = deepcopy(views[source_name])
-                    setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
-                    display_setting = display_setting['sourceDisplays'][0][setting_key]
-                    display_setting.pop('name')
-                    display_setting.pop('sources')
-                else:
-                    display_setting = display_group_settings[display_name]
-                display_settings.append(display_setting)
-
-    # the sources for the grid and the source annotation display need to be dicts
-    # with (flat) grid positions mapping to the source names
-    map_sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
-
-    # create the grid view transform
-    grid_transform = {
-        "sources": map_sources
-    }
-    if positions is not None:
-        if len(positions) != len(sources):
-            msg = f"Invalid grid position length {len(positions)}, expected same length as sources: {len(sources)}"
-            raise ValueError(msg)
-        # also needs to be a map internally
-        grid_transform['positions'] = {ii: pos for ii, pos in enumerate(positions)}
-    grid_transform = [{'grid': grid_transform}]
-
-    # process the table folder
-    if table_folder is None:
-        table_folder = os.path.join('tables', name)
-    table_folder_path = os.path.join(dataset_folder, table_folder)
-    os.makedirs(table_folder_path, exist_ok=True)
-    default_table_path = os.path.join(table_folder_path, 'default.tsv')
-    if not os.path.exists(default_table_path):
-        compute_grid_view_table(sources, default_table_path, positions=positions)
-    check_grid_view_table(sources, default_table_path, positions=positions)
-
-    # create the source annotation display for this grid view, this will show the table for this grid view!
-    source_annotation_display = {
-        "sources": map_sources,
-        "tableData": _get_table_metadata(table_folder),
-        "tables": ["default.tsv"]
-    }
-
-    view = get_view(names=display_names,
-                    source_types=source_types,
-                    sources=display_sources,
-                    display_settings=display_settings,
-                    source_transforms=grid_transform,
-                    source_annotation_displays={name: source_annotation_display},
-                    is_exclusive=True,
-                    menu_name=menu_name)
-
-    validate_with_schema(view, 'view')
-    return view
-
-
 def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
                       display_groups=None, display_group_settings=None,
                       positions=None, bookmark_file_name=None,
@@ -233,9 +137,11 @@ def add_grid_bookmark(dataset_folder, name, sources, table_folder=None,
         bookmarks = read_metadata(bookmark_file).get('bookmarks', {})
     _check_bookmark(name, bookmarks, overwrite)
 
-    view = make_grid_view(dataset_folder, name, sources,
-                          table_folder=table_folder, display_groups=display_groups,
-                          display_group_settings=display_group_settings, positions=positions)
+    view = get_grid_view(dataset_folder, name, sources, menu_name="bookmark",
+                         table_folder=table_folder, display_groups=display_groups,
+                         display_group_settings=display_group_settings, positions=positions)
+    validate_with_schema(view, 'view')
+
     bookmarks[name] = view
     if bookmark_file_name is None:
         dataset_metadata['views'] = bookmarks

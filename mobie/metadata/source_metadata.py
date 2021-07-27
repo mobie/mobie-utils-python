@@ -2,6 +2,7 @@ import os
 import warnings
 from pybdv.metadata import get_bdv_format
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
+from .utils import get_table_metadata
 from .view_metadata import get_default_view
 from ..validation import validate_source_metadata, validate_view_metadata
 
@@ -39,13 +40,6 @@ def _get_image_metadata(dataset_folder, path, type_, file_format):
     return source_metadata
 
 
-def _get_table_metadata(table_location):
-    table_metadata = {
-        "tsv": {"relativePath": table_location}
-    }
-    return table_metadata
-
-
 def get_image_metadata(dataset_folder, metadata_path, file_format=None):
     return _get_image_metadata(dataset_folder, metadata_path, "image", file_format=file_format)
 
@@ -54,7 +48,7 @@ def get_segmentation_metadata(dataset_folder, metadata_path, table_location=None
     source_metadata = _get_image_metadata(dataset_folder, metadata_path, "segmentation", file_format=file_format)
     if table_location is not None:
         relative_table_location = os.path.relpath(table_location, dataset_folder)
-        source_metadata["segmentation"]["tableData"] = _get_table_metadata(relative_table_location)
+        source_metadata["segmentation"]["tableData"] = get_table_metadata(relative_table_location)
     return source_metadata
 
 
