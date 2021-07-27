@@ -90,4 +90,4 @@ def compute_trace_default_table(input_folder, table_path, resolution, seg_infos=
 
     table = pd.DataFrame(table, columns=header)
     table = remove_background_label_row(table)
-    table.to_csv(table_path, index=False, sep='\t')
+    table.to_csv(table_path, index=False, sep='\t', na_rep="nan")

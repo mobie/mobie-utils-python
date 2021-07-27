@@ -76,7 +76,7 @@ def to_csv(input_path, input_key, output_path, resolution,
     data = np.concatenate([label_ids, anchors, minc, maxc, attributes[:, 1:2]], axis=1)
     df = pd.DataFrame(data, columns=col_names)
     df = remove_background_label_row(df)
-    df.to_csv(output_path, sep='\t', index=False)
+    df.to_csv(output_path, sep='\t', index=False, na_rep="nan")
 
     return label_ids
 

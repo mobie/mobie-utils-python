@@ -31,7 +31,7 @@ def compute_grid_view_table(sources, table_path, positions=None, **additional_co
         columns = [first_col_name, "source"]
 
     table = pd.DataFrame(data, columns=columns)
-    table.to_csv(table_path, sep="\t", index=False)
+    table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
 
 
 def check_grid_view_table(sources, table_path, positions=None):
