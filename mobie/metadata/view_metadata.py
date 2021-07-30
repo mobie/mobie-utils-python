@@ -390,7 +390,8 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
     # create the grid transform
     if grid_sources is None:
         grid_sources = sources
-    grid_trafo = get_grid_source_transform(grid_sources, positions)
+    grid_trafo = get_grid_source_transform(grid_sources, positions,
+                                           center_at_origin=center_at_origin)
     grid_sources = grid_trafo["grid"]["sources"]
     if additional_source_transforms is None:
         source_transforms = [grid_trafo]
@@ -405,8 +406,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
     os.makedirs(table_folder_path, exist_ok=True)
     default_table_path = os.path.join(table_folder_path, 'default.tsv')
     if not os.path.exists(default_table_path):
-        compute_grid_view_table(grid_sources, default_table_path,
-                                center_at_origin=center_at_origin)
+        compute_grid_view_table(grid_sources, default_table_path)
     check_grid_view_table(grid_sources, default_table_path)
 
     # create the source annotation display for this grid view, this will show the table for this grid view!
