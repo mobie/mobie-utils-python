@@ -41,36 +41,38 @@ def write_project_metadata(root, metadata):
 
 
 def project_exists(root):
-    return os.path.exists(os.path.join(root, "project.json"))
+    meta = read_project_metadata(root)
+    required_fields = ["datasets", "imageDataFormats", "specVersion"]
+    return all(req in meta for req in required_fields)
 
 
 def dataset_exists(root, dataset_name):
     project = read_project_metadata(root)
-    return dataset_name in project.get('datasets', [])
+    return dataset_name in project.get("datasets", [])
 
 
 def add_dataset(root, dataset_name, is_default):
     project = read_project_metadata(root)
 
-    if dataset_name in project['datasets']:
+    if dataset_name in project["datasets"]:
         warnings.warn(f"Dataset {dataset_name} is already present!")
     else:
-        project['datasets'].append(dataset_name)
+        project["datasets"].append(dataset_name)
 
     # if this is the only dataset we set it as default
-    if is_default or len(project['datasets']) == 1:
-        project['defaultDataset'] = dataset_name
+    if is_default or len(project["datasets"]) == 1:
+        project["defaultDataset"] = dataset_name
 
     write_project_metadata(root, project)
 
 
 def get_datasets(root):
-    return read_project_metadata(root)['datasets']
+    return read_project_metadata(root)["datasets"]
 
 
 def get_file_formats(root):
     metadata = read_project_metadata(root)
-    return metadata['imageDataFormats']
+    return metadata["imageDataFormats"]
 
 
 def has_file_format(root, file_format):

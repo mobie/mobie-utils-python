@@ -3,7 +3,7 @@ from copy import deepcopy
 from warnings import warn
 
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
-from .project_metadata import get_datasets, read_project_metadata, write_project_metadata
+from .project_metadata import get_datasets, read_project_metadata, project_exists, write_project_metadata
 from ..xml_utils import copy_xml_as_n5_s3
 
 
@@ -21,6 +21,7 @@ def add_remote_project_metadata(
         service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: 'https://s3.embl.de'.
         region [str] - the region. Only relevant if aws.s3 is used. (default: 'us-west-2')
     """
+    assert project_exists(root), f"Cannot find MoBIE project at {root}"
     datasets = get_datasets(root)
     new_file_formats = None
     for dataset_name in datasets:
