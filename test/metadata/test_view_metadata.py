@@ -236,14 +236,16 @@ class TestViewMetadata(unittest.TestCase):
 
         # crop trafo
         crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
-                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"])
+                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"],
+                                         center_at_origin=True)
         view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
                         is_exclusive=True, menu_name="bookmark",
                         source_transforms=[crop])
         validate_with_schema(view, "view")
 
         # grid trafo from list
-        grid = get_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]])
+        grid = get_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
+                                         center_at_origin=True)
         view = get_view(["image-grid"], ["image"],
                         [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
                         is_exclusive=True, menu_name="bookmark",

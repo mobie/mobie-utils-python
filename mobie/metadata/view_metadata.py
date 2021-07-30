@@ -112,7 +112,7 @@ def get_affine_source_transform(sources, parameters,
 
 def get_crop_source_transform(sources, min, max,
                               timepoints=None, source_names_after_transform=None,
-                              shift_to_origin=None):
+                              center_at_origin=None):
     assert len(min) == len(max) == 3
     trafo = {
         "sources": sources,
@@ -124,12 +124,13 @@ def get_crop_source_transform(sources, min, max,
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == len(sources)
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
-    if shift_to_origin is not None:
-        trafo["shiftToOrigin"] = shift_to_origin
+    if center_at_origin is not None:
+        trafo["centerAtOrigin"] = center_at_origin
     return {"crop": trafo}
 
 
-def get_grid_source_transform(sources, positions=None, source_names_after_transform=None, timepoints=None):
+def get_grid_source_transform(sources, positions=None, source_names_after_transform=None,
+                              timepoints=None, center_at_origin=None):
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
     if isinstance(sources, list):
         sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
@@ -155,95 +156,10 @@ def get_grid_source_transform(sources, positions=None, source_names_after_transf
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
 
+    if center_at_origin is not None:
+        grid_transform["centerAtOrigin"] = center_at_origin
+
     return {"grid": grid_transform}
-
-
-def get_grid_view(dataset_folder, name, sources, menu_name=None,
-                  table_folder=None, display_groups=None,
-                  display_group_settings=None, positions=None,
-                  grid_sources=None,
-                  additional_source_transforms=None):
-    dataset_metadata = read_dataset_metadata(dataset_folder)
-    all_sources = dataset_metadata["sources"]
-    views = dataset_metadata["views"]
-
-    display_names = []
-    source_types = []
-    display_sources = []
-    display_settings = []
-
-    for source_position in sources:
-        assert isinstance(source_position, (list, tuple)), f"{type(source_position)}: {source_position}"
-        for source_name in source_position:
-            if source_name not in all_sources:
-                raise ValueError(f"Invalid source name: {source_name}")
-
-            source_type = list(all_sources[source_name].keys())[0]
-
-            if display_groups is None:
-                display_name = f'{name}_{source_type}s'
-            else:
-                display_name = display_groups[source_name]
-
-            if display_name in display_names:
-                display_id = display_names.index(display_name)
-                display_sources[display_id].append(source_name)
-            else:
-                display_names.append(display_name)
-                source_types.append(source_type)
-                display_sources.append([source_name])
-
-                # check if we have display setting parameters
-                if display_group_settings is None:
-                    # if not, we just take the first source's display settings here
-                    display_setting = deepcopy(views[source_name])
-                    setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
-                    display_setting = display_setting['sourceDisplays'][0][setting_key]
-                    display_setting.pop('name')
-                    display_setting.pop('sources')
-                else:
-                    display_setting = display_group_settings[display_name]
-                display_settings.append(display_setting)
-
-    # create the grid transform
-    if grid_sources is None:
-        grid_sources = sources
-    grid_trafo = get_grid_source_transform(grid_sources, positions)
-    grid_sources = grid_trafo["grid"]["sources"]
-    if additional_source_transforms is None:
-        source_transforms = [grid_trafo]
-    else:
-        assert isinstance(additional_source_transforms, list)
-        source_transforms = additional_source_transforms + [grid_trafo]
-
-    # process the table folder
-    if table_folder is None:
-        table_folder = os.path.join('tables', name)
-    table_folder_path = os.path.join(dataset_folder, table_folder)
-    os.makedirs(table_folder_path, exist_ok=True)
-    default_table_path = os.path.join(table_folder_path, 'default.tsv')
-    if not os.path.exists(default_table_path):
-        compute_grid_view_table(grid_sources, default_table_path)
-    check_grid_view_table(grid_sources, default_table_path)
-
-    # create the source annotation display for this grid view, this will show the table for this grid view!
-    source_annotation_display = {
-        "sources": grid_sources,
-        "tableData": get_table_metadata(table_folder),
-        "tables": ["default.tsv"]
-    }
-
-    if menu_name is None:
-        menu_name = "grid"
-    view = get_view(names=display_names,
-                    source_types=source_types,
-                    sources=display_sources,
-                    display_settings=display_settings,
-                    source_transforms=source_transforms,
-                    source_annotation_displays={name: source_annotation_display},
-                    is_exclusive=True,
-                    menu_name=menu_name)
-    return view
 
 
 #
@@ -421,6 +337,95 @@ def get_default_view(source_type, source_name, menu_name=None,
     view = get_view([source_name], [source_type], [[source_name]], [kwargs],
                     is_exclusive=False, menu_name=menu_name,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
+    return view
+
+
+def get_grid_view(dataset_folder, name, sources, menu_name=None,
+                  table_folder=None, display_groups=None,
+                  display_group_settings=None, positions=None,
+                  grid_sources=None, center_at_origin=None,
+                  additional_source_transforms=None):
+    dataset_metadata = read_dataset_metadata(dataset_folder)
+    all_sources = dataset_metadata["sources"]
+    views = dataset_metadata["views"]
+
+    display_names = []
+    source_types = []
+    display_sources = []
+    display_settings = []
+
+    for source_position in sources:
+        assert isinstance(source_position, (list, tuple)), f"{type(source_position)}: {source_position}"
+        for source_name in source_position:
+            if source_name not in all_sources:
+                raise ValueError(f"Invalid source name: {source_name}")
+
+            source_type = list(all_sources[source_name].keys())[0]
+
+            if display_groups is None:
+                display_name = f'{name}_{source_type}s'
+            else:
+                display_name = display_groups[source_name]
+
+            if display_name in display_names:
+                display_id = display_names.index(display_name)
+                display_sources[display_id].append(source_name)
+            else:
+                display_names.append(display_name)
+                source_types.append(source_type)
+                display_sources.append([source_name])
+
+                # check if we have display setting parameters
+                if display_group_settings is None:
+                    # if not, we just take the first source's display settings here
+                    display_setting = deepcopy(views[source_name])
+                    setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
+                    display_setting = display_setting['sourceDisplays'][0][setting_key]
+                    display_setting.pop('name')
+                    display_setting.pop('sources')
+                else:
+                    display_setting = display_group_settings[display_name]
+                display_settings.append(display_setting)
+
+    # create the grid transform
+    if grid_sources is None:
+        grid_sources = sources
+    grid_trafo = get_grid_source_transform(grid_sources, positions)
+    grid_sources = grid_trafo["grid"]["sources"]
+    if additional_source_transforms is None:
+        source_transforms = [grid_trafo]
+    else:
+        assert isinstance(additional_source_transforms, list)
+        source_transforms = additional_source_transforms + [grid_trafo]
+
+    # process the table folder
+    if table_folder is None:
+        table_folder = os.path.join('tables', name)
+    table_folder_path = os.path.join(dataset_folder, table_folder)
+    os.makedirs(table_folder_path, exist_ok=True)
+    default_table_path = os.path.join(table_folder_path, 'default.tsv')
+    if not os.path.exists(default_table_path):
+        compute_grid_view_table(grid_sources, default_table_path,
+                                center_at_origin=center_at_origin)
+    check_grid_view_table(grid_sources, default_table_path)
+
+    # create the source annotation display for this grid view, this will show the table for this grid view!
+    source_annotation_display = {
+        "sources": grid_sources,
+        "tableData": get_table_metadata(table_folder),
+        "tables": ["default.tsv"]
+    }
+
+    if menu_name is None:
+        menu_name = "grid"
+    view = get_view(names=display_names,
+                    source_types=source_types,
+                    sources=display_sources,
+                    display_settings=display_settings,
+                    source_transforms=source_transforms,
+                    source_annotation_displays={name: source_annotation_display},
+                    is_exclusive=True,
+                    menu_name=menu_name)
     return view
 
 
