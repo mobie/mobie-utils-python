@@ -68,7 +68,8 @@ def add_source_to_dataset(
         source_type [str] - type of the source, either 'image' or 'segmentation'.
         source_name [str] - name of the source.
         xml_path [str] - path to the xml for the image data corresponding to this source.
-        view [dict] - default view for this source. (default: None)
+        view [dict] - view for this source. If None, will create a default view.
+            If empty dict, will not add a view (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
     """
@@ -94,16 +95,16 @@ def add_source_to_dataset(
                                                     image_metadata_path,
                                                     table_folder)
     validate_source_metadata(source_name, source_metadata, dataset_folder)
-
-    if view is None:
-        view = get_default_view(source_type, source_name)
-    validate_view_metadata(view)
-
     sources_metadata[source_name] = source_metadata
-    view_metadata[source_name] = view
-
     dataset_metadata["sources"] = sources_metadata
-    dataset_metadata["views"] = view_metadata
+
+    if view != {}:
+        if view is None:
+            view = get_default_view(source_type, source_name)
+        validate_view_metadata(view)
+        view_metadata[source_name] = view
+        dataset_metadata["views"] = view_metadata
+
     write_dataset_metadata(dataset_folder, dataset_metadata)
 
 
