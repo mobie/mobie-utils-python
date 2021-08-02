@@ -54,7 +54,7 @@ def _to_bdv_s3(file_format,
     # the absolute xml paths
     xml_path = os.path.join(dataset_folder, xml)
     xml_remote_path = os.path.join(dataset_folder, xml_remote)
-    data_rel_path = os.path.join(xml, get_data_path(xml_path))
+    data_rel_path = os.path.join(os.path.split(xml)[0], get_data_path(xml_path))
     data_abs_path = os.path.join(dataset_folder, data_rel_path)
     if not os.path.exists(data_abs_path):
         warn(f"Could not find data path at {data_abs_path} corresponding to xml {xml_path}")
