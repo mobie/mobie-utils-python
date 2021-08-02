@@ -25,7 +25,7 @@ def get_image_display(name, sources, **kwargs):
         "opacity": opacity,
         "sources": sources
     }
-    additional_image_kwargs = ["blendingMode", "resolution3dView", "showImagesIn3d"]
+    additional_image_kwargs = ["blendingMode", "resolution3dView", "showImagesIn3d", "visible"]
     for kwarg_name in additional_image_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -47,8 +47,8 @@ def get_segmentation_display(name, sources, **kwargs):
         "sources": sources
     }
     additional_seg_kwargs = ["blendingMode", "colorByColumn", "resolution3dView",
-                             "selectedSegmentIds", "showSelectedSegmentsIn3d",
-                             "tables", "valueLimits"]
+                             "selectedSegmentIds", "showSelectedSegmentsIn3d", "showTable",
+                             "tables", "valueLimits", "visible"]
     for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -71,6 +71,7 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     }
     additional_annotation_kwargs = ["colorByColumn",
                                     "selectedAnnotationIds",
+                                    "showTable",
                                     "valueLimits"]
     for kwarg_name in additional_annotation_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
