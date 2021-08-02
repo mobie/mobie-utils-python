@@ -2,6 +2,8 @@ import os
 from copy import deepcopy
 from warnings import warn
 
+from pybdv.metadata import get_data_path
+
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .project_metadata import get_datasets, read_project_metadata, project_exists, write_project_metadata
 from ..xml_utils import copy_xml_as_n5_s3
@@ -52,8 +54,7 @@ def _to_bdv_s3(file_format,
     # the absolute xml paths
     xml_path = os.path.join(dataset_folder, xml)
     xml_remote_path = os.path.join(dataset_folder, xml_remote)
-    data_extension = '.' + file_format.lstrip('.bdv')
-    data_rel_path = xml.replace('.xml', data_extension)
+    data_rel_path = os.path.join(xml, get_data_path(xml_path))
     data_abs_path = os.path.join(dataset_folder, data_rel_path)
     if not os.path.exists(data_abs_path):
         warn(f"Could not find data path at {data_abs_path} corresponding to xml {xml_path}")
