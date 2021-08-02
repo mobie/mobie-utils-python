@@ -22,7 +22,7 @@ class TestDataImport(unittest.TestCase):
         except OSError:
             pass
 
-    def create_data(self, n_images, tif):
+    def create_data(self, n_images, tif, is_seg=False):
         shape = (32, 32)
 
         def write_tif(path, data):
@@ -38,9 +38,13 @@ class TestDataImport(unittest.TestCase):
 
         write = write_tif if tif else write_h5
         paths = []
+        name = "seg" if is_seg else "im"
         for imid in range(n_images):
-            path = f"{self.test_folder}/im{imid}"
-            data = np.random.randint(0, 255, size=shape).astype('uint8')
+            path = f"{self.test_folder}/{name}{imid}"
+            if is_seg:
+                data = np.random.randint(0, 1000, size=shape).astype("uint32")
+            else:
+                data = np.random.randint(0, 255, size=shape).astype("uint8")
             p = write(path, data)
             paths.append(p)
         return paths
@@ -70,7 +74,7 @@ class TestDataImport(unittest.TestCase):
     def test_add_images_from_h5(self):
         from mobie.htm import add_images
         n_images = 4
-        files = self.create_data(n_images, tif=False)
+        files = self.create_data(n_images, tif=False, is_seg=True)
         image_names = [f"im{ii}" for ii in range(n_images)]
         tmp_folder = os.path.join(self.test_folder, "tmp")
         add_images(files, self.root, self.ds_name, image_names,
@@ -78,7 +82,17 @@ class TestDataImport(unittest.TestCase):
                    chunks=(16, 16), file_format="ome.zarr",
                    tmp_folder=tmp_folder, key="data")
 
-    # TODO test add_segmentation
+    def test_add_segmentation(self):
+        from mobie.htm import add_segmentations
+        n_images = 4
+        files = self.create_data(n_images, tif=False)
+        seg_names = [f"seg{ii}" for ii in range(n_images)]
+        tmp_folder = os.path.join(self.test_folder, "tmp")
+        add_segmentations(files, self.root, self.ds_name, seg_names,
+                          resolution=(1., 1.), scale_factors=[[2, 2]],
+                          chunks=(16, 16), file_format="ome.zarr",
+                          tmp_folder=tmp_folder, key="data",
+                          add_default_tables=True)
 
 
 if __name__ == '__main__':

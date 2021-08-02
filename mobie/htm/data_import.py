@@ -2,8 +2,10 @@ import multiprocessing
 import os
 
 import luigi
+import cluster_tools.utils.volume_utils as vu
 from cluster_tools.copy_sources import get_copy_task
 
+from .table_impl import get_table_impl_task
 from .. import metadata
 from .. import utils
 
@@ -48,11 +50,26 @@ def _require_dataset(root, dataset_name, file_format, is_default_dataset):
         metadata.add_dataset(root, dataset_name, is_default_dataset)
 
 
-def _add_tables(file_format, paths):
-    pass
+def _add_tables(file_format, paths,
+                segmentation_names, resolution,
+                ds_folder, tmp_folder, target, max_jobs):
+    task = get_table_impl_task(target)
+    config_dir = os.path.join(tmp_folder, "configs")
+
+    table_paths = [os.path.join(ds_folder, f"tables/{name}/default.tsv") for name in segmentation_names]
+    input_key = vu.get_format_key(file_format, scale=0)
+
+    t = task(tmp_folder=tmp_folder, max_jobs=max_jobs, config_dir=config_dir,
+             input_files=paths, output_files=table_paths, input_key=input_key,
+             resolution=resolution)
+    assert luigi.build([t], local_scheduler=True), "Computing tables failed"
+
+    table_folders = [os.path.split(path)[0] for path in table_paths]
+    return table_folders
 
 
-def _add_sources(dataset_folder, source_names, paths, file_format, source_type, table_folders=None):
+def _add_sources(dataset_folder, source_names, paths,
+                 file_format, source_type, table_folders=None):
     assert len(source_names) == len(paths)
     if table_folders is None:
         table_folders = len(source_names) * [None]
@@ -96,7 +113,8 @@ def add_segmentations(files, root,
 
     # require the dataset
     _require_dataset(root, dataset_name, file_format, is_default_dataset)
-    tmp_folder = f"tmp_{dataset_name}_{segmentation_names[0]}" if tmp_folder is None else tmp_folder
+    tmp_folder = f"tmp_{dataset_name}_{segmentation_names[0]}" if tmp_folder\
+        is None else tmp_folder
 
     # copy all the image data into the dataset with the given file format
     source_names, metadata_paths = _copy_image_data(files, key, root,
@@ -106,7 +124,10 @@ def add_segmentations(files, root,
                                                     tmp_folder, target, max_jobs)
 
     if add_default_tables:
-        table_folders = _add_tables(file_format, metadata_paths)
+        table_folders = _add_tables(file_format, metadata_paths,
+                                    segmentation_names, resolution,
+                                    os.path.join(root, dataset_name),
+                                    tmp_folder, target, max_jobs)
     else:
         table_folders = None
 

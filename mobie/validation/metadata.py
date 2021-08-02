@@ -10,11 +10,19 @@ from .utils import _assert_true, _assert_equal, validate_with_schema
 
 
 def is_default_table(table):
-    default_table_columns = {"label_id",
-                             "anchor_x", "anchor_y", "anchor_z",
-                             "bb_min_x", "bb_min_y", "bb_min_z",
-                             "bb_max_x", "bb_max_y", "bb_max_z"}
-    return len(default_table_columns - set(table.columns)) == 0
+    default_columns_2d = {"label_id",
+                          "anchor_x", "anchor_y",
+                          "bb_min_x", "bb_min_y",
+                          "bb_max_x", "bb_max_y"}
+    default_columns_3d = {"label_id",
+                          "anchor_x", "anchor_y", "anchor_z",
+                          "bb_min_x", "bb_min_y", "bb_min_z",
+                          "bb_max_x", "bb_max_y", "bb_max_z"}
+    is_default_3d = len(default_columns_3d - set(table.columns)) == 0
+    if is_default_3d:
+        return True
+    is_default_2d = len(default_columns_2d - set(table.columns)) == 0
+    return is_default_2d
 
 
 def check_table(table, ref_label_ids):
