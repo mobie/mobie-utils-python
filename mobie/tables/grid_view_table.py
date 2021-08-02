@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 
@@ -18,6 +19,7 @@ def compute_grid_view_table(sources, table_path, **additional_columns):
         columns = [first_col_name, "source"]
 
     table = pd.DataFrame(data, columns=columns)
+    os.makedirs(os.path.split(table_path)[0], exist_ok=True)
     table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
 
 
