@@ -10,7 +10,7 @@ from ..xml_utils import copy_xml_with_newpath
 
 
 #
-# functionality for reading / writing dataset.shema.json
+# functionality for reading / writing dataset.json
 #
 
 
@@ -25,7 +25,7 @@ def read_dataset_metadata(dataset_folder):
 
 
 #
-# functionality for creating datasets
+# functionality for creating and modifying datasets
 #
 
 
@@ -77,6 +77,13 @@ def create_dataset_structure(root, dataset_name, file_formats):
     for file_format in file_formats:
         os.makedirs(os.path.join(dataset_folder, 'images', file_format.replace('.', '-')), exist_ok=True)
     return dataset_folder
+
+
+def set_is2d(dataset_folder, is2d):
+    assert isinstance(is2d, bool)
+    metadata = read_dataset_metadata(dataset_folder)
+    metadata["is2D"] = is2d
+    write_dataset_metadata(dataset_folder, metadata)
 
 
 #

@@ -1,7 +1,7 @@
 from .bookmark_metadata import add_additional_bookmark, add_dataset_bookmark, add_grid_bookmark
 from .dataset_metadata import (add_view_to_dataset, copy_dataset_folder,
                                create_dataset_structure, create_dataset_metadata,
-                               read_dataset_metadata, write_dataset_metadata)
+                               read_dataset_metadata, set_is2d, write_dataset_metadata)
 from .project_metadata import (add_dataset, create_project_metadata,
                                dataset_exists, get_file_formats, has_file_format, read_project_metadata,
                                project_exists, write_project_metadata)
