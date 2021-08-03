@@ -15,6 +15,7 @@ def _copy_image_data(files, key, root,
                      file_format,  resolution, unit,
                      scale_factors, chunks,
                      tmp_folder, target, max_jobs):
+    assert len(files) == len(source_names)
     ds_folder = os.path.join(root, dataset_name)
     sources = list(metadata.read_dataset_metadata(ds_folder).get("sources", {}).keys())
 
@@ -23,7 +24,7 @@ def _copy_image_data(files, key, root,
     if not input_names:
         return [], []
 
-    input_files = [files[input_names.index(name)] for name in input_names]
+    input_files = [files[source_names.index(name)] for name in input_names]
     out_paths = [utils.get_internal_paths(ds_folder, file_format, name)
                  for name in input_names]
     output_files = [paths[0] for paths in out_paths]
