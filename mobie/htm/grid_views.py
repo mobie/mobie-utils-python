@@ -63,7 +63,8 @@ def get_plate_grid_view(metadata, source_prefixes,
                         source_name_to_site_name,
                         site_name_to_well_name,
                         site_table, well_table,
-                        well_to_position=None, name_filter=None):
+                        well_to_position=None, name_filter=None,
+                        sites_visible=True, wells_visible=True):
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -105,7 +106,8 @@ def get_plate_grid_view(metadata, source_prefixes,
         table_data={"tsv": {"relativePath": site_table}},
         tables=["default.tsv"],
         lut="glasbey",
-        opacity=0.5
+        opacity=0.5,
+        visible=sites_visible
     )
     source_displays.append(site_display)
 
@@ -126,7 +128,8 @@ def get_plate_grid_view(metadata, source_prefixes,
         table_data={"tsv": {"relativePath": well_table}},
         tables=["default.tsv"],
         lut="glasbey",
-        opacity=0.5
+        opacity=0.5,
+        visible=wells_visible
     )
     source_displays.append(well_display)
 
@@ -178,7 +181,8 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                         source_name_to_site_name,
                         site_name_to_well_name,
                         site_table=None, well_table=None,
-                        well_to_position=None, name_filter=None):
+                        well_to_position=None, name_filter=None,
+                        sites_visible=True, wells_visible=True):
     metadata = mobie.metadata.read_dataset_metadata(ds_folder)
 
     if site_table is None:
@@ -198,6 +202,7 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                                site_name_to_well_name=site_name_to_well_name,
                                well_to_position=well_to_position,
                                site_table=site_table, well_table=well_table,
-                               name_filter=name_filter)
+                               name_filter=name_filter,
+                               sites_visible=sites_visible, wells_visible=wells_visible)
     metadata["views"][view_name] = view
     mobie.metadata.write_dataset_metadata(ds_folder, metadata)

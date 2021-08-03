@@ -72,7 +72,8 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     additional_annotation_kwargs = ["colorByColumn",
                                     "selectedAnnotationIds",
                                     "showTable",
-                                    "valueLimits"]
+                                    "valueLimits",
+                                    "visible"]
     for kwarg_name in additional_annotation_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
