@@ -1,4 +1,5 @@
 import os
+import multiprocessing
 import unittest
 from shutil import rmtree
 
@@ -26,12 +27,13 @@ class TestGridViews(unittest.TestCase):
                 f.create_dataset("data", data=np.random.randint(0, 255, size=shape).astype("uint8"))
             files.append(im_path)
 
+        max_jobs = min(4, multiprocessing.cpu_count())
         tmp_folder = os.path.join(self.test_folder, "tmp")
         image_names = ["aWell1-Im1", "aWell1-Im2", "aWell2-Im1", "aWell2-Im2"]
         add_images(files, self.root, self.ds_name, image_names,
                    resolution=(1., 1.), scale_factors=[[2, 2]],
                    chunks=(16, 16), file_format="ome.zarr",
-                   tmp_folder=tmp_folder, key="data")
+                   tmp_folder=tmp_folder, key="data", max_jobs=max_jobs)
 
     def tearDown(self):
         try:

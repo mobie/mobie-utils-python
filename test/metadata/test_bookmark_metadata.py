@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import unittest
 from shutil import rmtree
@@ -14,12 +15,13 @@ from mobie.metadata.utils import read_metadata
 class TestBookmarkMetadata(unittest.TestCase):
     test_folder = './test-folder'
     root = './test-folder/data'
-    shape = (32, 64, 64)
     dataset_name = 'test'
     raw_name = 'test-raw'
     extra_name = 'extra-im'
     seg_name = 'test-seg'
     extra_seg_name = 'extra-seg'
+    shape = (16, 32, 32)
+    chunks = (8, 16, 16)
 
     def init_dataset(self):
         data_path = os.path.join(self.test_folder, 'data.h5')
@@ -32,26 +34,27 @@ class TestBookmarkMetadata(unittest.TestCase):
             f.create_dataset(data_key, data=np.random.randint(0, 100, size=self.shape))
 
         scales = [[2, 2, 2]]
+        max_jobs = min(4, multiprocessing.cpu_count())
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-init-raw')
         add_image(data_path, data_key, self.root, self.dataset_name, self.raw_name,
-                  resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
-                  tmp_folder=tmp_folder)
+                  resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
+                  tmp_folder=tmp_folder, max_jobs=max_jobs)
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-init-extra')
         add_image(data_path, data_key, self.root, self.dataset_name, self.extra_name,
-                  resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
-                  tmp_folder=tmp_folder)
+                  resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
+                  tmp_folder=tmp_folder, max_jobs=max_jobs)
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-init-seg')
         add_segmentation(seg_path, data_key, self.root, self.dataset_name, self.seg_name,
-                         resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
-                         tmp_folder=tmp_folder)
+                         resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
+                         tmp_folder=tmp_folder, max_jobs=max_jobs)
 
         tmp_folder = os.path.join(self.test_folder, 'tmp-init-extra_seg')
         add_segmentation(seg_path, data_key, self.root, self.dataset_name, self.extra_seg_name,
-                         resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
-                         tmp_folder=tmp_folder)
+                         resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
+                         tmp_folder=tmp_folder, max_jobs=max_jobs)
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)

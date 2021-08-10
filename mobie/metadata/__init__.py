@@ -9,6 +9,7 @@ from .remote_metadata import add_remote_dataset_metadata, add_remote_project_met
 from .source_metadata import add_source_to_dataset, get_image_metadata, get_segmentation_metadata
 from .view_metadata import (is_grid_view,
                             get_affine_source_transform, get_crop_source_transform, get_default_view,
-                            get_grid_source_transform, get_grid_view,
+                            get_grid_source_transform,
                             get_image_display, get_segmentation_display, get_source_annotation_display,
+                            get_transform_grid_source_transform, get_grid_view,
                             get_view, get_viewer_transform)

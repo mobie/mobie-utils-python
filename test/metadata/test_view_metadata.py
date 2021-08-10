@@ -1,5 +1,6 @@
-import unittest
+import multiprocessing
 import os
+import unittest
 from shutil import rmtree
 
 import numpy as np
@@ -223,7 +224,8 @@ class TestViewMetadata(unittest.TestCase):
 
     def test_source_transforms(self):
         from mobie.metadata import (get_affine_source_transform, get_crop_source_transform,
-                                    get_grid_source_transform, get_view)
+                                    get_grid_source_transform, get_transform_grid_source_transform,
+                                    get_view)
         settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
 
         # affine trafo
@@ -243,8 +245,8 @@ class TestViewMetadata(unittest.TestCase):
                         source_transforms=[crop])
         validate_with_schema(view, "view")
 
-        # grid trafo from list
-        grid = get_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
+        # grid trafo
+        grid = get_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images",
                                          center_at_origin=True)
         view = get_view(["image-grid"], ["image"],
                         [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
@@ -252,9 +254,18 @@ class TestViewMetadata(unittest.TestCase):
                         source_transforms=[grid])
         validate_with_schema(view, "view")
 
-        # grid trafo from dict
-        grid = get_grid_source_transform({"a": ["my-image1", "my-image2"], "b": ["my-image3", "my-image4"]},
-                                         positions={"a": [0, 0], "b": [1, 1]})
+        # transform grid trafo from list
+        grid = get_transform_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
+                                                   center_at_origin=True)
+        view = get_view(["image-grid"], ["image"],
+                        [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
+                        is_exclusive=True, menu_name="bookmark",
+                        source_transforms=[grid])
+        validate_with_schema(view, "view")
+
+        # transform grid trafo from dict
+        grid = get_transform_grid_source_transform({"a": ["my-image1", "my-image2"], "b": ["my-image3", "my-image4"]},
+                                                   positions={"a": [0, 0], "b": [1, 1]})
         view = get_view(["image-grid"], ["image"],
                         [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
                         is_exclusive=True, menu_name="bookmark",
@@ -274,18 +285,19 @@ class TestViewMetadata(unittest.TestCase):
         os.makedirs(self.root, exist_ok=True)
         path = os.path.join(self.root, "data.h5")
         with h5py.File(path, "w") as f:
-            f.create_dataset("data", data=np.random.rand(4, 64, 64))
+            f.create_dataset("data", data=np.random.rand(2, 64, 64))
 
         sources = []
         for ii in range(4):
             im_name = f"image-{ii}"
             add_image(path, "data", self.root, "ds", im_name,
                       resolution=(1, 1, 1), scale_factors=[[2, 2, 2]], chunks=(1, 32, 32),
-                      tmp_folder=os.path.join(self.root, f"tmp-{ii}"))
+                      tmp_folder=os.path.join(self.root, f"tmp-{ii}"),
+                      max_jobs=min(4, multiprocessing.cpu_count()))
             sources.append(im_name)
         return sources
 
-    def test_grid_view(self):
+    def test_transform_grid_view(self):
         from mobie.metadata import get_grid_view, get_affine_source_transform
 
         # we need an initial dataset for the grid view
@@ -293,7 +305,10 @@ class TestViewMetadata(unittest.TestCase):
         grid_sources = [[source] for source in sources]
 
         # only grid transform
-        view = get_grid_view(self.ds_folder, "grid-view", grid_sources)
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transform_grid=False)
+        validate_with_schema(view, "view")
+
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transform_grid=True)
         validate_with_schema(view, "view")
 
         # additional transforms
@@ -311,9 +326,17 @@ class TestViewMetadata(unittest.TestCase):
             for ii, source in enumerate(sources)
         ]
         transformed_sources = [[f"transformed-{ii}"] for ii in range(len(sources))]
+
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
-                             grid_sources=transformed_sources)
+                             grid_sources=transformed_sources,
+                             use_transform_grid=False)
+        validate_with_schema(view, "view")
+
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
+                             additional_source_transforms=trafos,
+                             grid_sources=transformed_sources,
+                             use_transform_grid=True)
         validate_with_schema(view, "view")
 
 

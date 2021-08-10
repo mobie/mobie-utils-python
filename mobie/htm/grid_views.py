@@ -58,13 +58,14 @@ def _get_sources_and_site_names(metadata, source_prefixes, source_name_to_site_n
     return this_sources, site_names
 
 
-def get_plate_grid_view(metadata, source_prefixes,
-                        source_types, source_settings, menu_name,
-                        source_name_to_site_name,
-                        site_name_to_well_name,
-                        site_table, well_table,
-                        well_to_position=None, name_filter=None,
-                        sites_visible=True, wells_visible=True):
+def get_transform_plate_grid_view(metadata, source_prefixes,
+                                  source_types, source_settings, menu_name,
+                                  source_name_to_site_name,
+                                  site_name_to_well_name,
+                                  site_table=None, well_table=None,
+                                  well_to_position=None, name_filter=None,
+                                  sites_visible=True, wells_visible=True,
+                                  add_annotation_displays=True):
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -93,7 +94,7 @@ def get_plate_grid_view(metadata, source_prefixes,
             site_name: [sources[sid] for sources in this_sources.values()]
             for sid, site_name in zip(site_ids, this_site_names)
         }
-        well_trafo = mobie.metadata.get_grid_source_transform(well_sources)
+        well_trafo = mobie.metadata.get_transform_grid_source_transform(well_sources)
         source_transforms.append(well_trafo)
 
         sources_per_well[well] = [source for sources in well_sources.values()
@@ -101,15 +102,17 @@ def get_plate_grid_view(metadata, source_prefixes,
         all_site_sources.update(well_sources)
 
     # create the annotation display for the sites
-    site_display = mobie.metadata.get_source_annotation_display(
-        "sites", all_site_sources,
-        table_data={"tsv": {"relativePath": site_table}},
-        tables=["default.tsv"],
-        lut="glasbey",
-        opacity=0.5,
-        visible=sites_visible
-    )
-    source_displays.append(site_display)
+    if add_annotation_displays:
+        assert site_table is not None
+        site_display = mobie.metadata.get_source_annotation_display(
+            "sites", all_site_sources,
+            table_data={"tsv": {"relativePath": site_table}},
+            tables=["default.tsv"],
+            lut="glasbey",
+            opacity=0.5,
+            visible=sites_visible
+        )
+        source_displays.append(site_display)
 
     # create the grid transform for aranging wells to the plate
     plate_sources = {well: sources_per_well[well] for well in well_names}
@@ -117,21 +120,117 @@ def get_plate_grid_view(metadata, source_prefixes,
         well_positions = None
     else:
         well_positions = {well: well_to_position(well) for well in well_names}
-    plate_trafo = mobie.metadata.get_grid_source_transform(
+    plate_trafo = mobie.metadata.get_transform_grid_source_transform(
         plate_sources, positions=well_positions
     )
     source_transforms.append(plate_trafo)
 
     # create the annotation display for wells to plate
-    well_display = mobie.metadata.get_source_annotation_display(
-        "wells", plate_sources,
-        table_data={"tsv": {"relativePath": well_table}},
-        tables=["default.tsv"],
-        lut="glasbey",
-        opacity=0.5,
-        visible=wells_visible
-    )
-    source_displays.append(well_display)
+    if add_annotation_displays:
+        assert well_table is not None
+        well_display = mobie.metadata.get_source_annotation_display(
+            "wells", plate_sources,
+            table_data={"tsv": {"relativePath": well_table}},
+            tables=["default.tsv"],
+            lut="glasbey",
+            opacity=0.5,
+            visible=wells_visible
+        )
+        source_displays.append(well_display)
+
+    view = {
+        "isExclusive": True,
+        "sourceDisplays": source_displays,
+        "sourceTransforms": source_transforms,
+        "uiSelectionGroup": menu_name
+    }
+    return view
+
+
+def get_plate_grid_view(metadata, source_prefixes, source_types,
+                        source_settings, menu_name,
+                        source_name_to_site_name, site_name_to_well_name,
+                        site_table=None, well_table=None,
+                        well_to_position=None, name_filter=None,
+                        sites_visible=True, wells_visible=True,
+                        add_annotation_displays=True):
+    assert len(source_prefixes) == len(source_types) == len(source_settings)
+    this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
+                                                           source_name_to_site_name, name_filter)
+
+    # create the source displays
+    source_displays = []
+    for prefix, source_type, settings in zip(source_prefixes, source_types, source_settings):
+        display = _get_display(prefix, source_type, this_sources[prefix], settings)
+        source_displays.append(display)
+
+    # get the mapping from sites to names and the unique well names
+    sites_to_wells = np.array([
+        site_name_to_well_name(site_name) for site_name in site_names
+    ])
+    well_names = np.unique(sites_to_wells)
+
+    # create the grid transform for arranging sites to wells
+    source_transforms = []
+    all_site_sources = {site_name: [] for site_name in site_names}
+    for prefix in source_prefixes:
+
+        prefix_sources = this_sources[prefix]
+        for source in prefix_sources:
+            all_site_sources[source_name_to_site_name(source, prefix)].append(source)
+
+        for well in well_names:
+            trafo_name = f"{well}_{prefix}"
+            well_sources = [
+                source for source in prefix_sources if
+                site_name_to_well_name(source_name_to_site_name(source, prefix)) == well
+            ]
+            trafo = mobie.metadata.get_grid_source_transform(
+                well_sources, trafo_name
+            )
+            source_transforms.append(trafo)
+
+    # create the annotation display for the sites
+    if add_annotation_displays:
+        assert site_table is not None
+        site_display = mobie.metadata.get_source_annotation_display(
+            "sites", all_site_sources,
+            table_data={"tsv": {"relativePath": site_table}},
+            tables=["default.tsv"],
+            lut="glasbey",
+            opacity=0.5,
+            visible=sites_visible
+        )
+        source_displays.append(site_display)
+
+    # create the grid transforms for arranging wells to the plate
+    if well_to_position is None:
+        positions = None
+    else:
+        positions = [well_to_position(well) for well in well_names]
+
+    for prefix in source_prefixes:
+        trafo_name = f"plate_{prefix}"
+        plate_sources = [f"{well}_{prefix}" for well in well_names]
+        trafo = mobie.metadata.get_grid_source_transform(
+            plate_sources, trafo_name, positions=positions
+        )
+        source_transforms.append(trafo)
+
+    # create the annotation display for wells to plate
+    if add_annotation_displays:
+        all_plate_sources = {well: [f"{well}_{prefix}" for prefix in source_prefixes]
+                             for well in well_names}
+        assert well_table is not None
+        well_display = mobie.metadata.get_source_annotation_display(
+            "wells", all_plate_sources,
+            table_data={"tsv": {"relativePath": well_table}},
+            tables=["default.tsv"],
+            lut="glasbey",
+            opacity=0.5,
+            visible=wells_visible
+        )
+        source_displays.append(well_display)
 
     view = {
         "isExclusive": True,
@@ -182,27 +281,41 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                         site_name_to_well_name,
                         site_table=None, well_table=None,
                         well_to_position=None, name_filter=None,
-                        sites_visible=True, wells_visible=True):
+                        sites_visible=True, wells_visible=True,
+                        add_annotation_displays=True,
+                        use_transform_grid=False):
     metadata = mobie.metadata.read_dataset_metadata(ds_folder)
 
-    if site_table is None:
+    if site_table is None and add_annotation_displays:
         site_table = _get_default_site_table(ds_folder, metadata, source_prefixes,
                                              source_name_to_site_name,
                                              site_name_to_well_name,
                                              name_filter)
-    if well_table is None:
+    if well_table is None and add_annotation_displays:
         well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
                                              source_name_to_site_name,
                                              site_name_to_well_name,
                                              name_filter)
 
-    view = get_plate_grid_view(metadata, source_prefixes, source_types,
-                               source_settings, menu_name,
-                               source_name_to_site_name=source_name_to_site_name,
-                               site_name_to_well_name=site_name_to_well_name,
-                               well_to_position=well_to_position,
-                               site_table=site_table, well_table=well_table,
-                               name_filter=name_filter,
-                               sites_visible=sites_visible, wells_visible=wells_visible)
+    if use_transform_grid:
+        view = get_transform_plate_grid_view(metadata, source_prefixes, source_types,
+                                             source_settings, menu_name,
+                                             source_name_to_site_name=source_name_to_site_name,
+                                             site_name_to_well_name=site_name_to_well_name,
+                                             well_to_position=well_to_position,
+                                             site_table=site_table, well_table=well_table,
+                                             name_filter=name_filter,
+                                             sites_visible=sites_visible, wells_visible=wells_visible,
+                                             add_annotation_displays=add_annotation_displays)
+    else:
+        view = get_plate_grid_view(metadata, source_prefixes, source_types,
+                                   source_settings, menu_name,
+                                   source_name_to_site_name=source_name_to_site_name,
+                                   site_name_to_well_name=site_name_to_well_name,
+                                   well_to_position=well_to_position,
+                                   name_filter=name_filter,
+                                   site_table=site_table, well_table=well_table,
+                                   sites_visible=sites_visible, wells_visible=wells_visible,
+                                   add_annotation_displays=add_annotation_displays)
     metadata["views"][view_name] = view
     mobie.metadata.write_dataset_metadata(ds_folder, metadata)

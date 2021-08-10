@@ -131,8 +131,8 @@ def get_crop_source_transform(sources, min, max,
     return {"crop": trafo}
 
 
-def get_grid_source_transform(sources, positions=None, source_names_after_transform=None,
-                              timepoints=None, center_at_origin=None):
+def get_transform_grid_source_transform(sources, positions=None, source_names_after_transform=None,
+                                        timepoints=None, center_at_origin=None):
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
     if isinstance(sources, list):
         sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
@@ -156,6 +156,23 @@ def get_grid_source_transform(sources, positions=None, source_names_after_transf
         grid_transform["sourceNamesAfterTransform"] = source_names_after_transform
 
     if timepoints is not None:
+        grid_transform["timepoints"] = timepoints
+
+    if center_at_origin is not None:
+        grid_transform["centerAtOrigin"] = center_at_origin
+
+    return {"transformGrid": grid_transform}
+
+
+def get_grid_source_transform(sources, merged_source_name, positions=None, timepoints=None, center_at_origin=None):
+    assert isinstance(sources, list)
+    grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
+
+    if positions is not None:
+        assert len(positions) == len(sources)
+        grid_transform["positions"] = positions
+
+    if timepoints is None:
         grid_transform["timepoints"] = timepoints
 
     if center_at_origin is not None:
@@ -276,13 +293,14 @@ def get_view(names, source_types, sources, display_settings,
         all_sources = set([source for source_list in sources for source in source_list])
         for source_transform in source_transforms:
             trafo_type = list(source_transform.keys())[0]
-            if trafo_type not in ("affine", "grid", "crop"):
-                msg = f"Invalid source transform type {trafo_type}, expect one of 'affine', 'grid', 'crop'"
+            valid_trafos = ("affine", "grid", "crop", "transformGrid")
+            if trafo_type not in valid_trafos:
+                msg = f"Invalid source transform type {trafo_type}, expect one of {valid_trafos}"
                 raise ValueError(msg)
 
             trafo = source_transform[trafo_type]
             trafo_sources = trafo["sources"]
-            if trafo_type == "grid":
+            if trafo_type == "transformGrid":
                 assert isinstance(trafo_sources, dict)
                 unique_trafo_sources = set([source for grid_source in trafo_sources.values() for source in grid_source])
             else:
@@ -342,11 +360,34 @@ def get_default_view(source_type, source_name, menu_name=None,
     return view
 
 
+def _to_transform_grid(sources, positions, center_at_origin):
+    grid_trafo = get_transform_grid_source_transform(sources, positions, center_at_origin=center_at_origin)
+    grid_sources = grid_trafo["transformGrid"]["sources"]
+    return [grid_trafo], grid_sources
+
+
+def _to_grid(sources, name, positions, center_at_origin):
+    assert isinstance(sources, (dict, list))
+    grid_sources = sources if isinstance(sources, list) else list(sources.values())
+    sources_per_pos = len(grid_sources[0])
+    assert all(len(sor) == sources_per_pos for sor in grid_sources)
+    source_transforms = [
+        get_grid_source_transform(
+           [source[ii] for source in grid_sources], f"{name}-{ii}",
+           positions=positions, center_at_origin=center_at_origin
+        ) for ii in range(sources_per_pos)
+    ]
+    if isinstance(sources, list):
+        sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
+    return source_transforms, sources
+
+
 def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
-                  additional_source_transforms=None):
+                  additional_source_transforms=None,
+                  use_transform_grid=False):
     dataset_metadata = read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata["sources"]
     views = dataset_metadata["views"]
@@ -392,14 +433,14 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
     # create the grid transform
     if grid_sources is None:
         grid_sources = sources
-    grid_trafo = get_grid_source_transform(grid_sources, positions,
-                                           center_at_origin=center_at_origin)
-    grid_sources = grid_trafo["grid"]["sources"]
-    if additional_source_transforms is None:
-        source_transforms = [grid_trafo]
+    if use_transform_grid:
+        source_transforms, grid_sources = _to_transform_grid(grid_sources, positions, center_at_origin)
     else:
+        source_transforms, grid_sources = _to_grid(grid_sources, name, positions, center_at_origin)
+
+    if additional_source_transforms is not None:
         assert isinstance(additional_source_transforms, list)
-        source_transforms = additional_source_transforms + [grid_trafo]
+        source_transforms = additional_source_transforms + source_transforms
 
     # process the table folder
     if table_folder is None:
