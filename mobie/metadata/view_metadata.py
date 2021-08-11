@@ -172,7 +172,7 @@ def get_grid_source_transform(sources, merged_source_name, positions=None, timep
         assert len(positions) == len(sources)
         grid_transform["positions"] = positions
 
-    if timepoints is None:
+    if timepoints is not None:
         grid_transform["timepoints"] = timepoints
 
     if center_at_origin is not None:
