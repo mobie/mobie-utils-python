@@ -158,12 +158,6 @@ def get_plate_grid_view(metadata, source_prefixes, source_types,
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
 
-    # create the source displays
-    source_displays = []
-    for prefix, source_type, settings in zip(source_prefixes, source_types, source_settings):
-        display = _get_display(prefix, source_type, this_sources[prefix], settings)
-        source_displays.append(display)
-
     # get the mapping from sites to names and the unique well names
     sites_to_wells = np.array([
         site_name_to_well_name(site_name) for site_name in site_names
@@ -190,19 +184,6 @@ def get_plate_grid_view(metadata, source_prefixes, source_types,
             )
             source_transforms.append(trafo)
 
-    # create the annotation display for the sites
-    if add_annotation_displays:
-        assert site_table is not None
-        site_display = mobie.metadata.get_source_annotation_display(
-            "sites", all_site_sources,
-            table_data={"tsv": {"relativePath": site_table}},
-            tables=["default.tsv"],
-            lut="glasbey",
-            opacity=0.5,
-            visible=sites_visible
-        )
-        source_displays.append(site_display)
-
     # create the grid transforms for arranging wells to the plate
     if well_to_position is None:
         positions = None
@@ -217,8 +198,28 @@ def get_plate_grid_view(metadata, source_prefixes, source_types,
         )
         source_transforms.append(trafo)
 
-    # create the annotation display for wells to plate
+    # create the source displays
+    source_displays = []
+    for prefix, source_type, settings in zip(source_prefixes, source_types, source_settings):
+        display = _get_display(prefix, source_type, [f"plate_{prefix}"], settings)
+        source_displays.append(display)
+
+    # add the source annotation displays if configured
     if add_annotation_displays:
+
+        # create the annotation display for the sites
+        assert site_table is not None
+        site_display = mobie.metadata.get_source_annotation_display(
+            "sites", all_site_sources,
+            table_data={"tsv": {"relativePath": site_table}},
+            tables=["default.tsv"],
+            lut="glasbey",
+            opacity=0.5,
+            visible=sites_visible
+        )
+        source_displays.append(site_display)
+
+        # create the annotation display for wells to plate
         all_plate_sources = {well: [f"{well}_{prefix}" for prefix in source_prefixes]
                              for well in well_names}
         assert well_table is not None

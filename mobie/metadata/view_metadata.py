@@ -287,37 +287,12 @@ def get_view(names, source_types, sources, display_settings,
     view["sourceDisplays"] = source_displays
 
     if source_transforms is not None:
-
-        # check that source transform types are valid and that all sources listed
-        # are also present in the display sources
-        all_sources = set([source for source_list in sources for source in source_list])
-        for source_transform in source_transforms:
-            trafo_type = list(source_transform.keys())[0]
-            valid_trafos = ("affine", "grid", "crop", "transformGrid")
-            if trafo_type not in valid_trafos:
-                msg = f"Invalid source transform type {trafo_type}, expect one of {valid_trafos}"
-                raise ValueError(msg)
-
-            trafo = source_transform[trafo_type]
-            trafo_sources = trafo["sources"]
-            if trafo_type == "transformGrid":
-                assert isinstance(trafo_sources, dict)
-                unique_trafo_sources = set([source for grid_source in trafo_sources.values() for source in grid_source])
-            else:
-                assert isinstance(trafo_sources, list)
-                unique_trafo_sources = set(trafo_sources)
-            invalid_sources = list(unique_trafo_sources - all_sources)
-            if invalid_sources:
-                msg = f"Invalid sources in transform: {invalid_sources}"
-                raise ValueError(msg)
-
-            # we need to add 'sourceNamesAfterTransform' if they are given
-            if "sourceNamesAfterTransform" in trafo:
-                additional_names = trafo["sourceNamesAfterTransform"]
-                if isinstance(additional_names, dict):
-                    additional_names = list(additional_names.values())
-                all_sources = all_sources.union(set(additional_names))
-
+        valid_source_transforms = {"affine", "grid", "crop", "transformGrid"}
+        this_source_transforms = set([list(trafo.keys())[0] for trafo in source_transforms])
+        invalid_trafos = list(this_source_transforms - valid_source_transforms)
+        if invalid_trafos:
+            msg = f"Invalid source transforms: {invalid_trafos}, only {valid_source_transforms} are valid"
+            raise ValueError(msg)
         view["sourceTransforms"] = source_transforms
 
     if viewer_transform is not None:
