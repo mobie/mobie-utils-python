@@ -23,7 +23,8 @@ def add_registered_source(input_path, input_key, transformation,
                           fiji_executable=None, elastix_directory=None,
                           tmp_folder=None, target='local',
                           max_jobs=multiprocessing.cpu_count(),
-                          bounding_box=None, is_default_dataset=False):
+                          bounding_box=None, is_default_dataset=False,
+                          description=None):
     """ Add a volume after registration in elastix format.
 
     Arguments:
@@ -58,6 +59,7 @@ def add_registered_source(input_path, input_key, transformation,
             needs to be specified in the output dataset space (default: None)
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is created. (default: False)
+        description [str] - description for this source (default: None)
     """
     if apply_registration is None:
         raise ValueError("Could not import 'apply_registration' functionality")
@@ -120,7 +122,8 @@ def add_registered_source(input_path, input_key, transformation,
     # add the segmentation to the image dict
     metadata.add_source_to_dataset(dataset_folder, source_type,
                                    source_name, image_metadata_path,
-                                   view=view, table_folder=table_folder)
+                                   view=view, table_folder=table_folder,
+                                   description=description)
 
 
 if __name__ == '__main__':

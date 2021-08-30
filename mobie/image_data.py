@@ -16,7 +16,8 @@ def add_image(input_path, input_key,
               max_jobs=multiprocessing.cpu_count(),
               view=None, transformation=None,
               unit='micrometer',
-              is_default_dataset=False):
+              is_default_dataset=False,
+              description=None):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -42,6 +43,7 @@ def add_image(input_path, input_key,
         unit [str] - physical unit of the coordinate system (default: micrometer)
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is being created. (default: False)
+        description [str] - description for this image (default: None)
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="image", source_name=image_name,
@@ -59,7 +61,8 @@ def add_image(input_path, input_key,
                       max_jobs=max_jobs, unit=unit,
                       source_name=image_name,
                       file_format=file_format)
-    metadata.add_source_to_dataset(dataset_folder, 'image', image_name, image_metadata_path, view=view)
+    metadata.add_source_to_dataset(dataset_folder, 'image', image_name, image_metadata_path,
+                                   view=view, description=description)
 
     if transformation is not None:
         update_transformation_parameter(image_metadata_path, transformation)

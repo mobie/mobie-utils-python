@@ -16,7 +16,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                menu_name=None, file_format="bdv.n5", view=None,
                max_jobs=multiprocessing.cpu_count(),
                add_default_table=True,
-               seg_infos={}, unit='micrometer'):
+               seg_infos={}, unit='micrometer',
+               description=None):
     """ Add traces to an existing MoBIE dataset.
 
     Currently supports nmx and swc format.
@@ -40,6 +41,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         add_default_table [bool] - whether to add the default table (default: True)
         seg_infos [dict] - segmentation information that will be added to the table (default: {})
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        description [str] - description for the traces (default: None)
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="segmentation",
@@ -82,7 +84,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
     metadata.add_source_to_dataset(dataset_folder, 'segmentation',
                                    traces_name, image_metadata_path,
-                                   view=view, table_folder=table_folder)
+                                   view=view, table_folder=table_folder,
+                                   description=description)
 
 
 def main():

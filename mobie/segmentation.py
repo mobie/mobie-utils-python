@@ -22,7 +22,7 @@ def add_segmentation(input_path, input_key,
                      max_jobs=multiprocessing.cpu_count(),
                      add_default_table=True, view=None,
                      postprocess_config=None, unit='micrometer',
-                     is_default_dataset=False):
+                     is_default_dataset=False, description=None):
     """ Add segmentation source to MoBIE dataset.
 
     Arguments:
@@ -49,6 +49,7 @@ def add_segmentation(input_path, input_key,
         unit [str] - physical unit of the coordinate system (default: micrometer)
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is being created. (default: False)
+        description [str] - description for this segmentation (default: None)
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="segmentation",
@@ -102,7 +103,8 @@ def add_segmentation(input_path, input_key,
     # add the segmentation to the image dict
     metadata.add_source_to_dataset(dataset_folder, 'segmentation',
                                    segmentation_name, image_metadata_path,
-                                   table_folder=table_folder, view=view)
+                                   table_folder=table_folder, view=view,
+                                   description=description)
 
 
 def main():
