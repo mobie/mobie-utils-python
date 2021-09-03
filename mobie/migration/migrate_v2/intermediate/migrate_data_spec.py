@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 import mobie.metadata as metadata
-from mobie.metadata.source_metadata import _get_table_metadata
+from mobie.metadata.utils import get_table_metadata
 
 
 def migrate_data_spec(dataset_folder):
@@ -31,7 +31,7 @@ def migrate_data_spec(dataset_folder):
 
         if "tableDataLocation" in source[source_type]:
             table_location = new_source[source_type].pop("tableDataLocation")
-            new_source[source_type]['tableData'] = _get_table_metadata(table_location)
+            new_source[source_type]['tableData'] = get_table_metadata(table_location)
 
         new_sources[source_name] = new_source
     dataset_metadata['sources'] = new_sources
@@ -48,7 +48,7 @@ def migrate_data_spec(dataset_folder):
                 if "grid" in trafo:
                     new_trafo = deepcopy(trafo)
                     table_location = new_trafo["grid"].pop("tableDataLocation")
-                    new_trafo["grid"]["tableData"] = _get_table_metadata(table_location)
+                    new_trafo["grid"]["tableData"] = get_table_metadata(table_location)
                 else:
                     new_trafo = trafo
                 new_trafos.append(new_trafo)
