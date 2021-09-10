@@ -1,5 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
+import numpy as np
 from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
 from pybdv.metadata import write_affine
 
@@ -112,7 +113,13 @@ def read_path_in_bucket(xml):
 
 
 def update_transformation_parameter(xml_path, parameter):
-    if len(parameter) != 12:
-        raise ValueError("Expected affine transformation with 12 parameters, got {len(parameter)}")
+    if isinstance(parameter, (list, np.ndarray)):
+        if len(parameter) != 12:
+            raise ValueError(f"Expected affine transformation with 12 parameters, got {len(parameter)}")
+    elif isinstance(parameter, dict):
+        if any(len(param) != 12 for param in parameter.values()):
+            raise ValueError("Expected all affine transformation with 12 parameters.")
+    else:
+        raise ValueError(f"Invalid affine transformation {parameter}")
     write_affine(xml_path, setup_id=0, affine=parameter,
                  overwrite=True, timepoint=0)

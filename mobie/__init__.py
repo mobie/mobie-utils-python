@@ -1,4 +1,4 @@
-from .image_data import add_image
+from .image_data import add_image, add_bdv_image
 from .open_organelle import add_open_organelle_data
 from .registration import add_registered_source
 from .segmentation import add_segmentation

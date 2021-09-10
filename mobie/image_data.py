@@ -1,10 +1,117 @@
 import multiprocessing
 import os
+import warnings
 
 import mobie.metadata as metadata
 import mobie.utils as utils
+import pybdv.metadata as bdv_metadata
+from elf.io import open_file
 from mobie.import_data import import_image_data
 from mobie.xml_utils import update_transformation_parameter
+from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
+
+
+def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_name, trafos_for_mobie):
+
+    def to_color(bdv_color):
+        color = bdv_color.split()
+        return f"r={color[0]},g={color[1]},b={color[2]},a={color[3]}"
+
+    def to_blending_mode(bdv_blending):
+        if bdv_blending == "Average":
+            warnings.warn("Blending mode average is not supported by MoBIE, using sum instead.")
+            mode = "sum"
+        elif bdv_blending == "Sum":
+            mode = "sum"
+        else:
+            raise RuntimeError(f"Bdv blending mode {bdv_blending} is not supported")
+        return mode
+
+    # try to parse the display settings from bdv attributes
+    attributes = bdv_metadata.get_attributes(xml_path, setup_id)
+    bdv_settings = attributes.get("displaysettings", None)
+    if bdv_settings is None:
+        display_settings = {}
+    else:
+        display_settings = {
+            "contrastLimits": [bdv_settings["min"], bdv_settings["max"]],
+            "color": to_color(bdv_settings["color"])
+        }
+        bdv_blending = bdv_settings.get("Projection_Mode", None)
+        if bdv_blending is not None:
+            display_settings["blendingMode"] = to_blending_mode(bdv_blending)
+    display_settings = [display_settings]
+
+    # get the transforms and divide them into mobie and bdv metadata
+    bdv_trafos = bdv_metadata.get_affine(xml_path, setup_id, timepoint)
+    transforms = {}  # the transforms to be written into bdv metadata
+    mobie_transforms = []  # the transforms to be written into mobie metadata
+    for trafo_name, params in bdv_trafos.items():
+        if trafos_for_mobie is not None and trafo_name in trafos_for_mobie:
+            mobie_transforms.append(
+                {"affine": {"parameters": params, "sources": [source_name], "name": trafo_name}}
+            )
+        else:
+            transforms[trafo_name] = params
+
+    view = metadata.get_view([source_name], ["image"], [[source_name]], display_settings,
+                             is_exclusive=False, menu_name=menu_name, source_transforms=mobie_transforms)
+    return view, transforms
+
+
+# TODO support multiple timepoints
+def add_bdv_image(xml_path, root, dataset_name,
+                  image_name=None, file_format="bdv.n5", menu_name=None, scale_factors=None,
+                  tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
+                  is_default_dataset=False, description=None, trafos_for_mobie=None):
+    """Add the image(s) specified in an bdv xml file and copy the metadata.
+    """
+    # find how many timepoints we have
+    t_start, t_stop = bdv_metadata.get_time_range(xml_path)
+    if t_stop > t_start:
+        raise NotImplementedError("Only a single timepoint is currently supported.")
+
+    # get the setup ids and check that image_name is compatible
+    setup_ids = bdv_metadata.get_setup_ids(xml_path)
+    if image_name is None:
+        image_name = [None] * len(setup_ids)
+    else:
+        if isinstance(image_name, str):
+            image_name = [image_name]
+    assert len(image_name) == len(setup_ids)
+
+    data_path = bdv_metadata.get_data_path(xml_path, return_absolute_path=True)
+    for setup_id, name in zip(setup_ids, image_name):
+
+        # get the key for the input data format
+        input_format = bdv_metadata.get_bdv_format(xml_path)
+        input_key = get_key(input_format == "bdv.hdf5", timepoint=t_start, setup_id=setup_id, scale=0)
+
+        # get the resolution, scale_factors, chunks and unit
+        resolution = bdv_metadata.get_resolution(xml_path, setup_id)
+        if scale_factors is None:
+            scale_factors = get_scale_factors(data_path, setup_id)
+            scale_factors = absolute_to_relative_scale_factors(scale_factors)[1:]
+        with open_file(data_path, "r") as f:
+            chunks = f[input_key].chunks
+        unit = bdv_metadata.get_unit(xml_path, setup_id)
+
+        # get the name of this source
+        if name is None:
+            name = bdv_metadata.get_name(xml_path, setup_id)
+
+        # get the view (=MoBIE metadata) and transformation (=bdv metadata)
+        # from the input bdv metadata
+        view, transformation = _view_and_trafo_from_xml(xml_path, setup_id, t_start,
+                                                        name, menu_name, trafos_for_mobie)
+
+        tmp_folder_ = None if tmp_folder is None else f"{tmp_folder}_{name}"
+        add_image(data_path, input_key, root, dataset_name,
+                  image_name=name, resolution=resolution, scale_factors=scale_factors,
+                  chunks=chunks, file_format=file_format, menu_name=menu_name,
+                  tmp_folder=tmp_folder_, target=target, max_jobs=max_jobs,
+                  unit=unit, view=view, transformation=transformation,
+                  is_default_dataset=is_default_dataset, description=description)
 
 
 # TODO support default arguments for scale factors and chunks
