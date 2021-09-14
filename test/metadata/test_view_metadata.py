@@ -224,6 +224,7 @@ class TestViewMetadata(unittest.TestCase):
 
     def test_source_transforms(self):
         from mobie.metadata import (get_affine_source_transform, get_crop_source_transform,
+                                    get_image_display,
                                     get_grid_source_transform, get_transform_grid_source_transform,
                                     get_view)
         settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
@@ -231,8 +232,12 @@ class TestViewMetadata(unittest.TestCase):
         # affine trafo
         affine = get_affine_source_transform(["my-image"], np.random.rand(12),
                                              timepoints=[0, 1], source_names_after_transform=["my-transformed-image"])
-        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
-                        is_exclusive=True, menu_name="bookmark",
+        view = get_view(names=["image-view"],
+                        source_types=["image"],
+                        sources=[["my-transformed-image"]],
+                        display_settings=[settings],
+                        is_exclusive=True,
+                        menu_name="bookmark",
                         source_transforms=[affine])
         validate_with_schema(view, "view")
 
@@ -240,7 +245,10 @@ class TestViewMetadata(unittest.TestCase):
         crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
                                          timepoints=[0, 1], source_names_after_transform=["my-cropped-image"],
                                          center_at_origin=True)
-        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
+        view = get_view(names=["image-view"],
+                        source_types=["image"],
+                        sources=[["my-cropped-image"]],
+                        display_settings=[settings],
                         is_exclusive=True, menu_name="bookmark",
                         source_transforms=[crop])
         validate_with_schema(view, "view")
@@ -248,8 +256,10 @@ class TestViewMetadata(unittest.TestCase):
         # grid trafo
         grid = get_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images",
                                          center_at_origin=True)
-        view = get_view(["image-grid"], ["image"],
-                        [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
+        view = get_view(names=["image-grid"],
+                        source_types=["image"],
+                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
+                        display_settings=[settings],
                         is_exclusive=True, menu_name="bookmark",
                         source_transforms=[grid])
         validate_with_schema(view, "view")
@@ -257,8 +267,10 @@ class TestViewMetadata(unittest.TestCase):
         # transform grid trafo from list
         grid = get_transform_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
                                                    center_at_origin=True)
-        view = get_view(["image-grid"], ["image"],
-                        [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
+        view = get_view(names=["image-grid"],
+                        source_types=["image"],
+                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
+                        display_settings=[settings],
                         is_exclusive=True, menu_name="bookmark",
                         source_transforms=[grid])
         validate_with_schema(view, "view")
@@ -266,18 +278,27 @@ class TestViewMetadata(unittest.TestCase):
         # transform grid trafo from dict
         grid = get_transform_grid_source_transform({"a": ["my-image1", "my-image2"], "b": ["my-image3", "my-image4"]},
                                                    positions={"a": [0, 0], "b": [1, 1]})
-        view = get_view(["image-grid"], ["image"],
-                        [["my-image1", "my-image2", "my-image3", "my-image4"]], [settings],
-                        is_exclusive=True, menu_name="bookmark",
+        view = get_view(names=["image-grid"],
+                        source_types=["image"],
+                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
+                        display_settings=[settings],
+                        is_exclusive=True,
+                        menu_name="bookmark",
                         source_transforms=[grid])
         validate_with_schema(view, "view")
 
-        # combined transformations
+        # combined transformations and new display settings
         crop = get_crop_source_transform(["my-transformed-image"], np.random.rand(3), np.random.rand(3),
                                          timepoints=[0, 1], source_names_after_transform=["my-cropped-image"])
-        view = get_view(["image-view"], ["image"], [["my-image"]], [settings],
-                        is_exclusive=True, menu_name="bookmark",
+        settings = get_image_display("image-view", ["my-cropped-image"], **settings)
+        view = get_view(names=["image-view"],
+                        source_types=["image"],
+                        sources=[["my-cropped-image"]],
+                        display_settings=[settings],
+                        is_exclusive=True,
+                        menu_name="bookmark",
                         source_transforms=[affine, crop])
+        validate_with_schema(view, "view")
 
     def init_ds(self):
         import h5py

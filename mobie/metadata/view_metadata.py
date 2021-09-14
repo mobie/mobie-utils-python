@@ -255,7 +255,9 @@ def get_view(names, source_types, sources, display_settings,
                 assert len(display_setting) == 1
                 assert display_setting["imageDisplay"]["name"] == name
                 _sources = display_setting["imageDisplay"]["sources"]
-                assert len(set(_sources) - set(source_list)) == 0
+                invalid_sources = set(_sources) - set(source_list)
+                assert len(invalid_sources) == 0,\
+                    f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
                 display = get_image_display(name, source_list, **display_setting)
@@ -266,7 +268,9 @@ def get_view(names, source_types, sources, display_settings,
                 assert len(display_setting) == 1
                 assert display_setting["segmentationDisplay"]["name"] == name
                 _sources = display_setting["segmentationDisplay"]["sources"]
-                assert len(set(_sources) - set(source_list)) == 0
+                invalid_sources = set(_sources) - set(source_list)
+                assert len(invalid_sources) == 0,\
+                    f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
                 display = get_segmentation_display(name, source_list, **display_setting)
