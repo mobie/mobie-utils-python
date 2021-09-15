@@ -361,12 +361,38 @@ def _to_grid(sources, name, positions, center_at_origin):
     return source_transforms, sources
 
 
+# supporting grid views with transform (if trafo names change) is currently rather cumbersome:
+# "grid_sources" need to be passed as dict and specify the correct names
+# (i.e. names after transform). dict needs to match from the grid id
+# to list of source names
 def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
                   use_transform_grid=False):
+    """ Create a view that places multiple sources in a grid.
+
+    Arguments:
+        dataset_folder [str] - the foldder for this dataset
+        name [str] - name of this view
+        sources [list[list[str]]] - nested list of source names,
+            each inner lists contains the source(s) for one grid position
+        table_folder [str] - table folder to store the annotation table(s) for this grid.
+            By default 'tables/{name}' will be used (default: None)
+        display_groups [dict[str, str]] - dictionary from source name to their display group.
+            By default each source type is put into the same display group (default: None)
+        display_group_settings [dict[str, dict]] - dictionary from display group name to settings.
+            By default the standard settings for the first source of the group are used (default: None)
+        positions [list[Sequence[int]]] - cartesian grid position for the grid points.
+            By default the grid is auto-created (default: None)
+        grid_sources [] - TODO
+        center_at_origin [] - TODO
+        additional_source_transforms [] - TODO
+        use_transform_grid [bool] - TODO (default: False)
+    """
+    assert len(sources) > 1, "A grid view needs at least 2 grid positions."
+
     dataset_metadata = read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata["sources"]
     views = dataset_metadata["views"]
