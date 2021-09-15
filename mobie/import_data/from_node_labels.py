@@ -3,7 +3,7 @@ import json
 import luigi
 
 from cluster_tools.write import WriteLocal, WriteSlurm
-from .utils import downscale
+from .utils import downscale, get_scale_key
 from ..utils import write_global_config
 
 
@@ -12,21 +12,21 @@ def _write_segmentation(in_path, in_key,
                         node_label_path, node_label_key,
                         chunks, tmp_folder, max_jobs, target,
                         block_shape=None):
-    task = WriteLocal if target == 'local' else WriteSlurm
+    task = WriteLocal if target == "local" else WriteSlurm
 
-    config_dir = os.path.join(tmp_folder, 'configs')
+    config_dir = os.path.join(tmp_folder, "configs")
     write_global_config(config_dir,
                         block_shape=chunks if block_shape is None else block_shape)
 
     task_config = task.default_task_config()
-    task_config.update({'chunks': chunks})
-    with open(os.path.join(config_dir, 'write.config'), 'w') as f:
+    task_config.update({"chunks": chunks})
+    with open(os.path.join(config_dir, "write.config"), "w") as f:
         json.dump(task_config, f)
 
     t = task(input_path=in_path, input_key=in_key,
              output_path=out_path, output_key=out_key,
              assignment_path=node_label_path, assignment_key=node_label_key,
-             identifier='from_node_labels',
+             identifier="from_node_labels",
              tmp_folder=tmp_folder, config_dir=config_dir, max_jobs=max_jobs)
     ret = luigi.build([t], local_scheduler=True)
     assert ret, "Writeing segmentation failed"
@@ -36,8 +36,8 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
                                          node_label_path, node_label_key,
                                          resolution, scale_factors, chunks,
                                          tmp_folder, target, max_jobs,
-                                         block_shape=None, unit='micrometer',
-                                         source_name=None):
+                                         block_shape=None, unit="micrometer",
+                                         source_name=None, file_format="bdv.n5"):
     """ Import segmentation data into mobie format from a paintera dataset
 
     Arguments:
@@ -56,9 +56,10 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
         source_name [str] - name of the source (default: None)
+        file_format [str] - the file format (default: "bdv.n5")
     """
 
-    out_key = 'setup0/timepoint0/s0'
+    out_key = get_scale_key(file_format)
 
     _write_segmentation(in_path, in_key,
                         out_path, out_key,
@@ -70,5 +71,6 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
     downscale(out_path, out_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs={'order': 0},
-              unit=unit, source_name=source_name)
+              library="vigra", library_kwargs={"order": 0},
+              unit=unit, source_name=source_name,
+              metadata_format=file_format)

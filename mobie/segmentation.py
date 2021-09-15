@@ -75,6 +75,8 @@ def add_segmentation(input_path, input_key,
                                              max_jobs=max_jobs, unit=unit,
                                              source_name=segmentation_name)
     elif is_paintera(input_path, input_key):
+        if file_format != "bdv.n5":
+            raise NotImplementedError
         import_segmentation_from_paintera(input_path, input_key, data_path,
                                           resolution, scale_factors, chunks,
                                           tmp_folder=tmp_folder, target=target,
@@ -86,7 +88,8 @@ def add_segmentation(input_path, input_key,
                             resolution, scale_factors, chunks,
                             tmp_folder=tmp_folder, target=target,
                             max_jobs=max_jobs, unit=unit,
-                            source_name=segmentation_name)
+                            source_name=segmentation_name,
+                            file_format=file_format)
 
     # compute the default segmentation table
     if add_default_table:
