@@ -340,24 +340,39 @@ class TestViewMetadata(unittest.TestCase):
                              additional_source_transforms=trafos)
         validate_with_schema(view, "view")
 
-        # additional transforms and changed source names
+        # additional transforms, changed source names and grid_sources
         trafos = [
             get_affine_source_transform([source], np.random.rand(12),
                                         source_names_after_transform=[f"transformed-{ii}"])
             for ii, source in enumerate(sources)
         ]
         transformed_sources = [[f"transformed-{ii}"] for ii in range(len(sources))]
+        all_transformed_sources = [trafo for trafos in transformed_sources for trafo in trafos]
 
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
                              use_transform_grid=False)
+        # check that all source displays list the names in transformed sources
+        for disp in view["sourceDisplays"]:
+            disp_sources = disp[list(disp.keys())[0]]["sources"]
+            if isinstance(disp_sources, dict):
+                disp_sources = list(disp_sources.values())
+                disp_sources = [sname for srcs in disp_sources for sname in srcs]
+            self.assertTrue(all(sname in all_transformed_sources for sname in disp_sources))
         validate_with_schema(view, "view")
 
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
                              use_transform_grid=True)
+        # check that all source displays list the names in transformed sources
+        for disp in view["sourceDisplays"]:
+            disp_sources = disp[list(disp.keys())[0]]["sources"]
+            if isinstance(disp_sources, dict):
+                disp_sources = list(disp_sources.values())
+                disp_sources = [sname for srcs in disp_sources for sname in srcs]
+            self.assertTrue(all(sname in all_transformed_sources for sname in disp_sources))
         validate_with_schema(view, "view")
 
 
