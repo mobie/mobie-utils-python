@@ -1,4 +1,5 @@
 import os
+import subprocess
 from copy import deepcopy
 from warnings import warn
 
@@ -6,22 +7,22 @@ from pybdv.metadata import get_data_path
 
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .project_metadata import get_datasets, read_project_metadata, project_exists, write_project_metadata
-from ..xml_utils import copy_xml_as_n5_s3
+from ..xml_utils import copy_xml_as_n5_s3, read_path_in_bucket
 
 
 def add_remote_project_metadata(
     root,
     bucket_name,
     service_endpoint,
-    region='us-west-2'
+    region="us-west-2"
 ):
     """ Add metadata to upload remote version of project.
 
     Arguments:
         root [str] - root data folder of the project
         bucket_name [str] - name of the bucket
-        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: 'https://s3.embl.de'.
-        region [str] - the region. Only relevant if aws.s3 is used. (default: 'us-west-2')
+        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
+        region [str] - the region. Only relevant if aws.s3 is used. (default: "us-west-2")
     """
     assert project_exists(root), f"Cannot find MoBIE project at {root}"
     datasets = get_datasets(root)
@@ -36,20 +37,20 @@ def add_remote_project_metadata(
             assert len(set(new_file_formats) - set(this_new_file_formats)) == 0
 
     metadata = read_project_metadata(root)
-    file_formats = metadata['imageDataFormats']
+    file_formats = metadata["imageDataFormats"]
     file_formats = list(set(file_formats).union(set(new_file_formats)))
-    metadata['imageDataFormats'] = file_formats
+    metadata["imageDataFormats"] = file_formats
     write_project_metadata(root, metadata)
 
 
 def _to_bdv_s3(file_format,
                dataset_folder, dataset_name, storage,
                service_endpoint, bucket_name, region):
-    new_format = file_format + '.s3'
-    os.makedirs(os.path.join(dataset_folder, 'images', new_format.replace('.', '-')), exist_ok=True)
+    new_format = file_format + ".s3"
+    os.makedirs(os.path.join(dataset_folder, "images", new_format.replace(".", "-")), exist_ok=True)
 
-    xml = storage['relativePath']
-    xml_remote = xml.replace(file_format.replace('.', '-'), new_format.replace('.', '-'))
+    xml = storage["relativePath"]
+    xml_remote = xml.replace(file_format.replace(".", "-"), new_format.replace(".", "-"))
 
     # the absolute xml paths
     xml_path = os.path.join(dataset_folder, xml)
@@ -67,24 +68,48 @@ def _to_bdv_s3(file_format,
                       path_in_bucket=path_in_bucket,
                       region=region,
                       bdv_type=new_format)
-    return new_format, {'relativePath': xml_remote}
+    return new_format, {"relativePath": xml_remote}
 
 
 def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
                     service_endpoint, bucket_name, region):
-    rel_path = storage['relativePath']
+    rel_path = storage["relativePath"]
     abs_path = os.path.join(dataset_folder, rel_path)
     if not os.path.exists(abs_path):
         warn(f"Could not find dataat {abs_path}")
     # build the s3 address
-    s3_address = '/'.join([
-        service_endpoint.rstrip('/'),
+    s3_address = "/".join([
+        service_endpoint.rstrip("/"),
         bucket_name,
         dataset_name,
         rel_path
     ])
     # TODO support (optional) signing region here?
-    return 'ome.zarr.s3', {'s3Address': s3_address}
+    return "ome.zarr.s3", {"s3Address": s3_address}
+
+
+def add_remote_source_metadata(metadata, new_file_formats,
+                               dataset_folder, dataset_name,
+                               service_endpoint, bucket_name, region="us-west-2"):
+    new_metadata = deepcopy(metadata)
+    source_type = list(metadata.keys())[0]
+
+    for file_format, storage in metadata[source_type]["imageData"].items():
+        # currently we only know how to add s3 data for bdv.n5 and bdv.ome.zarr
+        if file_format in ("bdv.n5", "bdv.ome.zarr"):
+            new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
+                                                service_endpoint, bucket_name, region)
+            new_metadata[source_type]["imageData"][new_format] = s3_storage
+            new_file_formats.add(new_format)
+        elif file_format == "ome.zarr":
+            new_format, s3_storage = _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
+                                                     service_endpoint, bucket_name, region)
+            new_metadata[source_type]["imageData"][new_format] = s3_storage
+            new_file_formats.add(new_format)
+        else:
+            warn(f"Data in the {file_format} format cannot be uploaded to s3.")
+
+    return new_metadata, new_file_formats
 
 
 def add_remote_dataset_metadata(
@@ -92,7 +117,7 @@ def add_remote_dataset_metadata(
     dataset_name,
     bucket_name,
     service_endpoint,
-    region='us-west-2'
+    region="us-west-2"
 ):
     """ Add metadata to upload remote version of dataset.
 
@@ -100,8 +125,8 @@ def add_remote_dataset_metadata(
         root [str] - root data folder of the project
         dataset_name [str] - name of the dataset
         bucket_name [str] - name of the bucket
-        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: 'https://s3.embl.de'.
-        region [str] - the region. Only relevant if aws.s3 is used. (default: 'us-west-2')
+        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
+        region [str] - the region. Only relevant if aws.s3 is used. (default: "us-west-2")
     """
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -112,27 +137,42 @@ def add_remote_dataset_metadata(
     new_file_formats = set()
 
     for name, metadata in sources.items():
-        new_metadata = deepcopy(metadata)
-        source_type = list(metadata.keys())[0]
-
-        for file_format, storage in metadata[source_type]['imageData'].items():
-            # currently we only know how to add s3 data for bdv.n5 and bdv.ome.zarr
-            if file_format in ('bdv.n5', 'bdv.ome.zarr'):
-                new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
-                                                    service_endpoint, bucket_name, region)
-                new_metadata[source_type]['imageData'][new_format] = s3_storage
-                new_file_formats.add(new_format)
-            elif file_format == 'ome.zarr':
-                new_format, s3_storage = _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
-                                                         service_endpoint, bucket_name, region)
-                new_metadata[source_type]['imageData'][new_format] = s3_storage
-                new_file_formats.add(new_format)
-            else:
-                warn(f"Data in the {file_format} format cannot be uploaded to s3.")
-
+        new_metadata, new_file_formats = add_remote_source_metadata(metadata, new_file_formats,
+                                                                    dataset_folder, dataset_name,
+                                                                    service_endpoint, bucket_name, region)
         new_sources[name] = new_metadata
 
     ds_metadata["sources"] = new_sources
     write_dataset_metadata(dataset_folder, ds_metadata)
 
     return list(new_file_formats)
+
+
+def upload_source(dataset_folder, metadata, data_format, bucket_name, s3_prefix="embl", client="minio"):
+    if data_format.endswith(".s3"):
+        base_format = data_format.rstrip(".s3")
+        raise ValueError(f"Cannot upload data in format {data_format}, use format {base_format} instead.")
+    s3_format = data_format + ".s3"
+
+    if data_format.startswith("bdv"):
+        local_xml = os.path.join(dataset_folder, metadata["image"]["imageData"][data_format]["relativePath"])
+        remote_xml = os.path.join(dataset_folder, metadata["image"]["imageData"][s3_format]["relativePath"])
+
+        data_path = get_data_path(local_xml, return_absolute_path=True)
+        path_in_bucket = read_path_in_bucket(remote_xml)
+
+    elif data_format == "ome.zarr":
+        data_path = os.path.join(dataset_folder, metadata["image"]["imageData"][data_format]["relativePath"])
+        s3_address = metadata["image"]["imageData"][s3_format]["s3Address"]
+        bucket_end_pos = s3_address.find(bucket_name) + len(bucket_name) + 1
+        path_in_bucket = s3_address[bucket_end_pos:]
+
+    else:
+        raise ValueError(f"Invalid data format {data_format}")
+
+    if client != "minio":
+        raise ValueError(f"Invalid client {client}, currently only minio is supported")
+
+    assert os.path.exists(data_path)
+    cmd = ["mc", "cp", "-r", f"{data_path}/", f"{s3_prefix}/{bucket_name}/{path_in_bucket}/"]
+    subprocess.run(cmd)
