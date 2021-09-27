@@ -8,7 +8,7 @@ from .project_metadata import (add_dataset, create_project_metadata,
 from .remote_metadata import (add_remote_dataset_metadata, add_remote_project_metadata, add_remote_source_metadata,
                               upload_source)
 from .source_metadata import add_source_to_dataset, get_image_metadata, get_segmentation_metadata
-from .view_metadata import (is_grid_view,
+from .view_metadata import (is_grid_view, create_source_annotation_display,
                             get_affine_source_transform, get_crop_source_transform, get_default_view,
                             get_grid_source_transform,
                             get_image_display, get_segmentation_display, get_source_annotation_display,

@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import mobie
-from ..tables.grid_view_table import compute_grid_view_table
+from ..tables import compute_source_annotation_table
 
 
 def _get_display(name, source_type, sources, settings):
@@ -255,7 +255,7 @@ def _get_default_site_table(ds_folder, metadata, source_prefixes,
     wells = [site_name_to_well_name(name) for name in site_names]
     sources = {name: source_prefixes for name in site_names}
 
-    compute_grid_view_table(sources, table_path, wells=wells)
+    compute_source_annotation_table(sources, table_path, wells=wells)
     return rel_table_folder
 
 
@@ -272,7 +272,7 @@ def _get_default_well_table(ds_folder, metadata, source_prefixes,
     wells = list(set([site_name_to_well_name(name) for name in site_names]))
     sources = {well: source_prefixes for well in wells}
 
-    compute_grid_view_table(sources, table_path)
+    compute_source_annotation_table(sources, table_path)
     return rel_table_folder
 
 

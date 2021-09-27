@@ -4,7 +4,7 @@ from copy import deepcopy
 import numpy as np
 from .dataset_metadata import read_dataset_metadata
 from .utils import get_table_metadata
-from ..tables.grid_view_table import check_grid_view_table, compute_grid_view_table
+from ..tables import check_source_annotation_table, compute_source_annotation_table
 
 
 #
@@ -361,6 +361,35 @@ def _to_grid(sources, name, positions, center_at_origin):
     return source_transforms, sources
 
 
+def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, **kwargs):
+    """Get a source annotation display and create the corresponding table.
+    """
+    if isinstance(sources, list):
+        sources = {ii: source_list for ii, source_list in enumerate(sources)}
+    assert isinstance(sources, dict)
+    assert all(isinstance(source_list, list) for source_list in sources.values())
+
+    # process the table folder
+    if table_folder is None:
+        table_folder = os.path.join("tables", name)
+    table_folder_path = os.path.join(dataset_folder, table_folder)
+    os.makedirs(table_folder_path, exist_ok=True)
+    default_table_path = os.path.join(table_folder_path, "default.tsv")
+    if not os.path.exists(default_table_path):
+        compute_source_annotation_table(sources, default_table_path)
+    check_source_annotation_table(sources, default_table_path)
+
+    source_annotation_display = get_source_annotation_display(
+        name, sources,
+        table_data=get_table_metadata(table_folder),
+        tables=["default.tsv"],
+        **kwargs
+    )["sourceAnnotationDisplay"]
+    source_annotation_display.pop("name")
+
+    return {name: source_annotation_display}
+
+
 # supporting grid views with transform (if trafo names change) is currently rather cumbersome:
 # "grid_sources" need to be passed as dict and specify the correct names
 # (i.e. names after transform). dict needs to match from the grid id
@@ -464,22 +493,8 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         assert isinstance(additional_source_transforms, list)
         source_transforms = additional_source_transforms + source_transforms
 
-    # process the table folder
-    if table_folder is None:
-        table_folder = os.path.join('tables', name)
-    table_folder_path = os.path.join(dataset_folder, table_folder)
-    os.makedirs(table_folder_path, exist_ok=True)
-    default_table_path = os.path.join(table_folder_path, 'default.tsv')
-    if not os.path.exists(default_table_path):
-        compute_grid_view_table(grid_sources, default_table_path)
-    check_grid_view_table(grid_sources, default_table_path)
-
     # create the source annotation display for this grid view, this will show the table for this grid view!
-    source_annotation_display = {
-        "sources": grid_sources,
-        "tableData": get_table_metadata(table_folder),
-        "tables": ["default.tsv"]
-    }
+    source_annotation_displays = create_source_annotation_display(name, grid_sources, dataset_folder, table_folder)
 
     if menu_name is None:
         menu_name = "grid"
@@ -488,7 +503,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                     sources=display_sources,
                     display_settings=display_settings,
                     source_transforms=source_transforms,
-                    source_annotation_displays={name: source_annotation_display},
+                    source_annotation_displays=source_annotation_displays,
                     is_exclusive=True,
                     menu_name=menu_name)
     return view

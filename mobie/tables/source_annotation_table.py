@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 
-def compute_grid_view_table(sources, table_path, **additional_columns):
+def compute_source_annotation_table(sources, table_path, **additional_columns):
     first_col_name = "annotation_id"
 
     if isinstance(sources, list):
@@ -23,7 +23,7 @@ def compute_grid_view_table(sources, table_path, **additional_columns):
     table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
 
 
-def check_grid_view_table(sources, table_path):
+def check_source_annotation_table(sources, table_path):
     first_col_name = "annotation_id"
     table = pd.read_csv(table_path, sep="\t")
 
