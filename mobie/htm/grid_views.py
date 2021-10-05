@@ -58,14 +58,14 @@ def _get_sources_and_site_names(metadata, source_prefixes, source_name_to_site_n
     return this_sources, site_names
 
 
-def get_transform_plate_grid_view(metadata, source_prefixes,
-                                  source_types, source_settings, menu_name,
-                                  source_name_to_site_name,
-                                  site_name_to_well_name,
-                                  site_table=None, well_table=None,
-                                  well_to_position=None, name_filter=None,
-                                  sites_visible=True, wells_visible=True,
-                                  add_annotation_displays=True):
+def get_transformed_plate_grid_view(metadata, source_prefixes,
+                                    source_types, source_settings, menu_name,
+                                    source_name_to_site_name,
+                                    site_name_to_well_name,
+                                    site_table=None, well_table=None,
+                                    well_to_position=None, name_filter=None,
+                                    sites_visible=True, wells_visible=True,
+                                    add_annotation_displays=True):
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -94,7 +94,7 @@ def get_transform_plate_grid_view(metadata, source_prefixes,
             site_name: [sources[sid] for sources in this_sources.values()]
             for sid, site_name in zip(site_ids, this_site_names)
         }
-        well_trafo = mobie.metadata.get_transform_grid_source_transform(well_sources)
+        well_trafo = mobie.metadata.get_transformed_grid_source_transform(list(well_sources.values()))
         source_transforms.append(well_trafo)
 
         sources_per_well[well] = [source for sources in well_sources.values()
@@ -116,12 +116,9 @@ def get_transform_plate_grid_view(metadata, source_prefixes,
 
     # create the grid transform for aranging wells to the plate
     plate_sources = {well: sources_per_well[well] for well in well_names}
-    if well_to_position is None:
-        well_positions = None
-    else:
-        well_positions = {well: well_to_position(well) for well in well_names}
-    plate_trafo = mobie.metadata.get_transform_grid_source_transform(
-        plate_sources, positions=well_positions
+    well_positions = None if well_to_position is None else [well_to_position(well) for well in well_names]
+    plate_trafo = mobie.metadata.get_transformed_grid_source_transform(
+        list(plate_sources.values()), positions=well_positions
     )
     source_transforms.append(plate_trafo)
 
@@ -147,13 +144,13 @@ def get_transform_plate_grid_view(metadata, source_prefixes,
     return view
 
 
-def get_plate_grid_view(metadata, source_prefixes, source_types,
-                        source_settings, menu_name,
-                        source_name_to_site_name, site_name_to_well_name,
-                        site_table=None, well_table=None,
-                        well_to_position=None, name_filter=None,
-                        sites_visible=True, wells_visible=True,
-                        add_annotation_displays=True):
+def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
+                               source_settings, menu_name,
+                               source_name_to_site_name, site_name_to_well_name,
+                               site_table=None, well_table=None,
+                               well_to_position=None, name_filter=None,
+                               sites_visible=True, wells_visible=True,
+                               add_annotation_displays=True):
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -179,7 +176,7 @@ def get_plate_grid_view(metadata, source_prefixes, source_types,
                 source for source in prefix_sources if
                 site_name_to_well_name(source_name_to_site_name(source, prefix)) == well
             ]
-            trafo = mobie.metadata.get_grid_source_transform(
+            trafo = mobie.metadata.get_merged_grid_source_transform(
                 well_sources, trafo_name
             )
             source_transforms.append(trafo)
@@ -193,7 +190,7 @@ def get_plate_grid_view(metadata, source_prefixes, source_types,
     for prefix in source_prefixes:
         trafo_name = f"plate_{prefix}"
         plate_sources = [f"{well}_{prefix}" for well in well_names]
-        trafo = mobie.metadata.get_grid_source_transform(
+        trafo = mobie.metadata.get_merged_grid_source_transform(
             plate_sources, trafo_name, positions=positions
         )
         source_transforms.append(trafo)
@@ -284,7 +281,7 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                         well_to_position=None, name_filter=None,
                         sites_visible=True, wells_visible=True,
                         add_annotation_displays=True,
-                        use_transform_grid=False):
+                        use_transformed_grid=False):
     metadata = mobie.metadata.read_dataset_metadata(ds_folder)
 
     if site_table is None and add_annotation_displays:
@@ -298,25 +295,25 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                                              site_name_to_well_name,
                                              name_filter)
 
-    if use_transform_grid:
-        view = get_transform_plate_grid_view(metadata, source_prefixes, source_types,
-                                             source_settings, menu_name,
-                                             source_name_to_site_name=source_name_to_site_name,
-                                             site_name_to_well_name=site_name_to_well_name,
-                                             well_to_position=well_to_position,
-                                             site_table=site_table, well_table=well_table,
-                                             name_filter=name_filter,
-                                             sites_visible=sites_visible, wells_visible=wells_visible,
-                                             add_annotation_displays=add_annotation_displays)
+    if use_transformed_grid:
+        view = get_transformed_plate_grid_view(metadata, source_prefixes, source_types,
+                                               source_settings, menu_name,
+                                               source_name_to_site_name=source_name_to_site_name,
+                                               site_name_to_well_name=site_name_to_well_name,
+                                               well_to_position=well_to_position,
+                                               site_table=site_table, well_table=well_table,
+                                               name_filter=name_filter,
+                                               sites_visible=sites_visible, wells_visible=wells_visible,
+                                               add_annotation_displays=add_annotation_displays)
     else:
-        view = get_plate_grid_view(metadata, source_prefixes, source_types,
-                                   source_settings, menu_name,
-                                   source_name_to_site_name=source_name_to_site_name,
-                                   site_name_to_well_name=site_name_to_well_name,
-                                   well_to_position=well_to_position,
-                                   name_filter=name_filter,
-                                   site_table=site_table, well_table=well_table,
-                                   sites_visible=sites_visible, wells_visible=wells_visible,
-                                   add_annotation_displays=add_annotation_displays)
+        view = get_merged_plate_grid_view(metadata, source_prefixes, source_types,
+                                          source_settings, menu_name,
+                                          source_name_to_site_name=source_name_to_site_name,
+                                          site_name_to_well_name=site_name_to_well_name,
+                                          well_to_position=well_to_position,
+                                          name_filter=name_filter,
+                                          site_table=site_table, well_table=well_table,
+                                          sites_visible=sites_visible, wells_visible=wells_visible,
+                                          add_annotation_displays=add_annotation_displays)
     metadata["views"][view_name] = view
     mobie.metadata.write_dataset_metadata(ds_folder, metadata)

@@ -42,7 +42,7 @@ class TestGridViews(unittest.TestCase):
             pass
 
     def test_plate_grid_view(self):
-        from mobie.htm import get_plate_grid_view
+        from mobie.htm import get_merged_plate_grid_view
         from mobie.htm.grid_views import _get_default_site_table, _get_default_well_table
 
         ds_folder = os.path.join(self.root, self.ds_name)
@@ -64,10 +64,10 @@ class TestGridViews(unittest.TestCase):
         well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
                                              to_site_name, to_well_name, None)
 
-        view = get_plate_grid_view(metadata, source_prefixes, source_types, source_settings,
-                                   menu_name, to_site_name, to_well_name,
-                                   site_table=site_table,
-                                   well_table=well_table)
+        view = get_merged_plate_grid_view(metadata, source_prefixes, source_types, source_settings,
+                                          menu_name, to_site_name, to_well_name,
+                                          site_table=site_table,
+                                          well_table=well_table)
         validate_view_metadata(view, dataset_folder=ds_folder, assert_true=self.assertTrue)
 
 

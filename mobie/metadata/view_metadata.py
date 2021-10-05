@@ -131,28 +131,24 @@ def get_crop_source_transform(sources, min, max,
     return {"crop": trafo}
 
 
-def get_transform_grid_source_transform(sources, positions=None, source_names_after_transform=None,
-                                        timepoints=None, center_at_origin=None):
+def get_transformed_grid_source_transform(sources, positions=None, source_names_after_transform=None,
+                                          timepoints=None, center_at_origin=None):
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
-    if isinstance(sources, list):
-        sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
-    assert isinstance(sources, dict)
+    assert isinstance(sources, list)
+    assert all(isinstance(source_pos, list) for source_pos in sources)
 
     grid_transform = {"sources": sources}
 
     if positions is not None:
+        assert isinstance(positions, list)
         msg = f"Invalid grid position length {len(positions)}, expected same length as sources: {len(sources)}"
         assert len(positions) == len(sources), msg
-        if isinstance(positions, list):
-            positions = {k: pos for k, pos in zip(sources.keys(), positions)}
-        assert len(set(positions.keys()) - set(sources.keys())) == 0
         grid_transform["positions"] = positions
 
     if source_names_after_transform is not None:
+        assert isinstance(source_names_after_transform, list)
+        assert all(isinstance(source_pos, list) for source_pos in source_names_after_transform)
         assert len(source_names_after_transform) == len(sources)
-        if isinstance(source_names_after_transform, list):
-            source_names_after_transform = {k: name for k, name in zip(sources.keys(), source_names_after_transform)}
-        assert len(set(source_names_after_transform.keys()) - set(sources.keys())) == 0
         grid_transform["sourceNamesAfterTransform"] = source_names_after_transform
 
     if timepoints is not None:
@@ -161,10 +157,11 @@ def get_transform_grid_source_transform(sources, positions=None, source_names_af
     if center_at_origin is not None:
         grid_transform["centerAtOrigin"] = center_at_origin
 
-    return {"transformGrid": grid_transform}
+    return {"transformedGrid": grid_transform}
 
 
-def get_grid_source_transform(sources, merged_source_name, positions=None, timepoints=None, center_at_origin=None):
+def get_merged_grid_source_transform(sources, merged_source_name,
+                                     positions=None, timepoints=None, center_at_origin=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -178,7 +175,7 @@ def get_grid_source_transform(sources, merged_source_name, positions=None, timep
     if center_at_origin is not None:
         grid_transform["centerAtOrigin"] = center_at_origin
 
-    return {"grid": grid_transform}
+    return {"mergedGrid": grid_transform}
 
 
 #
@@ -199,22 +196,22 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
             raise ValueError("Invalid parameters: both affine and position were passed")
         assert len(affine) == 12
         assert all(isinstance(param, float) for param in affine)
-        trafo['affine'] = affine
+        trafo["affine"] = affine
 
     if normalized_affine is not None:
         if position is not None:
             raise ValueError("Invalid parameters: both normaized affine and position were passed")
         assert len(normalized_affine) == 12
         assert all(isinstance(param, float) for param in normalized_affine)
-        trafo['normalizedAffine'] = normalized_affine
+        trafo["normalizedAffine"] = normalized_affine
 
     if position is not None:
         assert len(position) == 3
         assert all(isinstance(param, float) for param in position)
-        trafo['position'] = position
+        trafo["position"] = position
 
     if timepoint is not None:
-        trafo['timepoint'] = timepoint
+        trafo["timepoint"] = timepoint
 
     return trafo
 
@@ -291,7 +288,7 @@ def get_view(names, source_types, sources, display_settings,
     view["sourceDisplays"] = source_displays
 
     if source_transforms is not None:
-        valid_source_transforms = {"affine", "grid", "crop", "transformGrid"}
+        valid_source_transforms = {"affine", "crop", "mergedGrid", "transformedGrid"}
         this_source_transforms = set([list(trafo.keys())[0] for trafo in source_transforms])
         invalid_trafos = list(this_source_transforms - valid_source_transforms)
         if invalid_trafos:
@@ -315,11 +312,11 @@ def get_default_view(source_type, source_name, menu_name=None,
     """ Create default view metadata for a single source.
 
     Arguments:
-        source_type [str] - type of the source, either 'image' or 'segmentation'
+        source_type [str] - type of the source, either "image" or "segmentation"
         source_name [str] - name of the source.
         menu_name [str] - menu name for this view (default: None)
         source_transform [dict] - dict with affine source transform.
-            If given, must contain 'parameters' and may contain 'timepoints' (default: None).
+            If given, must contain "parameters" and may contain "timepoints" (default: None).
         viewer_transform [dict] - dict with viewer transform (default: None)
         **kwargs - additional settings for this view
     """
@@ -339,26 +336,23 @@ def get_default_view(source_type, source_name, menu_name=None,
     return view
 
 
-def _to_transform_grid(sources, positions, center_at_origin):
-    grid_trafo = get_transform_grid_source_transform(sources, positions, center_at_origin=center_at_origin)
-    grid_sources = grid_trafo["transformGrid"]["sources"]
-    return [grid_trafo], grid_sources
+def _to_transformed_grid(sources, positions, center_at_origin):
+    grid_trafo = get_transformed_grid_source_transform(sources, positions, center_at_origin=center_at_origin)
+    return [grid_trafo]
 
 
-def _to_grid(sources, name, positions, center_at_origin):
+def _to_merged_grid(sources, name, positions, center_at_origin):
     assert isinstance(sources, (dict, list))
     grid_sources = sources if isinstance(sources, list) else list(sources.values())
     sources_per_pos = len(grid_sources[0])
     assert all(len(sor) == sources_per_pos for sor in grid_sources)
     source_transforms = [
-        get_grid_source_transform(
+        get_merged_grid_source_transform(
            [source[ii] for source in grid_sources], f"{name}-{ii}",
            positions=positions, center_at_origin=center_at_origin
         ) for ii in range(sources_per_pos)
     ]
-    if isinstance(sources, list):
-        sources = {ii: sources_pos for ii, sources_pos in enumerate(sources)}
-    return source_transforms, sources
+    return source_transforms
 
 
 def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, **kwargs):
@@ -399,7 +393,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transform_grid=False):
+                  use_transformed_grid=False):
     """ Create a view that places multiple sources in a grid.
 
     Arguments:
@@ -408,7 +402,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         sources [list[list[str]]] - nested list of source names,
             each inner lists contains the source(s) for one grid position
         table_folder [str] - table folder to store the annotation table(s) for this grid.
-            By default 'tables/{name}' will be used (default: None)
+            By default "tables/{name}" will be used (default: None)
         display_groups [dict[str, str]] - dictionary from source name to their display group.
             By default each source type is put into the same display group (default: None)
         display_group_settings [dict[str, dict]] - dictionary from display group name to settings.
@@ -422,7 +416,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         center_at_origin [bool] - whether to center the sources at the origin across the z-axis (default: None)
         additional_source_transforms [list[source_transforms]] - list of source transforms to
             be applied before the grid transform. (default: None)
-        use_transform_grid [bool] - Whether to use a transformGrid, which does not merge all sources
+        use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
             into a single source in the MoBIE viewer (default: False)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
@@ -459,7 +453,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
             source_type = list(all_sources[source_name].keys())[0]
 
             if display_groups is None:
-                display_name = f'{name}_{source_type}s'
+                display_name = f"{name}_{source_type}s"
             else:
                 display_name = display_groups[source_name]
 
@@ -473,21 +467,21 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
 
                 # check if we have display setting parameters
                 if display_group_settings is None:
-                    # if not, we just take the first source's display settings here
+                    # if not, we just take the first source"s display settings here
                     display_setting = deepcopy(views[source_name])
-                    setting_key = 'imageDisplay' if source_type == 'image' else 'segmentationDisplay'
-                    display_setting = display_setting['sourceDisplays'][0][setting_key]
-                    display_setting.pop('name')
-                    display_setting.pop('sources')
+                    setting_key = "imageDisplay" if source_type == "image" else "segmentationDisplay"
+                    display_setting = display_setting["sourceDisplays"][0][setting_key]
+                    display_setting.pop("name")
+                    display_setting.pop("sources")
                 else:
                     display_setting = display_group_settings[display_name]
                 display_settings.append(display_setting)
 
     # create the grid transform
-    if use_transform_grid:
-        source_transforms, grid_sources = _to_transform_grid(grid_sources, positions, center_at_origin)
+    if use_transformed_grid:
+        source_transforms = _to_transformed_grid(grid_sources, positions, center_at_origin)
     else:
-        source_transforms, grid_sources = _to_grid(grid_sources, name, positions, center_at_origin)
+        source_transforms = _to_merged_grid(grid_sources, name, positions, center_at_origin)
 
     if additional_source_transforms is not None:
         assert isinstance(additional_source_transforms, list)
@@ -514,6 +508,6 @@ def is_grid_view(view):
     if trafos is None:
         return False
     for trafo in trafos:
-        if list(trafo.keys())[0] == 'grid':
+        if list(trafo.keys())[0] == "grid":
             return True
     return False

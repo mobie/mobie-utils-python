@@ -225,7 +225,7 @@ class TestViewMetadata(unittest.TestCase):
     def test_source_transforms(self):
         from mobie.metadata import (get_affine_source_transform, get_crop_source_transform,
                                     get_image_display,
-                                    get_grid_source_transform, get_transform_grid_source_transform,
+                                    get_merged_grid_source_transform, get_transformed_grid_source_transform,
                                     get_view)
         settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
 
@@ -254,8 +254,8 @@ class TestViewMetadata(unittest.TestCase):
         validate_with_schema(view, "view")
 
         # grid trafo
-        grid = get_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images",
-                                         center_at_origin=True)
+        grid = get_merged_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"],
+                                                "merged-images", center_at_origin=True)
         view = get_view(names=["image-grid"],
                         source_types=["image"],
                         sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
@@ -265,25 +265,14 @@ class TestViewMetadata(unittest.TestCase):
         validate_with_schema(view, "view")
 
         # transform grid trafo from list
-        grid = get_transform_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
-                                                   center_at_origin=True)
+        grid = get_transformed_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
+                                                     positions=[[0, 0], [1, 1]],
+                                                     center_at_origin=True)
         view = get_view(names=["image-grid"],
                         source_types=["image"],
                         sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
                         display_settings=[settings],
                         is_exclusive=True, menu_name="bookmark",
-                        source_transforms=[grid])
-        validate_with_schema(view, "view")
-
-        # transform grid trafo from dict
-        grid = get_transform_grid_source_transform({"a": ["my-image1", "my-image2"], "b": ["my-image3", "my-image4"]},
-                                                   positions={"a": [0, 0], "b": [1, 1]})
-        view = get_view(names=["image-grid"],
-                        source_types=["image"],
-                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
-                        display_settings=[settings],
-                        is_exclusive=True,
-                        menu_name="bookmark",
                         source_transforms=[grid])
         validate_with_schema(view, "view")
 
@@ -326,10 +315,10 @@ class TestViewMetadata(unittest.TestCase):
         grid_sources = [[source] for source in sources]
 
         # only grid transform
-        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transform_grid=False)
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=False)
         validate_with_schema(view, "view")
 
-        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transform_grid=True)
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=True)
         validate_with_schema(view, "view")
 
         # additional transforms
@@ -352,7 +341,7 @@ class TestViewMetadata(unittest.TestCase):
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
-                             use_transform_grid=False)
+                             use_transformed_grid=False)
         # check that all source displays list the names in transformed sources
         for disp in view["sourceDisplays"]:
             disp_sources = disp[list(disp.keys())[0]]["sources"]
@@ -365,7 +354,7 @@ class TestViewMetadata(unittest.TestCase):
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
-                             use_transform_grid=True)
+                             use_transformed_grid=True)
         # check that all source displays list the names in transformed sources
         for disp in view["sourceDisplays"]:
             disp_sources = disp[list(disp.keys())[0]]["sources"]
