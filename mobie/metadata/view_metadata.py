@@ -355,11 +355,14 @@ def _to_merged_grid(sources, name, positions, center_at_origin):
     return source_transforms
 
 
-def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, **kwargs):
+def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, annotation_ids=None, **kwargs):
     """Get a source annotation display and create the corresponding table.
     """
-    if isinstance(sources, list):
+    if isinstance(sources, list) and annotation_ids is None:
         sources = {ii: source_list for ii, source_list in enumerate(sources)}
+    elif isinstance(sources, list):
+        assert len(sources) == len(annotation_ids)
+        sources = {annotation_id: source_list for annotation_id, source_list in zip(annotation_ids, sources)}
     assert isinstance(sources, dict)
     assert all(isinstance(source_list, list) for source_list in sources.values())
 
@@ -393,7 +396,8 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transformed_grid=False):
+                  use_transformed_grid=False,
+                  source_annotation_ids=None):
     """ Create a view that places multiple sources in a grid.
 
     Arguments:
@@ -418,6 +422,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
             be applied before the grid transform. (default: None)
         use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
             into a single source in the MoBIE viewer (default: False)
+        source_annotation_ids [list[str]] - Custom keys for the sourceAnnotationDisplay source map (default: None)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
 
@@ -488,7 +493,8 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         source_transforms = additional_source_transforms + source_transforms
 
     # create the source annotation display for this grid view, this will show the table for this grid view!
-    source_annotation_displays = create_source_annotation_display(name, grid_sources, dataset_folder, table_folder)
+    source_annotation_displays = create_source_annotation_display(name, grid_sources, dataset_folder, table_folder,
+                                                                  annotation_ids=source_annotation_ids)
 
     if menu_name is None:
         menu_name = "grid"
