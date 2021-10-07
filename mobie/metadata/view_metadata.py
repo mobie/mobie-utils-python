@@ -1,4 +1,5 @@
 import os
+import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -173,7 +174,7 @@ def get_merged_grid_source_transform(sources, merged_source_name,
         grid_transform["timepoints"] = timepoints
 
     if center_at_origin is not None:
-        grid_transform["centerAtOrigin"] = center_at_origin
+        warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
 
     return {"mergedGrid": grid_transform}
 
@@ -396,7 +397,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transformed_grid=False,
+                  use_transformed_grid=True,
                   source_annotation_ids=None):
     """ Create a view that places multiple sources in a grid.
 
@@ -421,7 +422,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         additional_source_transforms [list[source_transforms]] - list of source transforms to
             be applied before the grid transform. (default: None)
         use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
-            into a single source in the MoBIE viewer (default: False)
+            into a single source in the MoBIE viewer (default: True)
         source_annotation_ids [list[str]] - Custom keys for the sourceAnnotationDisplay source map (default: None)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."

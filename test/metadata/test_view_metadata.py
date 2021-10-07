@@ -254,8 +254,7 @@ class TestViewMetadata(unittest.TestCase):
         validate_with_schema(view, "view")
 
         # grid trafo
-        grid = get_merged_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"],
-                                                "merged-images", center_at_origin=True)
+        grid = get_merged_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images")
         view = get_view(names=["image-grid"],
                         source_types=["image"],
                         sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
