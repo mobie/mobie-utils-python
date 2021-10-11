@@ -98,7 +98,7 @@ def _ensure_list(x):
 
 
 def get_affine_source_transform(sources, parameters,
-                                timepoints=None, source_names_after_transform=None):
+                                timepoints=None, name=None, source_names_after_transform=None):
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
     trafo = {
@@ -107,6 +107,8 @@ def get_affine_source_transform(sources, parameters,
     }
     if timepoints is not None:
         trafo["timepoints"] = timepoints
+    if name is not None:
+        trafo["name"] = name   
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == len(sources), f"{source_names_after_transform}, {sources}"
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
@@ -114,7 +116,7 @@ def get_affine_source_transform(sources, parameters,
 
 
 def get_crop_source_transform(sources, min, max,
-                              timepoints=None, source_names_after_transform=None,
+                              timepoints=None, name=None, source_names_after_transform=None,
                               center_at_origin=None):
     assert len(min) == len(max) == 3
     trafo = {
@@ -124,6 +126,8 @@ def get_crop_source_transform(sources, min, max,
     }
     if timepoints is not None:
         trafo["timepoints"] = timepoints
+    if name is not None:
+        trafo["name"] = name 
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == len(sources)
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
@@ -133,7 +137,7 @@ def get_crop_source_transform(sources, min, max,
 
 
 def get_transformed_grid_source_transform(sources, positions=None, source_names_after_transform=None,
-                                          timepoints=None, center_at_origin=None):
+                                          timepoints=None, name=None, center_at_origin=None):
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
     assert isinstance(sources, list)
     assert all(isinstance(source_pos, list) for source_pos in sources)
@@ -154,7 +158,9 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
 
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
-
+    if name is not None:
+        grid_transform["name"] = name 
+        
     if center_at_origin is not None:
         grid_transform["centerAtOrigin"] = center_at_origin
 
@@ -162,7 +168,7 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
 
 
 def get_merged_grid_source_transform(sources, merged_source_name,
-                                     positions=None, timepoints=None, center_at_origin=None):
+                                     positions=None, timepoints=None, name=None, center_at_origin=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -172,6 +178,8 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
+    if name is not None:
+        grid_transform["name"] = name 
 
     if center_at_origin is not None:
         warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
