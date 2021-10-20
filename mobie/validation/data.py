@@ -114,7 +114,7 @@ def validate_s3_dataset(bucket_name,
     with open(attrs_file, 'w') as f:
         json.dump(attrs, f)
 
-    print("validateing chunks for s3 dataset stored at")
+    print("validating chunks for s3 dataset stored at")
     if server is None:
         print(f"{bucket_name}:{path_in_bucket}:{dataset_name}")
     else:
