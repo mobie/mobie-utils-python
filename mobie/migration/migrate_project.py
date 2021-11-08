@@ -26,7 +26,7 @@ def main():
                            update_view_spec=bool(args.update_view_spec),
                            update_data_spec=bool(args.update_data_spec),
                            update_table_spec=bool(args.update_table_spec),
-                           update_grid_spec2=bool(args.update_grid_spec))
+                           update_grid_spec=bool(args.update_grid_spec))
     else:
         raise ValueError(f"Invalid version {version}")
 
