@@ -51,9 +51,19 @@ def create_dataset_metadata(dataset_folder,
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True):
+def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True, bookmark_file_name=None):
     validate_view_metadata(view)
-    metadata = read_dataset_metadata(dataset_folder)
+
+    if bookmark_file_name is None:
+        metadata = read_dataset_metadata(dataset_folder)
+    else:
+        if not bookmark_file_name.endswith(".json"):
+            bookmark_file_name += ".json"
+        view_file = os.path.join(dataset_folder, "misc", "views", bookmark_file_name)
+        metadata = read_metadata(view_file)
+        if "views" not in metadata:
+            metadata["views"] = {}
+
     if view_name in metadata["views"]:
         msg = f"A view with name {view_name} already exists for the dataset {dataset_folder}"
         if overwrite:
@@ -61,7 +71,11 @@ def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True):
         else:
             raise ValueError(msg)
     metadata["views"][view_name] = view
-    write_dataset_metadata(dataset_folder, metadata)
+
+    if bookmark_file_name is None:
+        write_dataset_metadata(dataset_folder, metadata)
+    else:
+        write_metadata(view_file, metadata)
 
 
 def create_dataset_structure(root, dataset_name, file_formats):

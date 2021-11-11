@@ -108,7 +108,7 @@ def get_affine_source_transform(sources, parameters,
     if timepoints is not None:
         trafo["timepoints"] = timepoints
     if name is not None:
-        trafo["name"] = name   
+        trafo["name"] = name
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == len(sources), f"{source_names_after_transform}, {sources}"
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
@@ -127,7 +127,7 @@ def get_crop_source_transform(sources, min, max,
     if timepoints is not None:
         trafo["timepoints"] = timepoints
     if name is not None:
-        trafo["name"] = name 
+        trafo["name"] = name
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == len(sources)
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
@@ -159,8 +159,8 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
     if name is not None:
-        grid_transform["name"] = name 
-        
+        grid_transform["name"] = name
+
     if center_at_origin is not None:
         grid_transform["centerAtOrigin"] = center_at_origin
 
@@ -179,7 +179,7 @@ def get_merged_grid_source_transform(sources, merged_source_name,
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
     if name is not None:
-        grid_transform["name"] = name 
+        grid_transform["name"] = name
 
     if center_at_origin is not None:
         warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
