@@ -1,6 +1,6 @@
 import os
 from elf.io import open_file, is_z5py, is_group
-from .util import downscale, add_max_id
+from .utils import downscale, add_max_id
 
 try:
     from paintera_tools import serialize_from_commit, postprocess
@@ -29,7 +29,8 @@ def import_segmentation_from_paintera(in_path, in_key, out_path,
                                       resolution, scale_factors, chunks,
                                       tmp_folder, target, max_jobs,
                                       block_shape=None, postprocess_config=None,
-                                      map_to_background=None, unit='micrometer'):
+                                      map_to_background=None, unit='micrometer',
+                                      source_name=None):
     """ Import segmentation data into mobie format from a paintera dataset
 
     Arguments:
@@ -47,6 +48,7 @@ def import_segmentation_from_paintera(in_path, in_key, out_path,
         postprocess_config: config for segmentation post-processing (default: None)
         map_to_background: additional ids to be mapped to background label (default: None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        source_name [str] - name of the source (default: None)
     """
     if serialize_from_commit is None:
         msg = """Importing a segmentation from paintera is only possible wit paintera_tools:
@@ -93,7 +95,7 @@ def import_segmentation_from_paintera(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library='vigra', library_kwargs={'order': 0},
-              unit=unit)
+              unit=unit, source_name=source_name)
 
     add_max_id(in_path, in_key, out_path, out_key,
                tmp_folder, target, max_jobs)

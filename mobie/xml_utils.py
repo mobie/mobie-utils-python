@@ -1,6 +1,8 @@
 import os
 import xml.etree.ElementTree as ET
+import numpy as np
 from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
+from pybdv.metadata import write_affine
 
 
 def copy_xml_with_abspath(xml_in, xml_out):
@@ -43,13 +45,10 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
     tree.write(xml_out)
 
 
-# should be generalized and moved to pybdv at some point
 def copy_xml_as_n5_s3(in_xml, out_xml,
                       service_endpoint, bucket_name, path_in_bucket,
-                      authentication='Anonymous', region='us-west-2',
-                      bdv_type='bdv.n5.s3'):
+                      region='us-west-2', bdv_type='bdv.n5.s3'):
     """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
-
     Arguments:
         in_xml [str] - path to the input xml
         out_xml [str] - path to the output xml
@@ -57,18 +56,12 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
             For EMBL: 'https://s3.embl.de'.
         bucket_name [str] - name of the bucket
         path_in_bucket [str] - file paths inside of the bucket
-        authentication [str] - the authentication mode, can be 'Anonymous' or 'Protected'.
-            Default: 'Anonymous'
         region [str] - the region. Only relevant if aws.s3 is used.
             Default: 'us-west-2'
     """
-    bdv_types = ('bdv.n5.s3', 'ome.zarr.s3')
+    bdv_types = ('bdv.n5.s3', 'bdv.ome.zarr.s3')
     if bdv_type not in bdv_types:
         raise ValueError(f"Invalid bdv type {bdv_type}, expected one of {bdv_types}")
-
-    auth_modes = ('Anonymous', 'Protected')
-    if authentication not in auth_modes:
-        raise ValueError(f"Invalid authentication mode {authentication}, expected one of {auth_modes}")
 
     # check if we have an xml already
     tree = ET.parse(in_xml)
@@ -94,12 +87,21 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
     el.text = service_endpoint
     el = ET.SubElement(imgload, 'BucketName')
     el.text = bucket_name
-    el = ET.SubElement(imgload, 'Authentication')
-    el.text = authentication
 
     indent_xml(root)
     tree = ET.ElementTree(root)
     tree.write(out_xml)
+
+
+def parse_s3_xml(xml):
+    tree = ET.parse(xml)
+    root = tree.getroot()
+    img = root.find('SequenceDescription').find("ImageLoader")
+    path_in_bucket = img.find("Key").text
+    endpoint = img.find("ServiceEndpoint").text
+    bucket_name = img.find("BucketName").text
+    region = img.find("SigningRegion").text
+    return path_in_bucket, endpoint, bucket_name, region
 
 
 def read_path_in_bucket(xml):
@@ -108,3 +110,16 @@ def read_path_in_bucket(xml):
     imgload = seqdesc.find('ImageLoader')
     el = imgload.find('Key')
     return el.text
+
+
+def update_transformation_parameter(xml_path, parameter):
+    if isinstance(parameter, (list, np.ndarray)):
+        if len(parameter) != 12:
+            raise ValueError(f"Expected affine transformation with 12 parameters, got {len(parameter)}")
+    elif isinstance(parameter, dict):
+        if any(len(param) != 12 for param in parameter.values()):
+            raise ValueError("Expected all affine transformation with 12 parameters.")
+    else:
+        raise ValueError(f"Invalid affine transformation {parameter}")
+    write_affine(xml_path, setup_id=0, affine=parameter,
+                 overwrite=True, timepoint=0)

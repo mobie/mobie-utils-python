@@ -22,13 +22,14 @@ requirements:
     - python >=3.6
     - pip
   run:
-    - python >=3.6
-    - elf >=0.2.4
-    - numba
     - cluster_tools >=0.3.4
+    - python-elf
+    - jsonschema
     - pandas
     - paintera_tools >=0.2.1
     - pybdv >=0.5
+    - python >=3.6
+    - requests
     - s3fs
 
 test:

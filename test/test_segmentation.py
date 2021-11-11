@@ -9,7 +9,9 @@ import pandas as pd
 
 from elf.io import open_file
 from pybdv.util import get_key
-from mobie import initialize_dataset
+from mobie import add_image
+from mobie.validation import validate_source_metadata
+from mobie.metadata import read_dataset_metadata
 
 
 class TestSegmentation(unittest.TestCase):
@@ -28,9 +30,9 @@ class TestSegmentation(unittest.TestCase):
 
         raw_name = 'test-raw'
         scales = [[2, 2, 2]]
-        initialize_dataset(data_path, data_key, self.root, self.dataset_name, raw_name,
-                           resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                           tmp_folder=tmp_folder)
+        add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
+                  resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
+                  tmp_folder=tmp_folder)
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
@@ -48,31 +50,32 @@ class TestSegmentation(unittest.TestCase):
         except OSError:
             pass
 
-    def check_segmentation(self, dataset_folder, seg_name):
+    def check_segmentation(self, dataset_folder, name):
         self.assertTrue(os.path.exists(dataset_folder))
         exp_data = self.data
 
-        # check the seg data
-        seg_path = os.path.join(dataset_folder, 'images', 'local', f'{seg_name}.n5')
+        # check the segmentation metadata
+        metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(name, metadata['sources'])
+        validate_source_metadata(name, metadata['sources'][name], dataset_folder)
+
+        # check the segmentation data
+        seg_path = os.path.join(dataset_folder, 'images', 'bdv-n5', f'{name}.n5')
         self.assertTrue(os.path.exists(seg_path))
         key = get_key(False, 0, 0, 0)
         with open_file(seg_path, 'r') as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
 
-        # check the image dict
-        im_dict_path = os.path.join(dataset_folder, 'images', 'images.json')
-        with open(im_dict_path) as f:
-            im_dict = json.load(f)
-        self.assertIn(seg_name, im_dict)
-
         # check the table
-        table_path = os.path.join(dataset_folder, 'tables', seg_name, 'default.csv')
-        self.assertTrue(os.path.exists(table_path))
+        table_path = os.path.join(dataset_folder, 'tables', name, 'default.tsv')
+        self.assertTrue(os.path.exists(table_path)), table_path
         table = pd.read_csv(table_path, sep='\t')
 
         label_ids = table['label_id'].values
         exp_label_ids = np.unique(data)
+        if 0 in exp_label_ids:
+            exp_label_ids = exp_label_ids[1:]
         self.assertTrue(np.array_equal(label_ids, exp_label_ids))
 
     def test_add_segmentation(self):
@@ -103,7 +106,7 @@ class TestSegmentation(unittest.TestCase):
                '--input_key', self.seg_key,
                '--root', self.root,
                '--dataset_name', self.dataset_name,
-               '--segmentation_name', seg_name,
+               '--name', seg_name,
                '--resolution', resolution,
                '--scale_factors', scales,
                '--chunks', chunks,

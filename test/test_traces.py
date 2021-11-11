@@ -9,7 +9,9 @@ import pandas as pd
 
 import elf.skeleton.io as skio
 from elf.io import open_file
-from mobie import initialize_dataset
+from mobie import add_image
+from mobie.validation import validate_source_metadata
+from mobie.metadata import read_dataset_metadata
 
 
 class TestTraces(unittest.TestCase):
@@ -30,9 +32,9 @@ class TestTraces(unittest.TestCase):
 
         raw_name = 'test-raw'
         scales = [[2, 2, 2]]
-        initialize_dataset(data_path, data_key, self.root, self.dataset_name, raw_name,
-                           resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                           tmp_folder=tmp_folder)
+        add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
+                  resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
+                  tmp_folder=tmp_folder)
 
     def generate_trace(self, trace_id):
         path = os.path.join(self.trace_folder, f'trace_{trace_id}.swc')
@@ -58,14 +60,14 @@ class TestTraces(unittest.TestCase):
     def check_traces(self, dataset_folder, trace_name):
         self.assertTrue(os.path.exists(dataset_folder))
 
-        # check the image dict
-        im_dict_path = os.path.join(dataset_folder, 'images', 'images.json')
-        with open(im_dict_path) as f:
-            im_dict = json.load(f)
-        self.assertIn(trace_name, im_dict)
+        # check the segmentation metadata
+        metadata = read_dataset_metadata(dataset_folder)
+        self.assertIn(trace_name, metadata['sources'])
+        validate_source_metadata(trace_name, metadata['sources'][trace_name], dataset_folder,
+                                 assert_true=self.assertTrue, assert_equal=self.assertEqual)
 
         # check the table
-        table_path = os.path.join(dataset_folder, 'tables', trace_name, 'default.csv')
+        table_path = os.path.join(dataset_folder, 'tables', trace_name, 'default.tsv')
         self.assertTrue(os.path.exists(table_path))
         table = pd.read_csv(table_path, sep='\t')
 
@@ -95,10 +97,11 @@ class TestTraces(unittest.TestCase):
         chunks = json.dumps([64, 64, 64])
 
         cmd = ['mobie.add_traces',
-               '--input_folder', self.trace_folder,
+               '--input_path', self.trace_folder,
+               '--input_key', '',
                '--root', self.root,
                '--dataset_name', self.dataset_name,
-               '--traces_name', traces_name,
+               '--name', traces_name,
                '--reference_name', ref_name,
                '--resolution', resolution,
                '--scale_factors', scales,

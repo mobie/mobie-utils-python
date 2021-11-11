@@ -1,11 +1,12 @@
-from .util import add_max_id, downscale, ensure_volume
+from .utils import add_max_id, downscale, ensure_volume, get_scale_key
 
 
 def import_segmentation(in_path, in_key, out_path,
                         resolution, scale_factors, chunks,
                         tmp_folder, target, max_jobs,
                         block_shape=None, with_max_id=True,
-                        unit='micrometer'):
+                        unit="micrometer", source_name=None,
+                        file_format="bdv.n5"):
     """ Import segmentation data into mobie format.
 
     Arguments:
@@ -22,6 +23,8 @@ def import_segmentation(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         with_max_id [bool] - whether to add the max id attribute
         unit [str] - physical unit of the coordinate system (default: micrometer)
+        source_name [str] - name of the source (default: None)
+        file_format [str] - the file format (default: "bdv.n5")
     """
     in_path, in_key = ensure_volume(in_path, in_key,
                                     tmp_folder, chunks)
@@ -29,9 +32,10 @@ def import_segmentation(in_path, in_key, out_path,
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs={'order': 0},
-              unit=unit)
+              library="vigra", library_kwargs={"order": 0},
+              unit=unit, source_name=source_name,
+              metadata_format=file_format)
 
     if with_max_id:
-        add_max_id(in_path, in_key, out_path, 'setup0/timepoint0/s0',
-                   tmp_folder, target, max_jobs)
+        out_key = get_scale_key(file_format)
+        add_max_id(in_path, in_key, out_path, out_key, tmp_folder, target, max_jobs)
