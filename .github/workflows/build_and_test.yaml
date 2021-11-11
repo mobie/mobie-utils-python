@@ -24,8 +24,7 @@ jobs:
         with:
           activate-environment: mobie
           auto-update-conda: true
-          channels: [conda-forge, cpape]
-          environment-file: .github/workflows/environment.yaml
+          environment-file: environment.yaml
           python-version: ${{ matrix.python-version }}
           use-mamba: true
           mamba-version: "*"
