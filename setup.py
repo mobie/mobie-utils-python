@@ -9,7 +9,7 @@ setup(
     version=version,
     author="Constantin Pape",
     url="https://github.com/platybrowser/mobie-utils-python",
-    license='MIT',
+    license="MIT",
     entry_points={
         "console_scripts": [
             "mobie.add_image = mobie.image_data:main",
