@@ -23,9 +23,8 @@ requirements:
     - pip
   run:
     - cluster_tools >=0.3.4
-    - elf >=0.2.4
+    - python-elf
     - jsonschema
-    - numba <=0.50
     - pandas
     - paintera_tools >=0.2.1
     - pybdv >=0.5

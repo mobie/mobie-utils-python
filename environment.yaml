@@ -5,9 +5,9 @@ channels:
     - cpape
 dependencies:
     - cluster_tools >=0.3.4
-    - elf >=0.2.4
+    - python-elf
+    - numba
     - jsonschema
-    - numba <=0.50
     - pandas
     - paintera_tools >=0.2.1
     - pip
