@@ -3,6 +3,7 @@ import os
 import subprocess
 import unittest
 from shutil import rmtree
+from sys import platform
 
 import numpy as np
 import pandas as pd
@@ -92,6 +93,7 @@ class TestSegmentation(unittest.TestCase):
                          chunks=(64, 64, 64), tmp_folder=tmp_folder)
         self.check_segmentation(dataset_folder, seg_name)
 
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli(self):
         seg_name = 'seg'
 

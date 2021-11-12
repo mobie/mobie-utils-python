@@ -4,6 +4,7 @@ import os
 import subprocess
 import unittest
 from shutil import rmtree
+from sys import platform
 
 import imageio
 import numpy as np
@@ -147,6 +148,7 @@ class TestImageData(unittest.TestCase):
                   target='local', max_jobs=self.max_jobs)
         self.check_data(dataset_folder, im_name)
 
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli(self):
         im_name = 'extra-im'
 
