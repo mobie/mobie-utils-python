@@ -3,6 +3,7 @@ import os
 import subprocess
 import unittest
 from shutil import rmtree
+from sys import platform
 
 import numpy as np
 import pandas as pd
@@ -88,6 +89,7 @@ class TestTraces(unittest.TestCase):
                    chunks=(64, 64, 64))
         self.check_traces(dataset_folder, traces_name)
 
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli(self):
         traces_name = 'traces'
         ref_name = 'test-raw'
