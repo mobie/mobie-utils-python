@@ -1,5 +1,6 @@
 import os
 import unittest
+from multiprocessing import cpu_count
 from shutil import rmtree
 
 import imageio
@@ -18,7 +19,7 @@ class TestImportImage(unittest.TestCase):
     test_folder = './test-folder'
     tmp_folder = './test-folder/tmp'
     out_path = './test-folder/imported-data.n5'
-    n_jobs = 4
+    n_jobs = min(4, cpu_count())
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
