@@ -2,12 +2,14 @@ name:
     mobie
 channels:
     - conda-forge
+    - cpape
 dependencies:
-    - cluster_tools >=0.3.6
+    - cluster_tools >=0.3.4
     - python-elf
     - numba
     - jsonschema
     - pandas
+    - paintera_tools >=0.2.1
     - pip
     - requests
     - pybdv >=0.5

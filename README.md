@@ -34,38 +34,22 @@ Below is a short code snippet that shows how to use it in a python script.
 import mobie
 
 # root folder for the mobie project
-mobie_root = '/path/to/project-datasets/data'
+mobie_root = "/path/to/project-datasets/data"
 # name of the dataset to be added
-dataset_name = 'my_dataset'
-# internal name for the initial data for this dataset
-data_name = 'raw-data'
+dataset_name = "my_dataset"
 
 # file path and key for the input data
 # key can be an internal path for hdf5 or zarr/n5 containers
 # or a file pattern for image stacks
-data_path = '/path/to/input_data.h5'
-data_key = '/internal/h5/path'
+data_path = "/path/to/input_data.h5"
+data_key = "/internal/h5/path"
 
-# resolution of this initial data (in micrometer), chunks size and factors for down-scaling
+# resolution of this initial data (in micrometer), chunks size and factors for downscaling
 resolution = (.5, .25, .25)
 chunks = (64, 128, 128)
 scale_factors = [[1, 2, 2], [2, 2, 2], [2, 2, 2]]
 
-# initialize a dataset for this project with raw data
-mobie.initialize_dataset(data_path, data_key,
-                         mobie_root, dataset_name, data_name,
-                         resolution, chunks, scale_factors)
-
-# add a different image with different base resolution to the dataset
-image_path = '/path/to/image.h5'
-image_key = 'h5/path'
-
-image_name = 'image-data'
-resolution = (.5, .5, .5)
-chunks = 3 * (64,)
-scale_factors = 3 * [[2, 2, 2]]
-
-mobie.add_image(image_path, image_key,
+mobie.add_image(data_path, data_key,
                 mobie_root, dataset_name, image_name,
                 resolution, chunks, scale_factors)
 
@@ -75,8 +59,7 @@ mobie.add_image(image_path, image_key,
 
 The package also installs some command line scripts that can create MoBIE projects, add data to it and more:
 - `mobie.add_image` add image data to MoBIE dataset. Initialize the dataset if it does not exist yet.
-- `mobie.add_mask` add binary mask image data to MoBIE dataset. 
-- `mobie.add_registered_volume` apply registration in elastix format and add the resulting data to MoBIE dataset.
+- `mobie.add_registered_source` apply registration in elastix format and add the resulting data to MoBIE dataset.
 - `mobie.add_segmentation` add segmentation image data to MoBIE dataset.
 - `mobie.add_traces` add data containing traces (= skeletonized objects).
 - `mobie.validate_project` validate that a MoBIE project follows the spec
