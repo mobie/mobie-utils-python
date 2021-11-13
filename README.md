@@ -1,3 +1,6 @@
+[![Build Status](https://github.com/mobie/mobie-utils-python/workflows/build_and_test/badge.svg)](https://github.com/mobie/mobie-utils-python/actions)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/mobie_utils/badges/version.svg)](https://anaconda.org/conda-forge/mobie_utils)
+
 # mobie-utils-python
 
 A python library to generate projects for [MoBIE](https://github.com/mobie-org/mobie).
@@ -8,7 +11,7 @@ A python library to generate projects for [MoBIE](https://github.com/mobie-org/m
 **From conda:**
 
 ```
-$ conda install -c conda-forge -c cpape mobie_utils
+$ conda install -c conda-forge mobie_utils
 ```
 
 **For development:**
