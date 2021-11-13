@@ -126,7 +126,7 @@ def add_registered_source(input_path, input_key, transformation,
                                    description=description)
 
 
-if __name__ == '__main__':
+def main():
     description = "Apply transformation defined in elastix format to source and add it to MoBIE dataset."
     parser = utils.get_base_parser(description, transformation_file=True)
 
@@ -157,7 +157,7 @@ if __name__ == '__main__':
                           args.root, args.dataset_name, args.name,
                           resolution, scale_factors, chunks,
                           method=args.method, menu_name=args.menu_name,
-                          shape=args.shape, source_type=args.source_type,
+                          shape=args.shape, source_type=args.source_type, view=view,
                           add_default_table=bool(args.add_default_table),
                           tmp_folder=args.tmp_folder, targer=args.target, max_jobs=args.max_jobs,
                           is_default_dataset=bool(args.is_default_dataset))
