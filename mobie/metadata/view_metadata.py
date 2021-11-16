@@ -192,9 +192,9 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 #
 
 
-def get_viewer_transform(affine=None, normalized_affine=None, position=None, timepoint=None):
+def get_viewer_transform(affine=None, normalized_affine=None, position=None, normal_vector=None, timepoint=None):
     # don't allow empty transform
-    if all(param is None for param in (affine, normalized_affine, position, timepoint)):
+    if all(param is None for param in (affine, normalized_affine, position, normal_vector, timepoint)):
         raise ValueError("Invalid parameters: need to pass at least one parameter")
 
     trafo = {}
@@ -203,21 +203,32 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, tim
             raise ValueError("Invalid parameters: both affine and normalized_affine were passed")
         if position is not None:
             raise ValueError("Invalid parameters: both affine and position were passed")
+        if normal_vector is not None:
+            raise ValueError("Invalid parameters: both affine and normal_vector were passed")
         assert len(affine) == 12
         assert all(isinstance(param, float) for param in affine)
         trafo["affine"] = affine
 
     if normalized_affine is not None:
         if position is not None:
-            raise ValueError("Invalid parameters: both normaized affine and position were passed")
+            raise ValueError("Invalid parameters: both normalized_affine and position were passed")
+        if normal_vector is not None:
+            raise ValueError("Invalid parameters: both normalized_affine and normal_vector were passed")
         assert len(normalized_affine) == 12
         assert all(isinstance(param, float) for param in normalized_affine)
         trafo["normalizedAffine"] = normalized_affine
 
     if position is not None:
+        if normal_vector is not None:
+            raise ValueError("Invalid parameters: both position and normal_vector were passed")
         assert len(position) == 3
         assert all(isinstance(param, float) for param in position)
         trafo["position"] = position
+
+    if normal_vector is not None:
+        assert len(normal_vector) == 3
+        assert all(isinstance(param, float) for param in normal_vector)
+        trafo["normalVector"] = normal_vector
 
     if timepoint is not None:
         trafo["timepoint"] = timepoint

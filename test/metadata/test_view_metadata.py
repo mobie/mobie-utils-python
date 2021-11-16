@@ -146,7 +146,8 @@ class TestViewMetadata(unittest.TestCase):
             {'normalizedAffine': np.random.rand(12).tolist()},
             {'normalizedAffine': np.random.rand(12).tolist(), "timepoint": 1},
             {'position': np.random.rand(3).tolist()},
-            {'position': np.random.rand(3).tolist(), "timepoint": 2}
+            {'position': np.random.rand(3).tolist(), "timepoint": 2},
+            {'normalVector': np.random.rand(3).tolist()},
         ]
         for trafo in trafos:
             view = get_default_view('image', 'my-image', viewer_transform=trafo)
