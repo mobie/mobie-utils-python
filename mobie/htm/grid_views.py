@@ -176,8 +176,10 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
                 source for source in prefix_sources if
                 site_name_to_well_name(source_name_to_site_name(source, prefix)) == well
             ]
+            source_type = list(metadata["sources"][prefix_sources[0]].keys())[0]
+            encode_source = True if source_type == "segmentation" else None
             trafo = mobie.metadata.get_merged_grid_source_transform(
-                well_sources, trafo_name
+                well_sources, trafo_name, encode_source=encode_source
             )
             source_transforms.append(trafo)
 
