@@ -7,6 +7,7 @@ import json
 import luigi
 import numpy as np
 import pandas as pd
+import vigra
 from skimage.measure import regionprops
 
 import cluster_tools.utils.function_utils as fu
@@ -113,17 +114,18 @@ def get_table_impl_task(target):
 
 def load_seg(input_file, key):
     with vu.file_reader(input_file, "r") as f:
-        return f[key][:]
+        return f[key][:].astype("uint32")
 
 
 def compute_table(input_file, table_path, key, resolution):
     seg = load_seg(input_file, key)
     ndim = seg.ndim
 
+    centers = vigra.filters.eccentricityCenters(seg)
     props = regionprops(seg)
     tab = np.array([
         [p.label]
-        + [ce / res for ce, res in zip(p.centroid, resolution)]
+        + [ce / res for ce, res in zip(centers[p.label], resolution)]
         + [float(bb) / res for bb, res in zip(p.bbox[:ndim], resolution)]
         + [float(bb) / res for bb, res in zip(p.bbox[ndim:], resolution)]
         + [p.area]
