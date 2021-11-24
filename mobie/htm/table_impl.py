@@ -48,14 +48,20 @@ class TableImplBase(luigi.Task):
 
         self.require_output_folders()
 
+        # luigi may randomly shuffles the file lists, so we need to make sure they are ordered here
+        input_files = list(self.input_files)
+        input_files.sort()
+        output_files = list(self.output_files)
+        output_files.sort()
+
         # load and update the task config
         task_config = self.get_task_config()
-        task_config.update({"input_files": self.input_files,
-                            "output_files": self.output_files,
+        task_config.update({"input_files": input_files,
+                            "output_files": output_files,
                             "resolution": self.resolution,
                             "input_key": self.input_key})
 
-        block_list = list(range(len(self.input_files)))
+        block_list = list(range(len(input_files)))
         self._write_log("scheduled %i blocks to run" % len(block_list))
 
         # prime and run the jobs
@@ -116,15 +122,17 @@ def compute_table(input_file, table_path, key, resolution):
 
     props = regionprops(seg)
     tab = np.array([
-        [p.label] + [ce / res for ce, res in zip(p.centroid, resolution)]
+        [p.label]
+        + [ce / res for ce, res in zip(p.centroid, resolution)]
         + [float(bb) / res for bb, res in zip(p.bbox[:ndim], resolution)]
-        + [float(bb) / res for bb, res in zip(p.bbox[ndim:], resolution)] + [p.area]
+        + [float(bb) / res for bb, res in zip(p.bbox[ndim:], resolution)]
+        + [p.area]
         for p in props
     ])
     col_names = ["label_id",
-                 "anchor_x", "anchor_y", "anchor_z",
-                 "bb_min_x", "bb_min_y", "bb_min_z",
-                 "bb_max_x", "bb_max_y", "bb_max_z",
+                 "anchor_z", "anchor_y", "anchor_x",
+                 "bb_min_z", "bb_min_y", "bb_min_x",
+                 "bb_max_z", "bb_max_y", "bb_max_x",
                  "n_pixels"]
     if ndim == 2:
         col_names = [name for name in col_names if not name.endswith("z")]
