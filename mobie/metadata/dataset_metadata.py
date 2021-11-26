@@ -6,6 +6,7 @@ from glob import glob
 from pybdv.metadata import get_data_path, get_bdv_format
 from .utils import read_metadata, write_metadata
 from ..validation import validate_view_metadata
+from ..validation.utils import validate_with_schema
 from ..xml_utils import copy_xml_with_newpath
 
 
@@ -34,6 +35,7 @@ def create_dataset_metadata(dataset_folder,
                             is2d=False,
                             views=None,
                             sources=None,
+                            default_location=None,
                             n_timepoints=1):
     path = os.path.join(dataset_folder, 'dataset.json')
     if os.path.exists(path):
@@ -48,6 +50,8 @@ def create_dataset_metadata(dataset_folder,
     }
     if description is not None:
         metadata["description"] = description
+    if default_location is not None:
+        metadata["defaultLocation"] = default_location
     write_dataset_metadata(dataset_folder, metadata)
 
 
@@ -76,6 +80,13 @@ def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True, bookmar
         write_dataset_metadata(dataset_folder, metadata)
     else:
         write_metadata(view_file, metadata)
+
+
+def add_default_location_to_dataset(dataset_folder, location):
+    metadata = read_dataset_metadata(dataset_folder)
+    metadata["defaultLocation"] = location
+    validate_with_schema(metadata, "dataset")
+    write_dataset_metadata(dataset_folder, metadata)
 
 
 def create_dataset_structure(root, dataset_name, file_formats):

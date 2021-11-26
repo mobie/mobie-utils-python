@@ -1,6 +1,7 @@
 import unittest
 from jsonschema import ValidationError
 
+import numpy as np
 import mobie.metadata as metadata
 from mobie.validation.utils import validate_with_schema
 
@@ -50,6 +51,24 @@ class TestDatasetMetadata(unittest.TestCase):
         ds_metadata = self.get_dataset_metadata()
         ds_metadata["sources"]["foo bar"] = metadata.get_image_metadata("image2", '/images/image2.xml',
                                                                         file_format="bdv.n5")
+        with self.assertRaises(ValidationError):
+            validate_with_schema(ds_metadata, "dataset")
+
+    def test_default_location(self):
+        ds_metadata = self.get_dataset_metadata()
+        ds_metadata["defaultLocation"] = {"position": [1.0, 2.0, 3.0]}
+        validate_with_schema(ds_metadata, "dataset")
+
+        ds_metadata = self.get_dataset_metadata()
+        ds_metadata["defaultLocation"] = {"position": [1.0, 2.0, 3.0], "timepoint": 0}
+        validate_with_schema(ds_metadata, "dataset")
+
+        ds_metadata = self.get_dataset_metadata()
+        ds_metadata["defaultLocation"] = {"affine": np.random.rand(12).tolist(), "timepoint": 42}
+        validate_with_schema(ds_metadata, "dataset")
+
+        ds_metadata = self.get_dataset_metadata()
+        ds_metadata["defaultLocation"] = {"gobeldiguk": [99, 83, 4]}
         with self.assertRaises(ValidationError):
             validate_with_schema(ds_metadata, "dataset")
 
