@@ -52,12 +52,13 @@ def _require_dataset(root, dataset_name, file_format, is_default_dataset):
 
 
 def _add_tables(file_format, paths,
-                segmentation_names, resolution,
+                source_names, resolution,
                 ds_folder, tmp_folder, target, max_jobs):
     task = get_table_impl_task(target)
     config_dir = os.path.join(tmp_folder, "configs")
 
-    table_paths = [os.path.join(ds_folder, f"tables/{name}/default.tsv") for name in segmentation_names]
+    table_folders = [os.path.join(ds_folder, "tables", name) for name in source_names]
+    table_paths = [os.path.join(tab_folder, "default.tsv") for tab_folder in table_folders]
     input_key = vu.get_format_key(file_format, scale=0)
 
     t = task(tmp_folder=tmp_folder, max_jobs=max_jobs, config_dir=config_dir,
@@ -65,7 +66,6 @@ def _add_tables(file_format, paths,
              resolution=resolution)
     assert luigi.build([t], local_scheduler=True), "Computing tables failed"
 
-    table_folders = [os.path.split(path)[0] for path in table_paths]
     return table_folders
 
 
@@ -75,6 +75,11 @@ def _add_sources(dataset_folder, source_names, paths,
     if table_folders is None:
         table_folders = len(source_names) * [None]
     for name, metadata_path, table_folder in zip(source_names, paths, table_folders):
+        fname = os.path.split(metadata_path)[1].split(".")[0]
+        assert fname == name, f"{fname}, {name}"
+        if table_folder is not None:
+            tname = os.path.split(table_folder)[1]
+            assert tname == name, f"{tname}, {name}"
         metadata.add_source_to_dataset(dataset_folder, source_type, name, metadata_path,
                                        table_folder=table_folder, view={})
 
@@ -126,7 +131,7 @@ def add_segmentations(files, root,
 
     if add_default_tables:
         table_folders = _add_tables(file_format, metadata_paths,
-                                    segmentation_names, resolution,
+                                    source_names, resolution,
                                     os.path.join(root, dataset_name),
                                     tmp_folder, target, max_jobs)
     else:
