@@ -4,7 +4,7 @@ from glob import glob
 import numpy as np
 import elf.skeleton.io as skio
 from elf.io import open_file, is_h5py
-from skimage.draw import circle
+from skimage.draw import disk
 from pybdv.converter import make_scales
 from pybdv.metadata import (write_h5_metadata,
                             write_n5_metadata,
@@ -24,7 +24,7 @@ def coords_to_vol(coords, nid, radius=5):
     xy_shape = sub_vol.shape[1:]
     for c in sub_coords:
         z, y, x = c
-        mask = circle(y, x, radius, shape=xy_shape)
+        mask = disk((y, x), radius, shape=xy_shape)
         sub_vol[z][mask] = nid
 
     return sub_vol
