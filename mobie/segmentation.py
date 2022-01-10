@@ -18,10 +18,10 @@ def add_segmentation(input_path, input_key,
                      resolution, scale_factors, chunks,
                      menu_name=None, file_format="bdv.n5",
                      node_label_path=None, node_label_key=None,
-                     tmp_folder=None, target='local',
+                     tmp_folder=None, target="local",
                      max_jobs=multiprocessing.cpu_count(),
                      add_default_table=True, view=None,
-                     postprocess_config=None, unit='micrometer',
+                     postprocess_config=None, unit="micrometer",
                      is_default_dataset=False, description=None):
     """ Add segmentation source to MoBIE dataset.
 
@@ -40,7 +40,7 @@ def add_segmentation(input_path, input_key,
         node_label_path [str] - path to node labels (default: None)
         node_label_key [str] - key to node labels (default: None)
         tmp_folder [str] - folder for temporary files (default: None)
-        target [str] - computation target (default: 'local')
+        target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
         add_default_table [bool] - whether to add the default table (default: True)
         view [dict] - default view settings for this source (default: None)
@@ -57,10 +57,10 @@ def add_segmentation(input_path, input_key,
                                           menu_name=menu_name, view=view,
                                           is_default_dataset=is_default_dataset)
     if add_default_table:
-        view['sourceDisplays'][0]['segmentationDisplay']['tables'] = ['default.tsv']
+        view["sourceDisplays"][0]["segmentationDisplay"]["tables"] = ["default.tsv"]
 
     dataset_folder = os.path.join(root, dataset_name)
-    tmp_folder = f'tmp_{dataset_name}_{segmentation_name}' if tmp_folder is None else tmp_folder
+    tmp_folder = f"tmp_{dataset_name}_{segmentation_name}" if tmp_folder is None else tmp_folder
 
     # import the segmentation data
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format,
@@ -93,10 +93,11 @@ def add_segmentation(input_path, input_key,
 
     # compute the default segmentation table
     if add_default_table:
-        table_folder = os.path.join(dataset_folder, 'tables', segmentation_name)
-        table_path = os.path.join(table_folder, 'default.tsv')
+        table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
+        table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
-        key = get_key(False, 0, 0, 0)
+        is_h5 = file_format == "bdv.hdf5"
+        key = get_key(is_h5, 0, 0, 0)
         compute_default_table(data_path, key, table_path, resolution,
                               tmp_folder=tmp_folder, target=target,
                               max_jobs=max_jobs)
@@ -104,7 +105,7 @@ def add_segmentation(input_path, input_key,
         table_folder = None
 
     # add the segmentation to the image dict
-    metadata.add_source_to_dataset(dataset_folder, 'segmentation',
+    metadata.add_source_to_dataset(dataset_folder, "segmentation",
                                    segmentation_name, image_metadata_path,
                                    table_folder=table_folder, view=view,
                                    description=description)
@@ -113,11 +114,11 @@ def add_segmentation(input_path, input_key,
 def main():
     description = "Add segmentation source to MoBIE dataset."
     parser = utils.get_base_parser(description)
-    parser.add_argument('--node_label_path', type=str, default=None,
+    parser.add_argument("--node_label_path", type=str, default=None,
                         help="path to the node_labels for the segmentation")
-    parser.add_argument('--node_label_key', type=str, default=None,
+    parser.add_argument("--node_label_key", type=str, default=None,
                         help="key for the node labels for segmentation")
-    parser.add_argument('--add_default_table', type=int, default=1,
+    parser.add_argument("--add_default_table", type=int, default=1,
                         help="whether to add the default table")
     args = parser.parse_args()
 
