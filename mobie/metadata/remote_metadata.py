@@ -1,3 +1,4 @@
+import argparse
 import os
 import subprocess
 from copy import deepcopy
@@ -176,3 +177,16 @@ def upload_source(dataset_folder, metadata, data_format, bucket_name, s3_prefix=
     assert os.path.exists(data_path)
     cmd = ["mc", "cp", "-r", f"{data_path}/", f"{s3_prefix}/{bucket_name}/{path_in_bucket}/"]
     subprocess.run(cmd)
+
+
+def main():
+    parser = argparse.ArgumentParser("Add remote metadata to a MoBIE project so that it can be accessed via S3.")
+    parser.add_argument("-i", "--input", help="MoBIE project folder", required=True)
+    parser.add_argument("-b", "--bucket_name", required=True,
+                        help="Name of the bucket where the dataset will be uploaded")
+    parser.add_argument("-s", "--service_endpoint", required=True,
+                        help="The url of the s3 service endpoint, e.g. 'https://s3.embl.de' for the EMBL s3")
+    parser.add_argument("--region", help="The aws region (only relevant if uploading to aws s3)",
+                        default="us-west-2")
+    args = parser.parse_args()
+    add_remote_project_metadata(args.input, args.bucket_name, args.service_endpoint, args.region)

@@ -1,6 +1,7 @@
 import os
 import unittest
 from shutil import rmtree
+from subprocess import run
 
 import numpy as np
 
@@ -12,20 +13,20 @@ from mobie.validation.utils import validate_with_schema
 
 
 class TestRemoteMetadata(unittest.TestCase):
-    test_folder = './test-folder'
-    root = './test-folder/data'
+    test_folder = "./test-folder"
+    root = "./test-folder/data"
     shape = (64, 64, 64)
-    dataset_name = 'test'
+    dataset_name = "test"
 
     def init_dataset(self, file_format):
-        data_path = os.path.join(self.test_folder, 'data.h5')
-        data_key = 'data'
-        with open_file(data_path, 'a') as f:
+        data_path = os.path.join(self.test_folder, "data.h5")
+        data_key = "data"
+        with open_file(data_path, "a") as f:
             f.create_dataset(data_key, data=np.random.rand(*self.shape))
 
-        tmp_folder = os.path.join(self.test_folder, 'tmp-init')
+        tmp_folder = os.path.join(self.test_folder, "tmp-init")
 
-        raw_name = 'test-raw'
+        raw_name = "test-raw"
         scales = [[2, 2, 2]]
         add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
                   resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
@@ -40,26 +41,19 @@ class TestRemoteMetadata(unittest.TestCase):
         except OSError:
             pass
 
-    def _test_remote_metadata(self, file_format):
-        from mobie.metadata import add_remote_project_metadata
-        self.init_dataset(file_format)
-
-        bucket_name = "my-bucket"
-        service_endpoint = "https://s3.embl.de"
-        add_remote_project_metadata(self.root, bucket_name, service_endpoint)
-
+    def _check_remote_metadata(self, file_format, service_endpoint, bucket_name):
         dataset_folder = os.path.join(self.root, self.dataset_name)
         dataset_metadata = read_dataset_metadata(dataset_folder)
         validate_with_schema(dataset_metadata, "dataset")
 
-        new_file_format = file_format + '.s3'
+        new_file_format = file_format + ".s3"
 
-        sources = dataset_metadata['sources']
+        sources = dataset_metadata["sources"]
         for name, source in sources.items():
             source_type = list(source.keys())[0]
             storage = source[source_type]["imageData"]
             self.assertIn(new_file_format, storage)
-            if new_file_format.startswith('bdv'):
+            if new_file_format.startswith("bdv"):
                 xml = storage[new_file_format]["relativePath"]
                 xml_path = os.path.join(dataset_folder, xml)
                 self.assertTrue(os.path.exists(xml_path))
@@ -76,15 +70,32 @@ class TestRemoteMetadata(unittest.TestCase):
         self.assertIn(file_format, file_formats)
         self.assertIn(new_file_format, file_formats)
 
+    def _test_remote_metadata(self, file_format):
+        from mobie.metadata import add_remote_project_metadata
+        self.init_dataset(file_format)
+        bucket_name = "my-bucket"
+        service_endpoint = "https://s3.embl.de"
+        add_remote_project_metadata(self.root, bucket_name, service_endpoint)
+        self._check_remote_metadata(file_format, service_endpoint, bucket_name)
+
     def test_remote_metadata_bdv_n5(self):
-        self._test_remote_metadata('bdv.n5')
+        self._test_remote_metadata("bdv.n5")
 
     def test_remote_metadata_bdv_ome_zarr(self):
-        self._test_remote_metadata('bdv.ome.zarr')
+        self._test_remote_metadata("bdv.ome.zarr")
 
     def test_remote_metadata_ome_zarr(self):
-        self._test_remote_metadata('ome.zarr')
+        self._test_remote_metadata("ome.zarr")
+
+    def test_cli(self):
+        file_format = "bdv.n5"
+        self.init_dataset(file_format)
+        bucket_name = "my-bucket"
+        service_endpoint = "https://s3.embl.de"
+        ret = run(["mobie.add_remote_metadata", "-i", self.root, "-b", bucket_name, "-s", service_endpoint])
+        self.assertTrue(ret.returncode == 0)
+        self._check_remote_metadata(file_format, service_endpoint, bucket_name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
