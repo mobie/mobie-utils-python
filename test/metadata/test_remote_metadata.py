@@ -2,6 +2,7 @@ import os
 import unittest
 from shutil import rmtree
 from subprocess import run
+from sys import platform
 
 import numpy as np
 
@@ -87,6 +88,7 @@ class TestRemoteMetadata(unittest.TestCase):
     def test_remote_metadata_ome_zarr(self):
         self._test_remote_metadata("ome.zarr")
 
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli(self):
         file_format = "bdv.n5"
         self.init_dataset(file_format)
