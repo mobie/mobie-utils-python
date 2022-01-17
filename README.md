@@ -67,6 +67,7 @@ The package also installs some command line scripts that can create MoBIE projec
 - `mobie.add_traces` add data containing traces (= skeletonized objects).
 - `mobie.validate_project` validate that a MoBIE project follows the spec
 - `mobie.validate_dataset` validate that a MoBIE dataset follows the spec
+- `mobie.add_remote_metadata` adds the required metadata for accessing the data via s3.
 
 Run `<COMMAND-NAME> --help` to get more information on how to use them.
 

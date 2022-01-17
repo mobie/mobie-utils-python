@@ -20,7 +20,8 @@ setup(
             "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
             "mobie.migrate_project = mobie.migration.migrate_project:main",
             "mobie.validate_dataset = mobie.validation.dataset:main",
-            "mobie.validate_project = mobie.validation.project:main"
+            "mobie.validate_project = mobie.validation.project:main",
+            "mobie.add_remote_metadata = mobie.metadata.remote_metadata:main",
         ]
     },
 )
