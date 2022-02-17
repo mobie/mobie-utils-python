@@ -82,7 +82,8 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             # check that the source name and name in the xml agree for bdv formats
             if format_.startswith("bdv"):
                 bdv_name = get_name(path, setup_id=0)
-                assert_equal(name, bdv_name)
+                msg = f"{path}: Source name and name in bdv metadata disagree: {name} != {bdv_name}"
+                assert_equal(name, bdv_name, msg)
 
             # check that the source name and name in the ome.zarr metadata agree
             if format_ == "ome.zarr":

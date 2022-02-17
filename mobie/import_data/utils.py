@@ -71,7 +71,7 @@ def downscale(in_path, in_key, out_path,
         json.dump(conf, f)
 
     ds_conf = configs["downscaling"]
-    ds_conf.update({"chunks": chunks, "library": library})
+    ds_conf.update({"chunks": chunks, "library": library, "time_limit": 600})
     if library_kwargs is not None:
         ds_conf.update({"library_kwargs": library_kwargs})
     with open(os.path.join(config_dir, "downscaling.config"), "w") as f:
