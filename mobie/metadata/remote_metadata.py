@@ -15,7 +15,7 @@ def add_remote_project_metadata(
     root,
     bucket_name,
     service_endpoint,
-    region="us-west-2"
+    region=""
 ):
     """ Add metadata to upload remote version of project.
 
@@ -23,7 +23,7 @@ def add_remote_project_metadata(
         root [str] - root data folder of the project
         bucket_name [str] - name of the bucket
         service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
-        region [str] - the region. Only relevant if aws.s3 is used. (default: "us-west-2")
+        region [str] - the signing region. Only relevant if aws.s3 is used. (default: "")
     """
     assert project_exists(root), f"Cannot find MoBIE project at {root}"
     datasets = get_datasets(root)
@@ -85,13 +85,15 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
         dataset_name,
         rel_path
     ])
-    # TODO support (optional) signing region here?
-    return "ome.zarr.s3", {"s3Address": s3_address}
+    address = {"s3Address": s3_address}
+    if region != "":
+        address["region"] = region
+    return "ome.zarr.s3", address
 
 
 def add_remote_source_metadata(metadata, new_file_formats,
                                dataset_folder, dataset_name,
-                               service_endpoint, bucket_name, region="us-west-2"):
+                               service_endpoint, bucket_name, region=""):
     new_metadata = deepcopy(metadata)
     source_type = list(metadata.keys())[0]
 
@@ -118,7 +120,7 @@ def add_remote_dataset_metadata(
     dataset_name,
     bucket_name,
     service_endpoint,
-    region="us-west-2"
+    region=""
 ):
     """ Add metadata to upload remote version of dataset.
 
@@ -127,7 +129,7 @@ def add_remote_dataset_metadata(
         dataset_name [str] - name of the dataset
         bucket_name [str] - name of the bucket
         service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
-        region [str] - the region. Only relevant if aws.s3 is used. (default: "us-west-2")
+        region [str] - the signing region. Only relevant if aws.s3 is used. (default: "")
     """
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -186,7 +188,7 @@ def main():
                         help="Name of the bucket where the dataset will be uploaded")
     parser.add_argument("-s", "--service_endpoint", required=True,
                         help="The url of the s3 service endpoint, e.g. 'https://s3.embl.de' for the EMBL s3")
-    parser.add_argument("--region", help="The aws region (only relevant if uploading to aws s3)",
-                        default="us-west-2")
+    parser.add_argument("--region", help="The aws signing region (only relevant if uploading to aws s3)",
+                        default="")
     args = parser.parse_args()
     add_remote_project_metadata(args.input, args.bucket_name, args.service_endpoint, args.region)
