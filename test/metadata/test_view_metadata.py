@@ -245,7 +245,7 @@ class TestViewMetadata(unittest.TestCase):
         # crop trafo
         crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
                                          timepoints=[0, 1], source_names_after_transform=["my-cropped-image"],
-                                         center_at_origin=True)
+                                         center_at_origin=True, rectify=True)
         view = get_view(names=["image-view"],
                         source_types=["image"],
                         sources=[["my-cropped-image"]],

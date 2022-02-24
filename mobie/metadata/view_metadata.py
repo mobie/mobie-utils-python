@@ -117,7 +117,7 @@ def get_affine_source_transform(sources, parameters,
 
 def get_crop_source_transform(sources, min, max,
                               timepoints=None, name=None, source_names_after_transform=None,
-                              center_at_origin=None):
+                              center_at_origin=None, box_affine=None, rectify=None):
     assert len(min) == len(max) == 3
     trafo = {
         "sources": sources,
@@ -133,6 +133,10 @@ def get_crop_source_transform(sources, min, max,
         trafo["sourceNamesAfterTransform"] = source_names_after_transform
     if center_at_origin is not None:
         trafo["centerAtOrigin"] = center_at_origin
+    if box_affine is not None:
+        trafo["boxAffine"] = box_affine
+    if rectify is not None:
+        trafo["rectify"] = rectify
     return {"crop": trafo}
 
 
