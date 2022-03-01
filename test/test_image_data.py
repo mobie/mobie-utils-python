@@ -103,12 +103,6 @@ class TestImageData(unittest.TestCase):
         shape = (64, 64, 64)
         self.init_h5_dataset(dataset_name, raw_name, shape, file_format='bdv.hdf5')
 
-    def test_bdv_ome_zarr(self):
-        dataset_name = 'test'
-        raw_name = 'test-raw'
-        shape = (64, 64, 64)
-        self.init_h5_dataset(dataset_name, raw_name, shape, file_format='bdv.ome.zarr')
-
     def test_ome_zarr(self):
         dataset_name = 'test'
         raw_name = 'test-raw'

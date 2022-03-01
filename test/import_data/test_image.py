@@ -16,9 +16,9 @@ except ImportError:
 
 
 class TestImportImage(unittest.TestCase):
-    test_folder = './test-folder'
-    tmp_folder = './test-folder/tmp'
-    out_path = './test-folder/imported-data.n5'
+    test_folder = "./test-folder"
+    tmp_folder = "./test-folder/tmp"
+    out_path = "./test-folder/imported-data.n5"
     n_jobs = min(4, cpu_count())
 
     def setUp(self):
@@ -42,7 +42,7 @@ class TestImportImage(unittest.TestCase):
     def check_data(self, exp_data, scales, is_h5=False, out_path=None):
         out_path = self.out_path if out_path is None else out_path
         scale_data = []
-        with open_file(out_path, 'r') as f:
+        with open_file(out_path, "r") as f:
             for scale in range(len(scales) + 1):
                 key = get_key(is_h5, 0, 0, scale)
                 self.assertIn(key, f)
@@ -51,7 +51,7 @@ class TestImportImage(unittest.TestCase):
 
     def check_data_ome_zarr(self, exp_data, scales, out_path):
         scale_data = []
-        with open_file(out_path, 'r') as f:
+        with open_file(out_path, "r") as f:
             for scale in range(len(scales) + 1):
                 key = f"s{scale}"
                 self.assertIn(key, f)
@@ -60,8 +60,8 @@ class TestImportImage(unittest.TestCase):
 
     def create_h5_input_data(self, shape=3*(64,)):
         data = np.random.rand(*shape)
-        test_path = os.path.join(self.test_folder, 'data-h5.h5')
-        key = 'data'
+        test_path = os.path.join(self.test_folder, "data-h5.h5")
+        key = "data"
         with open_file(test_path) as f:
             f.create_dataset(key, data=data)
         return test_path, key, data
@@ -75,17 +75,17 @@ class TestImportImage(unittest.TestCase):
         shape = (32, 128, 128)
         data = np.random.rand(*shape)
 
-        im_folder = os.path.join(self.test_folder, 'im-stack')
+        im_folder = os.path.join(self.test_folder, "im-stack")
         os.makedirs(im_folder, exist_ok=True)
         for z in range(shape[0]):
-            path = os.path.join(im_folder, 'z_%03i.tif' % z)
+            path = os.path.join(im_folder, "z_%03i.tif" % z)
             imageio.imsave(path, data[z])
 
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
-        import_image_data(im_folder, '*.tif', self.out_path,
+        import_image_data(im_folder, "*.tif", self.out_path,
                           resolution=(0.25, 1, 1), chunks=(16, 64, 64),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=self.n_jobs)
+                          target="local", max_jobs=self.n_jobs)
 
         self.check_data(data, scales)
 
@@ -96,7 +96,7 @@ class TestImportImage(unittest.TestCase):
         import_image_data(test_path, key, self.out_path,
                           resolution=(1, 1, 1), chunks=(32, 32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=self.n_jobs)
+                          target="local", max_jobs=self.n_jobs)
         self.check_data(data, scales)
 
     # TODO
@@ -112,34 +112,22 @@ class TestImportImage(unittest.TestCase):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        out_path = os.path.join(self.test_folder, 'imported_data.h5')
+        out_path = os.path.join(self.test_folder, "imported_data.h5")
         import_image_data(test_path, key, out_path,
                           resolution=(1, 1, 1), chunks=(32, 32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=1, file_format="bdv.hdf5")
+                          target="local", max_jobs=1, file_format="bdv.hdf5")
         self.check_data(data, scales, is_h5=True, out_path=out_path)
-
-    def test_export_bdv_ome_zarr(self):
-        from mobie.import_data import import_image_data
-        test_path, key, data = self.create_h5_input_data()
-        scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        out_path = os.path.join(self.test_folder, 'imported_data.ome.zarr')
-        import_image_data(test_path, key, out_path,
-                          resolution=(1, 1, 1), chunks=(32, 32, 32),
-                          scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=self.n_jobs,
-                          file_format="bdv.ome.zarr")
-        self.check_data_ome_zarr(data, scales, out_path)
 
     def test_export_ome_zarr(self):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        out_path = os.path.join(self.test_folder, 'imported_data.ome.zarr')
+        out_path = os.path.join(self.test_folder, "imported_data.ome.zarr")
         import_image_data(test_path, key, out_path,
                           resolution=(1, 1, 1), chunks=(32, 32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=self.n_jobs,
+                          target="local", max_jobs=self.n_jobs,
                           file_format="ome.zarr")
         self.check_data_ome_zarr(data, scales, out_path)
 
@@ -147,14 +135,14 @@ class TestImportImage(unittest.TestCase):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data(shape=(128, 128))
         scales = [[2, 2], [2, 2], [2, 2]]
-        out_path = os.path.join(self.test_folder, 'imported_data.ome.zarr')
+        out_path = os.path.join(self.test_folder, "imported_data.ome.zarr")
         import_image_data(test_path, key, out_path,
                           resolution=(1, 1), chunks=(32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
-                          target='local', max_jobs=self.n_jobs,
+                          target="local", max_jobs=self.n_jobs,
                           file_format="ome.zarr")
         self.check_data_ome_zarr(data, scales, out_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

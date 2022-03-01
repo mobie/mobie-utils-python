@@ -12,8 +12,6 @@ FILE_FORMATS = [
     "bdv.hdf5",
     "bdv.n5",
     "bdv.n5.s3",
-    "bdv.ome.zarr",
-    "bdv.ome.zarr.s3",
     "ome.zarr",
     "ome.zarr.s3",
     "openOrganelle.s3"
@@ -32,11 +30,6 @@ def get_internal_paths(dataset_folder, file_format, name):
 
     elif file_format == 'bdv.n5':
         data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.n5')
-        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
-        return data_path, xml_path
-
-    elif file_format == 'bdv.ome.zarr':
-        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.ome.zarr')
         xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
         return data_path, xml_path
 
