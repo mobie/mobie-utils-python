@@ -98,8 +98,7 @@ def add_remote_source_metadata(metadata, new_file_formats,
     source_type = list(metadata.keys())[0]
 
     for file_format, storage in metadata[source_type]["imageData"].items():
-        # currently we only know how to add s3 data for bdv.n5 and bdv.ome.zarr
-        if file_format in ("bdv.n5", "bdv.ome.zarr"):
+        if file_format == "bdv.n5":
             new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
                                                 service_endpoint, bucket_name, region)
             new_metadata[source_type]["imageData"][new_format] = s3_storage

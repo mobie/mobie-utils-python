@@ -82,9 +82,6 @@ class TestRemoteMetadata(unittest.TestCase):
     def test_remote_metadata_bdv_n5(self):
         self._test_remote_metadata("bdv.n5")
 
-    def test_remote_metadata_bdv_ome_zarr(self):
-        self._test_remote_metadata("bdv.ome.zarr")
-
     def test_remote_metadata_ome_zarr(self):
         self._test_remote_metadata("ome.zarr")
 
