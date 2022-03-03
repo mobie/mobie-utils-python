@@ -27,6 +27,7 @@ class TestViewMetadata(unittest.TestCase):
         custom_kwargs = [
             {'contrastLimits': [0., 255.], 'color': 'white'},
             {'contrastLimits': [0., 2000.], 'color': 'red'},
+            {'contrastLimits': [-10., 20000000.]},
             {'showImagesIn3d': True},
             {'showImagesIn3d': True, 'resolution3dView': [10., 10., 12.]},
             {'blendingMode': 'sumOccluding'},
@@ -59,7 +60,6 @@ class TestViewMetadata(unittest.TestCase):
             {'uiSelectionGroup': "abc;"},
             {'color': "foobar"},
             {'color': "r=1,g=2,b=3,a=4,z=5"},
-            {'contrastLimits': [-10., 5.]},
             {'contrastLimits': [1., 2., 3.]},
             {'showImagesIn3d': "foobar"},
             {'resolution3dView': [1., 2., 3., 4.]},
