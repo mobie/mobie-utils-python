@@ -54,6 +54,7 @@ def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_na
         else:
             transforms[trafo_name] = params
 
+    menu_name = "images" if menu_name is None else menu_name
     view = metadata.get_view([source_name], ["image"], [[source_name]], display_settings,
                              is_exclusive=False, menu_name=menu_name, source_transforms=mobie_transforms)
     return view, transforms
