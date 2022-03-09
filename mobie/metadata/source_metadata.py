@@ -73,7 +73,7 @@ def add_source_to_dataset(
         dataset_folder [str] - path to the dataset folder.
         source_type [str] - type of the source, either 'image' or 'segmentation'.
         source_name [str] - name of the source.
-        xml_path [str] - path to the xml for the image data corresponding to this source.
+        image_metadata_path [str] - path to the image metadata (like BDV-XML) corresponding to this source.
         view [dict] - view for this source. If None, will create a default view.
             If empty dict, will not add a view (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
