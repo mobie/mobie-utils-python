@@ -76,8 +76,6 @@ def add_bdv_image(xml_path, root, dataset_name,
     # get the setup ids and check that image_name is compatible
     setup_ids = bdv_metadata.get_setup_ids(xml_path)
 
-    prefix = os.path.basename(os.path.splitext(xml_path)[0])
-
     if image_name is None:
         image_name = [None] * len(setup_ids)
     else:
