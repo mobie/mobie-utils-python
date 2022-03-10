@@ -94,11 +94,11 @@ def add_bdv_image(xml_path, root, dataset_name,
         if input_format == file_format:
             move_only = True
         else:
-            print('Different input format than target format. Will convert data instead of moving it.')
+            print("Different input format than target format. Will convert data instead of moving it.")
 
         if len(setup_ids) > 1:
             move_only = False
-            print('Cannot move XML with multiple setups. Will convert data instead of moving it.')
+            print("Cannot move XML with multiple setups. Will convert data instead of moving it.")
 
     for setup_id, name in zip(setup_ids, image_name):
         input_key = get_key(input_format == "bdv.hdf5", timepoint=t_start, setup_id=setup_id, scale=0)
@@ -127,7 +127,8 @@ def add_bdv_image(xml_path, root, dataset_name,
                   chunks=chunks, file_format=file_format, menu_name=menu_name,
                   tmp_folder=tmp_folder_, target=target, max_jobs=max_jobs,
                   unit=unit, view=view, transformation=transformation,
-                  is_default_dataset=is_default_dataset, description=description,move_only=move_only)
+                  is_default_dataset=is_default_dataset, description=description,
+                  move_only=move_only)
 
 
 # TODO support default arguments for scale factors and chunks
@@ -135,10 +136,10 @@ def add_image(input_path, input_key,
               root, dataset_name, image_name,
               resolution, scale_factors, chunks,
               file_format="bdv.n5", menu_name=None,
-              tmp_folder=None, target='local',
+              tmp_folder=None, target="local",
               max_jobs=multiprocessing.cpu_count(),
               view=None, transformation=None,
-              unit='micrometer',
+              unit="micrometer",
               is_default_dataset=False,
               description=None,
               move_only=False):
@@ -159,7 +160,7 @@ def add_image(input_path, input_key,
             If none is given will be created based on the image name. (default: None)
         file_format [str] - the file format used to store the data internally (default: bdv.n5)
         tmp_folder [str] - folder for temporary files (default: None)
-        target [str] - computation target (default: 'local')
+        target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
         view [dict] - default view settings for this source (default: None)
         transformation [list or np.ndarray] - parameter for affine transformation
@@ -168,7 +169,8 @@ def add_image(input_path, input_key,
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this image (default: None)
-        move_only [bool] - if input data is already in a MoBIE compatible format, just move it into the project directory.
+        move_only [bool] - if input data is already in a MoBIE compatible format,
+            just move it into the project directory.
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="image", source_name=image_name,
@@ -176,15 +178,15 @@ def add_image(input_path, input_key,
                                           is_default_dataset=is_default_dataset)
 
     dataset_folder = os.path.join(root, dataset_name)
-    tmp_folder = f'tmp_{dataset_name}_{image_name}' if tmp_folder is None else tmp_folder
+    tmp_folder = f"tmp_{dataset_name}_{image_name}" if tmp_folder is None else tmp_folder
 
     # import the image data and add the metadata
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, image_name)
 
     if move_only:
-        shutil.move(input_path,data_path)
+        shutil.move(input_path, data_path)
         if "bdv." in file_format:
-            shutil.move(os.path.splitext(input_path)[0]+'.xml',image_metadata_path)
+            shutil.move(os.path.splitext(input_path)[0]+".xml", image_metadata_path)
 
     else:
         import_image_data(input_path, input_key, data_path,
@@ -194,7 +196,7 @@ def add_image(input_path, input_key,
                           source_name=image_name,
                           file_format=file_format)
 
-    metadata.add_source_to_dataset(dataset_folder, 'image', image_name, image_metadata_path,
+    metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
                                    view=view, description=description)
 
     if transformation is not None:
