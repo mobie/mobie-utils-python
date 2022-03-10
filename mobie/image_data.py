@@ -85,19 +85,19 @@ def add_bdv_image(xml_path, root, dataset_name,
     assert len(image_name) == len(setup_ids)
 
     data_path = bdv_metadata.get_data_path(xml_path, return_absolute_path=True)
+
+    move_only = False
+    if move_data:
+        if input_format == file_format:
+            move_only = True
+        else:
+            print('Different input format than target format. Will convert it instead of moving.')
+
     for setup_id, name in zip(setup_ids, image_name):
-        move_only = False
 
         # get the key for the input data format
         input_format = bdv_metadata.get_bdv_format(xml_path)
         input_key = get_key(input_format == "bdv.hdf5", timepoint=t_start, setup_id=setup_id, scale=0)
-
-        if move_data:
-            if input_format == file_format:
-                move_only = True
-            else:
-                print('Different input format than target format. Will convert it instead of moving.')
-
 
         # get the resolution, scale_factors, chunks and unit
         resolution = bdv_metadata.get_resolution(xml_path, setup_id)
@@ -212,6 +212,3 @@ def main():
               tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs,
               is_default_dataset=bool(args.is_default_dataset),
               transformation=transformation, unit=args.unit)
-
-if __name__ == "__main__":
-    add_bdv_image(xml_path='rmaddons_test.xml',root='mobie',dataset_name='test',move_data=True)
