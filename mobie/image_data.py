@@ -86,17 +86,21 @@ def add_bdv_image(xml_path, root, dataset_name,
 
     data_path = bdv_metadata.get_data_path(xml_path, return_absolute_path=True)
 
+    # get the key for the input data format
+    input_format = bdv_metadata.get_bdv_format(xml_path)
+
     move_only = False
     if move_data:
         if input_format == file_format:
             move_only = True
         else:
-            print('Different input format than target format. Will convert it instead of moving.')
+            print('Different input format than target format. Will convert data instead of moving it.')
+
+        if len(setup_ids) > 1:
+            move_only = False
+            print('Cannot move XML with multiple setups. Will convert data instead of moving it.')
 
     for setup_id, name in zip(setup_ids, image_name):
-
-        # get the key for the input data format
-        input_format = bdv_metadata.get_bdv_format(xml_path)
         input_key = get_key(input_format == "bdv.hdf5", timepoint=t_start, setup_id=setup_id, scale=0)
 
         # get the resolution, scale_factors, chunks and unit
