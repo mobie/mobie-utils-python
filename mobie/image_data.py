@@ -1,6 +1,7 @@
 import multiprocessing
 import os
 import warnings
+import shutil
 
 import mobie.metadata as metadata
 import mobie.utils as utils
@@ -64,7 +65,7 @@ def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_na
 def add_bdv_image(xml_path, root, dataset_name,
                   image_name=None, file_format="bdv.n5", menu_name=None, scale_factors=None,
                   tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-                  is_default_dataset=False, description=None, trafos_for_mobie=None):
+                  is_default_dataset=False, description=None, trafos_for_mobie=None, move_data=False):
     """Add the image(s) specified in an bdv xml file and copy the metadata.
     """
     # find how many timepoints we have
@@ -74,18 +75,32 @@ def add_bdv_image(xml_path, root, dataset_name,
 
     # get the setup ids and check that image_name is compatible
     setup_ids = bdv_metadata.get_setup_ids(xml_path)
+
     if image_name is None:
         image_name = [None] * len(setup_ids)
     else:
         if isinstance(image_name, str):
             image_name = [image_name]
+
     assert len(image_name) == len(setup_ids)
 
     data_path = bdv_metadata.get_data_path(xml_path, return_absolute_path=True)
-    for setup_id, name in zip(setup_ids, image_name):
 
-        # get the key for the input data format
-        input_format = bdv_metadata.get_bdv_format(xml_path)
+    # get the key for the input data format
+    input_format = bdv_metadata.get_bdv_format(xml_path)
+
+    move_only = False
+    if move_data:
+        if input_format == file_format:
+            move_only = True
+        else:
+            print('Different input format than target format. Will convert data instead of moving it.')
+
+        if len(setup_ids) > 1:
+            move_only = False
+            print('Cannot move XML with multiple setups. Will convert data instead of moving it.')
+
+    for setup_id, name in zip(setup_ids, image_name):
         input_key = get_key(input_format == "bdv.hdf5", timepoint=t_start, setup_id=setup_id, scale=0)
 
         # get the resolution, scale_factors, chunks and unit
@@ -112,7 +127,7 @@ def add_bdv_image(xml_path, root, dataset_name,
                   chunks=chunks, file_format=file_format, menu_name=menu_name,
                   tmp_folder=tmp_folder_, target=target, max_jobs=max_jobs,
                   unit=unit, view=view, transformation=transformation,
-                  is_default_dataset=is_default_dataset, description=description)
+                  is_default_dataset=is_default_dataset, description=description,move_only=move_only)
 
 
 # TODO support default arguments for scale factors and chunks
@@ -125,7 +140,8 @@ def add_image(input_path, input_key,
               view=None, transformation=None,
               unit='micrometer',
               is_default_dataset=False,
-              description=None):
+              description=None,
+              move_only=False):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -152,6 +168,7 @@ def add_image(input_path, input_key,
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this image (default: None)
+        move_only [bool] - if input data is already in a MoBIE compatible format, just move it into the project directory.
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="image", source_name=image_name,
@@ -163,12 +180,20 @@ def add_image(input_path, input_key,
 
     # import the image data and add the metadata
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, image_name)
-    import_image_data(input_path, input_key, data_path,
-                      resolution, scale_factors, chunks,
-                      tmp_folder=tmp_folder, target=target,
-                      max_jobs=max_jobs, unit=unit,
-                      source_name=image_name,
-                      file_format=file_format)
+
+    if move_only:
+        shutil.move(input_path,data_path)
+        if "bdv." in file_format:
+            shutil.move(os.path.splitext(input_path)[0]+'.xml',image_metadata_path)
+
+    else:
+        import_image_data(input_path, input_key, data_path,
+                          resolution, scale_factors, chunks,
+                          tmp_folder=tmp_folder, target=target,
+                          max_jobs=max_jobs, unit=unit,
+                          source_name=image_name,
+                          file_format=file_format)
+
     metadata.add_source_to_dataset(dataset_folder, 'image', image_name, image_metadata_path,
                                    view=view, description=description)
 
