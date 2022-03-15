@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 
-from pybdv.metadata import get_key
 import mobie.metadata as metadata
 import mobie.utils as utils
 from mobie.import_data import (import_segmentation,
@@ -96,8 +95,7 @@ def add_segmentation(input_path, input_key,
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
         table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
-        is_h5 = file_format == "bdv.hdf5"
-        key = get_key(is_h5, 0, 0, 0)
+        key = utils.get_data_key(file_format, scale=0, path=data_path)
         compute_default_table(data_path, key, table_path, resolution,
                               tmp_folder=tmp_folder, target=target,
                               max_jobs=max_jobs)

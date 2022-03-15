@@ -4,9 +4,11 @@ import multiprocessing
 import os
 from copy import deepcopy
 
-from cluster_tools.cluster_tasks import BaseClusterTask
 import mobie.metadata as metadata
+from cluster_tools.cluster_tasks import BaseClusterTask
+from elf.io import open_file
 from mobie.validation import validate_view_metadata
+from pybdv.util import get_key
 
 FILE_FORMATS = [
     "bdv.hdf5",
@@ -18,23 +20,37 @@ FILE_FORMATS = [
 ]
 
 
+def get_data_key(file_format, scale, path=None):
+    if file_format.startswith("bdv"):
+        is_h5 = file_format == "bdv.hdf5"
+        key = get_key(is_h5, timepoint=None, setup_id=None, scale=scale)
+    elif file_format == "ome.zarr":
+        assert path is not None
+        with open_file(path, "r") as f:
+            mscales = f.attrs["multiscales"][0]
+            key = mscales["datasets"][0]["path"]
+    else:
+        raise NotImplementedError(file_format)
+    return key
+
+
 def get_internal_paths(dataset_folder, file_format, name):
     if file_format not in FILE_FORMATS:
         raise ValueError(f"Unknown file format {file_format}.")
 
-    file_format_ = file_format.replace('.', '-')
-    if file_format == 'bdv.hdf5':
-        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.h5')
-        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
+    file_format_ = file_format.replace(".", "-")
+    if file_format == "bdv.hdf5":
+        data_path = os.path.join(dataset_folder, "images", file_format_, f"{name}.h5")
+        xml_path = os.path.join(dataset_folder, "images", file_format_, f"{name}.xml")
         return data_path, xml_path
 
-    elif file_format == 'bdv.n5':
-        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.n5')
-        xml_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.xml')
+    elif file_format == "bdv.n5":
+        data_path = os.path.join(dataset_folder, "images", file_format_, f"{name}.n5")
+        xml_path = os.path.join(dataset_folder, "images", file_format_, f"{name}.xml")
         return data_path, xml_path
 
-    elif file_format == 'ome.zarr':
-        data_path = os.path.join(dataset_folder, 'images', file_format_, f'{name}.ome.zarr')
+    elif file_format == "ome.zarr":
+        data_path = os.path.join(dataset_folder, "images", file_format_, f"{name}.ome.zarr")
         return data_path, data_path
 
     raise ValueError(f"Data creation for the file format {file_format} is not supported.")
@@ -69,7 +85,7 @@ def require_dataset_and_view(root, dataset_name, file_format,
         metadata.create_dataset_structure(root, dataset_name, [file_format])
         default_view = deepcopy(view)
         default_view.update({"uiSelectionGroup": "bookmark"})
-        metadata.create_dataset_metadata(dataset_folder, views={'default': default_view})
+        metadata.create_dataset_metadata(dataset_folder, views={"default": default_view})
         metadata.add_dataset(root, dataset_name, is_default_dataset)
 
     return view
@@ -78,49 +94,49 @@ def require_dataset_and_view(root, dataset_name, file_format,
 # TODO default arguments for scale-factors and chunks
 def get_base_parser(description, transformation_file=False):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--input_path', type=str,
+    parser.add_argument("--input_path", type=str,
                         help="path to the input data", required=True)
-    parser.add_argument('--input_key', type=str,
+    parser.add_argument("--input_key", type=str,
                         help="key for the input data, e.g. internal path for h5/n5 data or patterns like *.tif",
                         required=True)
-    parser.add_argument('--root', type=str,
+    parser.add_argument("--root", type=str,
                         help="root folder under which the MoBIE project is saved",
                         required=True)
-    parser.add_argument('--dataset_name', type=str,
+    parser.add_argument("--dataset_name", type=str,
                         help="name of the dataset to which the image data is added",
                         required=True)
-    parser.add_argument('--name', type=str,
+    parser.add_argument("--name", type=str,
                         help="name of the source to be added",
                         required=True)
 
-    parser.add_argument('--resolution', type=str,
+    parser.add_argument("--resolution", type=str,
                         help="resolution of the data in micrometer, json-encoded",
                         required=True)
-    parser.add_argument('--scale_factors', type=str,
+    parser.add_argument("--scale_factors", type=str,
                         help="factors used for downscaling the data, json-encoded",
                         required=True)
-    parser.add_argument('--chunks', type=str,
+    parser.add_argument("--chunks", type=str,
                         help="chunks of the data that is added, json-encoded",
                         required=True)
 
-    parser.add_argument('--menu_name', type=str, default=None,
+    parser.add_argument("--menu_name", type=str, default=None,
                         help="the menu name which will be used when grouping this source in the UI")
-    parser.add_argument('--view', type=str, default=None,
+    parser.add_argument("--view", type=str, default=None,
                         help="default view settings for this source, json encoded or path to a json file")
     if transformation_file:
-        parser.add_argument('--transformation', type=str, required=True,
+        parser.add_argument("--transformation", type=str, required=True,
                             help="file defining elastix transformation to be applied")
     else:
-        parser.add_argument('--transformation', type=str, default=None,
+        parser.add_argument("--transformation", type=str, default=None,
                             help="affine transformation parameters in bdv convention, json encoded")
-    parser.add_argument('--unit', type=str, default='micrometer',
+    parser.add_argument("--unit", type=str, default="micrometer",
                         help="physical unit of the source data")
 
-    parser.add_argument('--tmp_folder', type=str, default=None,
+    parser.add_argument("--tmp_folder", type=str, default=None,
                         help="folder for temporary computation files")
-    parser.add_argument('--target', type=str, default='local',
+    parser.add_argument("--target", type=str, default="local",
                         help="computation target")
-    parser.add_argument('--max_jobs', type=int, default=multiprocessing.cpu_count(),
+    parser.add_argument("--max_jobs", type=int, default=multiprocessing.cpu_count(),
                         help="number of jobs")
 
     hlp = "whether to set new dataset as default dataset. Only applies if the dataset is being created."
@@ -170,7 +186,7 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
         is_default [bool] - set this dataset as default dataset (default: False)
         copy_misc [callable] - function to copy additonal misc data (default: None)
     """
-    # check that we have the src dataset and don't have the dst dataset already
+    # check that we have the src dataset and don"t have the dst dataset already
     if not metadata.dataset_exists(root, src_dataset):
         raise ValueError(f"Could not find dataset {src_dataset}")
     if metadata.dataset_exists(root, dst_dataset):
@@ -194,7 +210,7 @@ def write_global_config(config_folder,
                         require3d=True):
     os.makedirs(config_folder, exist_ok=True)
 
-    conf_path = os.path.join(config_folder, 'global.config')
+    conf_path = os.path.join(config_folder, "global.config")
     if os.path.exists(conf_path):
         with open(conf_path) as f:
             global_config = json.load(f)
@@ -204,22 +220,22 @@ def write_global_config(config_folder,
     if block_shape is not None:
         if require3d and len(block_shape) != 3:
             raise ValueError(f"Invalid block_shape given: {block_shape}")
-        global_config['block_shape'] = block_shape
+        global_config["block_shape"] = block_shape
 
     if roi_begin is not None:
-        # NOTE rois are only applicable if the data is 3d, so we don't add the 'require3d' check here
+        # NOTE rois are only applicable if the data is 3d, so we don"t add the "require3d" check here
         if len(roi_begin) != 3:
             raise ValueError(f"Invalid roi_begin given: {roi_begin}")
-        global_config['roi_begin'] = roi_begin
+        global_config["roi_begin"] = roi_begin
 
     if roi_end is not None:
-        # NOTE rois are only applicable if the data is 3d, so we don't add the 'require3d' check here
+        # NOTE rois are only applicable if the data is 3d, so we don"t add the "require3d" check here
         if len(roi_end) != 3:
             raise ValueError(f"Invalid roi_end given: {roi_end}")
-        global_config['roi_end'] = roi_end
+        global_config["roi_end"] = roi_end
 
     if qos is not None:
-        global_config['qos'] = qos
+        global_config["qos"] = qos
 
-    with open(conf_path, 'w') as f:
+    with open(conf_path, "w") as f:
         json.dump(global_config, f)
