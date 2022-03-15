@@ -23,7 +23,7 @@ FILE_FORMATS = [
 def get_data_key(file_format, scale, path=None):
     if file_format.startswith("bdv"):
         is_h5 = file_format == "bdv.hdf5"
-        key = get_key(is_h5, timepoint=None, setup_id=None, scale=scale)
+        key = get_key(is_h5, timepoint=0, setup_id=0, scale=scale)
     elif file_format == "ome.zarr":
         assert path is not None
         with open_file(path, "r") as f:
