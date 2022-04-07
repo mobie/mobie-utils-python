@@ -47,6 +47,15 @@ def compute_node_labels(seg_path, seg_key,
     return data
 
 
+def check_input_data(in_path, in_key, resolution, require3d):
+    with open_file(in_path, "r") as f:
+        ndim = f[in_key].ndim
+    if require3d and ndim != 3:
+        raise ValueError(f"Expect 3d data, got ndim={ndim}")
+    if len(resolution) != ndim:
+        raise ValueError(f"Expect same length of resolution as ndim, got: resolution={resolution}, ndim={ndim}")
+
+
 def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
@@ -60,8 +69,8 @@ def downscale(in_path, in_key, out_path,
     config_dir = os.path.join(tmp_folder, "configs")
     # ome.zarr can also be written in 2d, all other formats require 3d
     require3d = metadata_format != "ome.zarr"
-    write_global_config(config_dir, block_shape=block_shape,
-                        require3d=require3d,
+    check_input_data(in_path, in_key, resolution, require_3d)
+    write_global_config(config_dir, block_shape=block_shape, require3d=require3d,
                         roi_begin=roi_begin, roi_end=roi_end)
 
     configs = DownscalingWorkflow.get_config()
@@ -78,9 +87,7 @@ def downscale(in_path, in_key, out_path,
         json.dump(ds_conf, f)
 
     halos = scale_factors
-    metadata_dict = {"resolution": resolution,
-                     "unit": unit,
-                     "setup_name": source_name}
+    metadata_dict = {"resolution": resolution, "unit": unit, "setup_name": source_name}
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
              target=target, max_jobs=max_jobs,
