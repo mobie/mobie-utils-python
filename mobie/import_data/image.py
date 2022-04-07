@@ -27,8 +27,7 @@ def import_image_data(in_path, in_key, out_path,
     """
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
-        in_path, in_key = ensure_volume(in_path, in_key,
-                                        tmp_folder, chunks)
+        in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
