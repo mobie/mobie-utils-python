@@ -89,7 +89,7 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             if format_ == "ome.zarr":
                 with open_file(path, "r") as f:
                     ome_name = f.attrs["multiscales"][0]["name"]
-                assert_equal(name, ome_name)
+                assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
         if "tableData" in metadata:
             table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
