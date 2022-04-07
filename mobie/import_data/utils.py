@@ -69,7 +69,7 @@ def downscale(in_path, in_key, out_path,
     config_dir = os.path.join(tmp_folder, "configs")
     # ome.zarr can also be written in 2d, all other formats require 3d
     require3d = metadata_format != "ome.zarr"
-    check_input_data(in_path, in_key, resolution, require_3d)
+    check_input_data(in_path, in_key, resolution, require3d)
     write_global_config(config_dir, block_shape=block_shape, require3d=require3d,
                         roi_begin=roi_begin, roi_end=roi_end)
 
