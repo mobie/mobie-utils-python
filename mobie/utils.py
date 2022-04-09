@@ -71,14 +71,20 @@ def require_dataset(root, dataset_name, file_format):
 
 def require_dataset_and_view(root, dataset_name, file_format,
                              source_type, source_name, menu_name,
-                             view, is_default_dataset):
+                             view, is_default_dataset, contrast_limits=None):
     ds_exists = require_dataset(root, dataset_name, file_format)
 
     dataset_folder = os.path.join(root, dataset_name)
     if view is None:
-        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name)
-    elif view is not None and menu_name is not None:
-        view.update({"uiSelectionGroup": menu_name})
+        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, contrastLimits=contrast_limits)
+    else:
+        update_view = {}
+        if menu_name is not None:
+            update_view["uiSelectionGroup"] = menu_name
+        if contrast_limits is not None:
+            update_view["contrastLimits"] = contrast_limits
+        if update_view:
+            view.update(update_view)
     validate_view_metadata(view, sources=[source_name])
 
     if not ds_exists:

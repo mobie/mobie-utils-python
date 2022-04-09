@@ -5,11 +5,26 @@ import shutil
 
 import mobie.metadata as metadata
 import mobie.utils as utils
+import numpy as np
 import pybdv.metadata as bdv_metadata
 from elf.io import open_file
 from mobie.import_data import import_image_data
 from mobie.xml_utils import update_transformation_parameter
 from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
+
+
+def _get_default_contrast_limits(input_path, input_key):
+    with open_file(input_path, "r") as f:
+        dtype = f[input_key].dtype
+    if np.issubdtype(dtype, np.integer):
+        contrast_limits = [np.iinfo(dtype).min, np.iinfo(dtype).max]
+    elif np.issubdtype(dtype, np.floating):
+        contrast_limits = [0.0, 1.0]
+    else:
+        contrast_limits = [0.0, 255.0]
+        msg = f"Default contrast limits for dtype={dtype} are not available, setting them to {contrast_limits}"
+        warnings.warn(msg)
+    return contrast_limits
 
 
 def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_name, trafos_for_mobie):
@@ -172,10 +187,17 @@ def add_image(input_path, input_key,
         move_only [bool] - if input data is already in a MoBIE compatible format,
             just move it into the project directory.
     """
+    # set default contrast_limits if we don't have a view
+    # or if the passed view doesn't hav contrast limits
+    if view is None or "contrastLimits" not in view:
+        contrast_limits = _get_default_contrast_limits(input_path, input_key)
+    else:
+        contrast_limits = None
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="image", source_name=image_name,
                                           menu_name=menu_name, view=view,
-                                          is_default_dataset=is_default_dataset)
+                                          is_default_dataset=is_default_dataset,
+                                          contrast_limits=contrast_limits)
 
     dataset_folder = os.path.join(root, dataset_name)
     tmp_folder = f"tmp_{dataset_name}_{image_name}" if tmp_folder is None else tmp_folder
