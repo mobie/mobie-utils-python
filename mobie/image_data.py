@@ -143,7 +143,7 @@ def add_image(input_path, input_key,
               is_default_dataset=False,
               description=None,
               move_only=False,
-              singed_to_unsigned=False):
+              signed_to_unsigned=False):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
