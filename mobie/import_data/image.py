@@ -34,4 +34,4 @@ def import_image_data(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format,singed_to_unsigned=singed_to_unsigned)
+              metadata_format=file_format, signed_to_unsigned=singed_to_unsigned)
