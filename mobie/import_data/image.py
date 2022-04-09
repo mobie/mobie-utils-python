@@ -7,7 +7,7 @@ def import_image_data(in_path, in_key, out_path,
                       tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
                       block_shape=None, unit="micrometer",
                       source_name=None, file_format="bdv.n5",
-                      signed_to_unsigned=False
+                      int_to_uint=False
                       ):
     """ Import image data to mobie format.
 
@@ -34,4 +34,4 @@ def import_image_data(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format, signed_to_unsigned=signed_to_unsigned)
+              metadata_format=file_format, int_to_uint=int_to_uint)

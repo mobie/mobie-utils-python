@@ -63,7 +63,7 @@ def downscale(in_path, in_key, out_path,
               metadata_format="bdv.n5", out_key="",
               unit="micrometer", source_name=None,
               roi_begin=None, roi_end=None,
-              signed_to_unsigned=False):
+              int_to_uint=False):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
@@ -96,7 +96,7 @@ def downscale(in_path, in_key, out_path,
              scale_factors=scale_factors, halos=halos,
              metadata_format=metadata_format, metadata_dict=metadata_dict,
              output_path=out_path, output_key_prefix=out_key,
-             int_to_uint=signed_to_unsigned)
+             int_to_uint=int_to_uint)
     ret = luigi.build([t], local_scheduler=True)
     if not ret:
         raise RuntimeError("Downscaling failed")
