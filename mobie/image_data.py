@@ -196,7 +196,7 @@ def add_image(input_path, input_key,
                           max_jobs=max_jobs, unit=unit,
                           source_name=image_name,
                           file_format=file_format,
-                          singed_to_unsigned=singed_to_unsigned)
+                          signed_to_unsigned=singed_to_unsigned)
 
     metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
                                    view=view, description=description)
