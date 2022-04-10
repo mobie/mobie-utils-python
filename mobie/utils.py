@@ -76,12 +76,13 @@ def require_dataset_and_view(root, dataset_name, file_format,
 
     dataset_folder = os.path.join(root, dataset_name)
     if view is None:
-        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, contrastLimits=contrast_limits)
+        kwargs = {"contrastLimits": contrast_limits} if source_type == "image" else {}
+        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, **kwargs)
     else:
         update_view = {}
         if menu_name is not None:
             update_view["uiSelectionGroup"] = menu_name
-        if contrast_limits is not None:
+        if source_type == "image" and contrast_limits is None:
             update_view["contrastLimits"] = contrast_limits
         if update_view:
             view.update(update_view)
