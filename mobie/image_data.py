@@ -13,10 +13,17 @@ from mobie.xml_utils import update_transformation_parameter
 from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
 
 
-def _get_default_contrast_limits(input_path, input_key):
+def _get_default_contrast_limits(input_path, input_key, int_to_uint):
     with open_file(input_path, "r") as f:
         dtype = f[input_key].dtype
+
     if np.issubdtype(dtype, np.integer):
+        if int_to_uint:
+            # NOTE: this may need the same dtype mapping as here to be robust:
+            # https://github.com/constantinpape/cluster_tools/blob/master/cluster_tools/copy_volume/copy_volume.py#L21-L30
+            # but this code should be refactored and improved!
+            assert np.issubdtype(dtype, np.signedinteger)
+            dtype = "u" + dtype
         contrast_limits = [np.iinfo(dtype).min, np.iinfo(dtype).max]
     elif np.issubdtype(dtype, np.floating):
         contrast_limits = [0.0, 1.0]
@@ -24,6 +31,7 @@ def _get_default_contrast_limits(input_path, input_key):
         contrast_limits = [0.0, 255.0]
         msg = f"Default contrast limits for dtype={dtype} are not available, setting them to {contrast_limits}"
         warnings.warn(msg)
+
     return contrast_limits
 
 
@@ -80,7 +88,8 @@ def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_na
 def add_bdv_image(xml_path, root, dataset_name,
                   image_name=None, file_format="bdv.n5", menu_name=None, scale_factors=None,
                   tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-                  is_default_dataset=False, description=None, trafos_for_mobie=None, move_data=False):
+                  is_default_dataset=False, description=None, trafos_for_mobie=None,
+                  move_data=False, int_to_uint=False):
     """Add the image(s) specified in an bdv xml file and copy the metadata.
     """
     # find how many timepoints we have
@@ -143,7 +152,7 @@ def add_bdv_image(xml_path, root, dataset_name,
                   tmp_folder=tmp_folder_, target=target, max_jobs=max_jobs,
                   unit=unit, view=view, transformation=transformation,
                   is_default_dataset=is_default_dataset, description=description,
-                  move_only=move_only)
+                  move_only=move_only, int_to_uint=int_to_uint)
 
 
 # TODO support default arguments for scale factors and chunks
@@ -157,7 +166,8 @@ def add_image(input_path, input_key,
               unit="micrometer",
               is_default_dataset=False,
               description=None,
-              move_only=False):
+              move_only=False,
+              int_to_uint=False):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -185,12 +195,13 @@ def add_image(input_path, input_key,
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this image (default: None)
         move_only [bool] - if input data is already in a MoBIE compatible format,
-            just move it into the project directory.
+            just move it into the project directory. (default: False)
+        int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
     """
     # set default contrast_limits if we don't have a view
     # or if the passed view doesn't hav contrast limits
     if view is None or "contrastLimits" not in view:
-        contrast_limits = _get_default_contrast_limits(input_path, input_key)
+        contrast_limits = _get_default_contrast_limits(input_path, input_key, int_to_uint)
     else:
         contrast_limits = None
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
@@ -206,6 +217,8 @@ def add_image(input_path, input_key,
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, image_name)
 
     if move_only:
+        if int_to_uint:
+            raise ValueError("Conversio of integer to unsigned integer is not possible with move_only")
         shutil.move(input_path, data_path)
         if "bdv." in file_format:
             shutil.move(os.path.splitext(input_path)[0]+".xml", image_metadata_path)
@@ -216,7 +229,8 @@ def add_image(input_path, input_key,
                           tmp_folder=tmp_folder, target=target,
                           max_jobs=max_jobs, unit=unit,
                           source_name=image_name,
-                          file_format=file_format)
+                          file_format=file_format,
+                          int_to_uint=int_to_uint)
 
     metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
                                    view=view, description=description)
