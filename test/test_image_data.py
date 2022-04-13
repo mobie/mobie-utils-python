@@ -75,7 +75,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None
+        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -89,13 +89,14 @@ class TestImageData(unittest.TestCase):
                   scale_factors=scales,
                   tmp_folder=self.tmp_folder,
                   file_format=file_format,
-                  target="local", max_jobs=n_jobs)
+                  target="local", max_jobs=n_jobs,
+                  int_to_uint=int_to_uint)
 
-    def test_init_from_hdf5(self, func=None):
+    def test_init_from_hdf5(self, func=None, int_to_uint=False):
         dataset_name = "test"
         raw_name = "test-raw"
         shape = (64, 64, 64)
-        self.init_h5_dataset(dataset_name, raw_name, shape, func=func)
+        self.init_h5_dataset(dataset_name, raw_name, shape, func=func, int_to_uint=False)
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
     #
@@ -121,7 +122,7 @@ class TestImageData(unittest.TestCase):
     def test_float64(self):
         self._test_float("float64")
 
-    def _test_int(self, dtype):
+    def _test_int(self, dtype, int_to_uint=False):
 
         def int_data(shape):
             if dtype == "int8":
@@ -137,7 +138,7 @@ class TestImageData(unittest.TestCase):
             data = np.random.randint(min_, max_, size=shape, dtype=dtype)
             return data
 
-        self.test_init_from_hdf5(int_data)
+        self.test_init_from_hdf5(int_data, int_to_uint=int_to_uint)
         ds_folder = os.path.join(self.root, self.dataset_name)
         mdata = read_dataset_metadata(ds_folder)
         clims = mdata["views"]["test-raw"]["sourceDisplays"][0]["imageDisplay"]["contrastLimits"]
@@ -156,6 +157,9 @@ class TestImageData(unittest.TestCase):
 
     def test_uint16(self):
         self._test_int("uint16")
+
+    def test_int8_int_to_uint(self):
+        self._test_int("int8", int_to_uint=True)
 
     #
     # tests with different output data formats
