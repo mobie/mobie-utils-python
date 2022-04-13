@@ -130,7 +130,7 @@ class TestImportImage(unittest.TestCase):
     # test exports to different output formats
     #
 
-    def test_export_bdv_hdf5(self):
+    def test_import_bdv_hdf5(self):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
@@ -141,7 +141,7 @@ class TestImportImage(unittest.TestCase):
                           target="local", max_jobs=1, file_format="bdv.hdf5")
         self.check_data(data, scales, is_h5=True, out_path=out_path)
 
-    def test_export_ome_zarr(self):
+    def test_import_ome_zarr(self):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
@@ -154,7 +154,7 @@ class TestImportImage(unittest.TestCase):
                           file_format="ome.zarr")
         self.check_data_ome_zarr(data, scales, out_path, resolution, scales)
 
-    def test_export_ome_zarr_2d(self):
+    def test_import_ome_zarr_2d(self):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data(shape=(128, 128))
         scales = [[2, 2], [2, 2], [2, 2]]
