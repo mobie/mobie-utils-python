@@ -23,7 +23,7 @@ def _get_default_contrast_limits(input_path, input_key, int_to_uint):
             # https://github.com/constantinpape/cluster_tools/blob/master/cluster_tools/copy_volume/copy_volume.py#L21-L30
             # but this code should be refactored and improved!
             assert np.issubdtype(dtype, np.signedinteger)
-            dtype = "u" + dtype
+            dtype = "u" + str(dtype)
         contrast_limits = [np.iinfo(dtype).min, np.iinfo(dtype).max]
     elif np.issubdtype(dtype, np.floating):
         contrast_limits = [0.0, 1.0]
