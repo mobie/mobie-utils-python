@@ -94,7 +94,9 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
             site_name: [sources[sid] for sources in this_sources.values()]
             for sid, site_name in zip(site_ids, this_site_names)
         }
-        well_trafo = mobie.metadata.get_transformed_grid_source_transform(list(well_sources.values()))
+        well_trafo = mobie.metadata.get_transformed_grid_source_transform(
+            list(well_sources.values()), center_at_origin=True
+        )
         source_transforms.append(well_trafo)
 
         sources_per_well[well] = [source for sources in well_sources.values()
@@ -118,7 +120,7 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
     plate_sources = {well: sources_per_well[well] for well in well_names}
     well_positions = None if well_to_position is None else [well_to_position(well) for well in well_names]
     plate_trafo = mobie.metadata.get_transformed_grid_source_transform(
-        list(plate_sources.values()), positions=well_positions
+        list(plate_sources.values()), positions=well_positions, center_at_origin=False
     )
     source_transforms.append(plate_trafo)
 
@@ -179,7 +181,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
             source_type = list(metadata["sources"][prefix_sources[0]].keys())[0]
             encode_source = True if source_type == "segmentation" else None
             trafo = mobie.metadata.get_merged_grid_source_transform(
-                well_sources, trafo_name, encode_source=encode_source
+                well_sources, trafo_name, encode_source=encode_source, center_at_origin=True
             )
             source_transforms.append(trafo)
 
@@ -193,7 +195,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         trafo_name = f"plate_{prefix}"
         plate_sources = [f"{well}_{prefix}" for well in well_names]
         trafo = mobie.metadata.get_merged_grid_source_transform(
-            plate_sources, trafo_name, positions=positions
+            plate_sources, trafo_name, positions=positions, center_at_origin=False
         )
         source_transforms.append(trafo)
 
