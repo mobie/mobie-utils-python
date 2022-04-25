@@ -9,7 +9,7 @@ from ..__version__ import SPEC_VERSION
 def check_version(version_a, version_b, assert_equal):
 
     def parse_version(version):
-        version_split = version.split('.')
+        version_split = version.split(".")
         msg = f"Invalid version format {version}, expected 'MAJOR.MINOR.PATCH'"
         assert_equal(len(version_split), 3, msg)
         return version_split
@@ -26,6 +26,7 @@ def check_version(version_a, version_b, assert_equal):
 
 
 def validate_project(root,
+                     require_data=True,
                      assert_true=_assert_true,
                      assert_in=_assert_in,
                      assert_equal=_assert_equal):
@@ -51,14 +52,16 @@ def validate_project(root,
         dataset_folder = os.path.join(root, dataset)
         msg = f"Cannot find a dataset {dataset} at {dataset_folder}"
         assert_true(os.path.isdir(dataset_folder), msg)
-        validate_dataset(dataset_folder, assert_true=assert_true, assert_in=assert_in,
-                         assert_equal=assert_equal)
+        validate_dataset(
+            dataset_folder, require_data=require_data,
+            assert_true=assert_true, assert_in=assert_in, assert_equal=assert_equal
+        )
     print("The project at", root, "is a valid MoBIE project.")
 
 
 def main():
     parser = argparse.ArgumentParser("Validate MoBIE project metadata")
-    parser.add_argument('--input', '-i', type=str, required=True,
-                        help="the project location")
+    parser.add_argument("--input", "-i", type=str, required=True, help="the project location")
+    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local dat exists")
     args = parser.parse_args()
-    validate_project(args.input)
+    validate_project(args.input, require_data=bool(args.require_data))

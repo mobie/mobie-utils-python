@@ -58,7 +58,7 @@ def check_tables(table_folder, assert_true):
         assert_true(check_table(table, ref_label_ids), msg)
 
 
-def validate_source_metadata(name, metadata, dataset_folder=None,
+def validate_source_metadata(name, metadata, dataset_folder=None, require_data=True,
                              assert_true=_assert_true, assert_equal=_assert_equal):
     # static validation with json schema
     try:
@@ -75,9 +75,15 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             path = storage.get("relativePath", None)
             if path is None:
                 continue
+
             path = os.path.join(dataset_folder, storage["relativePath"])
-            msg = f"Could not find data for {name} at {path}"
-            assert_true(os.path.exists(path), msg)
+            have_path = os.path.exists(path)
+            if require_data:
+                msg = f"Could not find data for {name} at {path}"
+                assert_true(have_path, msg)
+            else:
+                if not have_path:
+                    continue
 
             # check that the source name and name in the xml agree for bdv formats
             if format_.startswith("bdv"):
