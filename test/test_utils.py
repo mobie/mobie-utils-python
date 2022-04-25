@@ -44,7 +44,9 @@ class TestUtil(unittest.TestCase):
         from mobie.utils import clone_dataset
         ds2 = 'test-clone'
         clone_dataset(self.root, self.dataset_name, ds2)
-        validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
+        validate_project(
+            self.root, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
+        )
 
 
 if __name__ == '__main__':

@@ -241,7 +241,9 @@ class TestImageData(unittest.TestCase):
 
     def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="bdv.n5"):
         # validate the full project
-        validate_project(self.root, self.assertTrue, self.assertIn, self.assertEqual)
+        validate_project(
+            self.root, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
+        )
 
         # check the raw data
         folder_name = file_format.replace(".", "-")
