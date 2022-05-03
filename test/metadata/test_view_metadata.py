@@ -84,7 +84,8 @@ class TestViewMetadata(unittest.TestCase):
             {"opacity": 0.5, "lut": "glasbey"},
             {"opacity": 0.9, "lut": "viridis",
              "colorByColumn": "colname", "showSelectedSegmentsIn3d": True, "tables": ["a.csv", "b.tsv"]},
-            {"selectedSegmentIds": ["my-seg;0;1", "my-seg;0;2", "my-seg;1;10"]}
+            {"selectedSegmentIds": ["my-seg;0;1", "my-seg;0;2", "my-seg;1;10"]},
+            {"showAsBoundaries": True, "boundaryThickness": 12}
         ]
         for kwargs in custom_kwargs:
             view = get_default_view("segmentation", "my-seg", **kwargs)
