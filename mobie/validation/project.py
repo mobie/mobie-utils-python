@@ -62,6 +62,6 @@ def validate_project(root,
 def main():
     parser = argparse.ArgumentParser("Validate MoBIE project metadata")
     parser.add_argument("--input", "-i", type=str, required=True, help="the project location")
-    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local dat exists")
+    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local data exists")
     args = parser.parse_args()
     validate_project(args.input, require_data=bool(args.require_data))
