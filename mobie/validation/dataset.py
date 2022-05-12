@@ -42,6 +42,6 @@ def validate_dataset(dataset_folder, require_data=True,
 def main():
     parser = argparse.ArgumentParser("Validate MoBIE dataset metadata")
     parser.add_argument("--input", "-i", type=str, required=True, help="the dataset location")
-    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local dat exists")
+    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local data exists")
     args = parser.parse_args()
     validate_dataset(args.input, require_data=bool(args.require_data))

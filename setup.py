@@ -21,6 +21,7 @@ setup(
             "mobie.migrate_project = mobie.migration.migrate_project:main",
             "mobie.validate_dataset = mobie.validation.dataset:main",
             "mobie.validate_project = mobie.validation.project:main",
+            "mobie.validate_views = mobie.validation.views:main",
             "mobie.add_remote_metadata = mobie.metadata.remote_metadata:main",
         ]
     },
