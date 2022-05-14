@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def compute_source_annotation_table(sources, table_path, **additional_columns):
-    first_col_name = "annotation_id"
+    first_col_name = "region_id"
 
     if isinstance(sources, list):
         sources = {ii: source for ii, source in enumerate(sources)}
@@ -11,11 +11,11 @@ def compute_source_annotation_table(sources, table_path, **additional_columns):
     if additional_columns:
         # this case is a bit more complicated, not implemented for now
         assert all(len(val) == len(sources) for val in additional_columns.values())
-        data = [[annotation_id] + [val[i] for val in additional_columns.values()]
-                for i, annotation_id in enumerate(sources.keys())]
+        data = [[region_id] + [val[i] for val in additional_columns.values()]
+                for i, region_id in enumerate(sources.keys())]
         columns = [first_col_name] + list(additional_columns.keys())
     else:
-        data = [[annotation_id, "-".join(source)] for annotation_id, source in sources.items()]
+        data = [[region_id, "-".join(source)] for region_id, source in sources.items()]
         columns = [first_col_name, "source"]
 
     table = pd.DataFrame(data, columns=columns)
@@ -24,7 +24,7 @@ def compute_source_annotation_table(sources, table_path, **additional_columns):
 
 
 def check_source_annotation_table(sources, table_path):
-    first_col_name = "annotation_id"
+    first_col_name = "region_id"
     table = pd.read_csv(table_path, sep="\t")
 
     if first_col_name not in table.columns:

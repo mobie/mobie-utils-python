@@ -73,7 +73,7 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     }
     additional_annotation_kwargs = ["boundaryThickness",
                                     "colorByColumn",
-                                    "selectedAnnotationIds",
+                                    "selectedRegionIds",
                                     "showAsBoundaries",
                                     "showTable",
                                     "valueLimits",
@@ -84,7 +84,7 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
             annotation_display[kwarg_name] = kwarg_val
     if kwargs:
         raise ValueError(f"Invalid keyword arguments for source annotation display: {list(kwargs.keys())}")
-    return {"sourceAnnotationDisplay": annotation_display}
+    return {"regionDisplay": annotation_display}
 
 
 #
@@ -388,14 +388,14 @@ def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
     return source_transforms
 
 
-def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, annotation_ids=None, **kwargs):
+def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, region_ids=None, **kwargs):
     """Get a source annotation display and create the corresponding table.
     """
-    if isinstance(sources, list) and annotation_ids is None:
+    if isinstance(sources, list) and region_ids is None:
         sources = {ii: source_list for ii, source_list in enumerate(sources)}
     elif isinstance(sources, list):
-        assert len(sources) == len(annotation_ids)
-        sources = {annotation_id: source_list for annotation_id, source_list in zip(annotation_ids, sources)}
+        assert len(sources) == len(region_ids)
+        sources = {region_id: source_list for region_id, source_list in zip(region_ids, sources)}
     assert isinstance(sources, dict)
     assert all(isinstance(source_list, list) for source_list in sources.values())
 
@@ -414,7 +414,7 @@ def create_source_annotation_display(name, sources, dataset_folder, table_folder
         table_data=get_table_metadata(table_folder),
         tables=["default.tsv"],
         **kwargs
-    )["sourceAnnotationDisplay"]
+    )["regionDisplay"]
     source_annotation_display.pop("name")
 
     return {name: source_annotation_display}
@@ -429,7 +429,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transformed_grid=True, source_annotation_ids=None,
+                  use_transformed_grid=True, region_ids=None,
                   encode_source=None):
     """ Create a view that places multiple sources in a grid.
 
@@ -455,7 +455,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
             be applied before the grid transform. (default: None)
         use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
             into a single source in the MoBIE viewer (default: True)
-        source_annotation_ids [list[str]] - Custom keys for the sourceAnnotationDisplay source map (default: None)
+        region_ids [list[str]] - Custom keys for the regionDisplay source map (default: None)
         encode_source [bool] - (default: None)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
@@ -528,7 +528,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
 
     # create the source annotation display for this grid view, this will show the table for this grid view!
     source_annotation_displays = create_source_annotation_display(name, grid_sources, dataset_folder, table_folder,
-                                                                  annotation_ids=source_annotation_ids)
+                                                                  region_ids=region_ids)
 
     if menu_name is None:
         menu_name = "grid"

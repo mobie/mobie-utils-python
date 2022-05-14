@@ -110,14 +110,14 @@ def check_annotation_tables(table_folder, tables, assert_true):
         assert_true(os.path.exists(table_path), msg)
 
         table = _load_table(table_path)
-        msg = f"Table {table_path} does not contain the 'annotation_id' column"
-        assert_true("annotation_id" in table.columns, msg)
+        msg = f"Table {table_path} does not contain the 'region_id' column"
+        assert_true("region_id" in table.columns, msg)
 
         n_cols = table.shape[1]
         msg = f"Table {table_path} contains only a single column"
         assert_true(n_cols > 1, msg)
 
-        this_grid_ids = table["annotation_id"].values
+        this_grid_ids = table["region_id"].values
         if ref_grid_ids is None:
             ref_grid_ids = this_grid_ids
         else:
@@ -176,7 +176,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
     if displays is not None and dataset_folder is not None:
         for display in displays:
             display_type = list(display.keys())[0]
-            if display_type == "sourceAnnotationDisplay":
+            if display_type == "regionDisplay":
                 display_metadata = list(display.values())[0]
                 table_folder = os.path.join(dataset_folder, display_metadata["tableData"]["tsv"]["relativePath"])
                 tables = display_metadata.get("tables")
