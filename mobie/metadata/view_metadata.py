@@ -149,7 +149,7 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
     assert isinstance(sources, list)
     assert all(isinstance(source_pos, list) for source_pos in sources)
 
-    grid_transform = {"sources": sources}
+    grid_transform = {"nestedSources": sources}
 
     if positions is not None:
         assert isinstance(positions, list)
