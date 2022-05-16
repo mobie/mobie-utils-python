@@ -10,7 +10,7 @@ def migrate_data_spec(dataset_folder):
     See https://github.com/mobie/mobie.github.io/issues/49 for details.
     """
     dataset_metadata = metadata.read_dataset_metadata(dataset_folder)
-    sources = dataset_metadata['sources']
+    sources = dataset_metadata["sources"]
 
     file_formats = {"bdv.n5"}
     new_sources = {}
@@ -18,7 +18,7 @@ def migrate_data_spec(dataset_folder):
         new_source = deepcopy(source)
         source_type = list(new_source.keys())[0]
 
-        image_data = new_source[source_type].pop('imageDataLocations')
+        image_data = new_source[source_type].pop("imageDataLocations")
         relative_xml = image_data["fileSystem"]
         new_image_data = {
             "bdv.n5": {"relativePath": relative_xml}
@@ -31,13 +31,13 @@ def migrate_data_spec(dataset_folder):
 
         if "tableDataLocation" in source[source_type]:
             table_location = new_source[source_type].pop("tableDataLocation")
-            new_source[source_type]['tableData'] = get_table_metadata(table_location)
+            new_source[source_type]["tableData"] = get_table_metadata(table_location)
 
         new_sources[source_name] = new_source
-    dataset_metadata['sources'] = new_sources
+    dataset_metadata["sources"] = new_sources
 
     # update the view spec
-    views = dataset_metadata['views']
+    views = dataset_metadata["views"]
     new_views = {}
     for name, view in views.items():
 
@@ -58,7 +58,7 @@ def migrate_data_spec(dataset_folder):
         else:
             new_views[name] = view
 
-    dataset_metadata['views'] = new_views
+    dataset_metadata["views"] = new_views
 
     metadata.write_dataset_metadata(dataset_folder, dataset_metadata)
     return list(file_formats)
