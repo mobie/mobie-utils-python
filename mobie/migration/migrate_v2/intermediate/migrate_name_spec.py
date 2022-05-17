@@ -1,3 +1,4 @@
+import json
 import os
 from glob import glob
 
@@ -15,12 +16,7 @@ def _update_region_tables(ds_folder, table_path):
         table.to_csv(tab_path, sep="\t", index=False)
 
 
-def migrate_name_spec(dataset_folder):
-    """Update to name changes in https://github.com/mobie/mobie.github.io/pull/74.
-    """
-    ds_metadata = metadata.read_dataset_metadata(dataset_folder)
-
-    views = ds_metadata["views"]
+def _update_views(views, dataset_folder):
     new_views = {}
     for name, view in views.items():
         displays = view.get("sourceDisplays", [])
@@ -59,5 +55,22 @@ def migrate_name_spec(dataset_folder):
             view["sourceTransforms"] = new_transforms
 
         new_views[name] = view
+    return new_views
 
+
+def migrate_name_spec(dataset_folder):
+    """Update to name changes in https://github.com/mobie/mobie.github.io/pull/74.
+    """
+    ds_metadata = metadata.read_dataset_metadata(dataset_folder)
+    views = ds_metadata["views"]
+    new_views = _update_views(views, dataset_folder)
+    ds_metadata["views"] = new_views
     metadata.write_dataset_metadata(dataset_folder, ds_metadata)
+
+    extra_view_files = glob(os.path.join(dataset_folder, "misc", "views", "*.json"))
+    for view_file in extra_view_files:
+        with open(view_file) as f:
+            views = json.load(f)["views"]
+        new_views = _update_views(views, dataset_folder)
+        with open(view_file, "w") as f:
+            json.dump({"views": new_views}, f)

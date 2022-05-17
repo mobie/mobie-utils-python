@@ -89,4 +89,4 @@ def migrate_project(root, parse_menu_name=None, parse_source_name=None,
                                     parse_source_name, parse_menu_name)
 
     write_project_metadata(root, metadata)
-    validate_project(root)
+    validate_project(root, require_data=False)
