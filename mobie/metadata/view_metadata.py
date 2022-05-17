@@ -47,7 +47,8 @@ def get_segmentation_display(name, sources, **kwargs):
         "name": name,
         "sources": sources
     }
-    additional_seg_kwargs = ["boundaryThickness", "colorByColumn", "resolution3dView",
+    additional_seg_kwargs = ["boundaryThickness", "colorByColumn",
+                             "randomColorSeed", "resolution3dView",
                              "selectedSegmentIds", "showAsBoundaries",
                              "showSelectedSegmentsIn3d", "showTable",
                              "tables", "valueLimits", "visible"]
@@ -73,6 +74,7 @@ def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
     }
     additional_annotation_kwargs = ["boundaryThickness",
                                     "colorByColumn",
+                                    "randomColorSeed",
                                     "selectedRegionIds",
                                     "showAsBoundaries",
                                     "showTable",
