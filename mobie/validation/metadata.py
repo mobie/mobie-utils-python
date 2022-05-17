@@ -139,7 +139,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
         valid_sources = set(sources)
 
         # validate source trafos
-        source_transformations = view.get("sourceTransformations")
+        source_transformations = view.get("sourceTransforms")
         if source_transformations is not None:
             for transform in source_transformations:
                 transform_metadata = list(transform.values())[0]
