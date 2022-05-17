@@ -145,7 +145,11 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 transform_metadata = list(transform.values())[0]
 
                 # validate the sources for this source transform
-                transform_sources = transform_metadata["sources"]
+                if "sources" in transform_metadata:
+                    transform_sources = transform_metadata["sources"]
+                else:
+                    transform_sources = transform_metadata["nestedSources"]
+                    transform_sources = [src for srcs in transform_sources for src in srcs]
                 wrong_sources = list(set(transform_sources) - valid_sources)
                 msg = f"Found wrong sources {wrong_sources} in source transform"
                 assert_true(len(wrong_sources) == 0, msg)
