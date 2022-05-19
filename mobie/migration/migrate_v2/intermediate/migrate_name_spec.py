@@ -13,7 +13,7 @@ def _update_region_tables(ds_folder, table_path):
     for tab_path in tables:
         table = pd.read_csv(tab_path, sep="\t")
         table.rename(columns={"annotation_id": "region_id"}, inplace=True)
-        table.to_csv(tab_path, sep="\t", index=False)
+        table.to_csv(tab_path, sep="\t", index=False, na_rep="nan")
 
 
 def _update_views(views, dataset_folder):
