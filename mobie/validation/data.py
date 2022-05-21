@@ -28,14 +28,14 @@ def validate_chunks_local(store, dataset, keys, n_threads):
 
 
 def validate_local_dataset(path, dataset_name, n_threads, keys=None):
-    f = zarr.open(path, mode='r')
+    f = zarr.open(path, mode="r")
     ds = f[dataset_name]
     store = ds.store
     if not store._is_array(ds.path):
         raise ValueError("Expected a dataset")
 
     if keys is None:
-        keys = list(set(store.listdir(ds.path)) - set(['.zarray', '.zattrs']))
+        keys = list(set(store.listdir(ds.path)) - set([".zarray", ".zattrs"]))
     return validate_chunks_local(store, ds, keys, n_threads)
 
 
@@ -61,8 +61,8 @@ def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
         corrupted_chunks = list(tqdm(tp.map(validate_chunk, keys)))
     corrupted_chunks = [key for key in corrupted_chunks if key is not None]
 
-    if 'attributes.json' in corrupted_chunks:
-        corrupted_chunks.remove('attributes.json')
+    if "attributes.json" in corrupted_chunks:
+        corrupted_chunks.remove("attributes.json")
 
     return corrupted_chunks
 
@@ -70,13 +70,12 @@ def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
 def _get_fs(server, anon):
     client_kwargs = {}
     if server is not None:
-        client_kwargs.update({'endpoint_url': server})
-    fs = s3fs.S3FileSystem(anon=anon,
-                           client_kwargs=client_kwargs)
+        client_kwargs.update({"endpoint_url": server})
+    fs = s3fs.S3FileSystem(anon=anon, client_kwargs=client_kwargs)
     return fs
 
 
-# zarr doesn't support s3 n5 yet, so we need to hack it...
+# zarr doesn"t support s3 n5 yet, so we need to hack it...
 def validate_s3_dataset(bucket_name,
                         path_in_bucket,
                         dataset_name,
@@ -84,22 +83,22 @@ def validate_s3_dataset(bucket_name,
                         anon=True,
                         n_threads=1):
 
-    tmp_file = './tmp_file.n5'
+    tmp_file = "./tmp_file.n5"
     os.makedirs(tmp_file, exist_ok=True)
 
     fs = _get_fs(server, anon)
     # make a dummy local file by copying the relevant attributes.json
     store = s3fs.S3Map(root=path_in_bucket, s3=fs)
-    attrs = store['attributes.json'].decode('utf-8')
+    attrs = store["attributes.json"].decode("utf-8")
     attrs = json.loads(attrs)
-    attrs_file = os.path.join(tmp_file, 'attributes.json')
-    with open(attrs_file, 'w') as f:
+    attrs_file = os.path.join(tmp_file, "attributes.json")
+    with open(attrs_file, "w") as f:
         json.dump(attrs, f)
 
     # make a dummy dataset by copying the dataset attributes.json
     store = s3fs.S3Map(root=os.path.join(path_in_bucket, dataset_name), s3=fs)
     try:
-        attrs = store['attributes.json'].decode('utf-8')
+        attrs = store["attributes.json"].decode("utf-8")
     except KeyError:
         try:
             rmtree(tmp_file)
@@ -110,8 +109,8 @@ def validate_s3_dataset(bucket_name,
     attrs = json.loads(attrs)
     tmp_ds = os.path.join(tmp_file, dataset_name)
     os.makedirs(tmp_ds, exist_ok=True)
-    attrs_file = os.path.join(tmp_ds, 'attributes.json')
-    with open(attrs_file, 'w') as f:
+    attrs_file = os.path.join(tmp_ds, "attributes.json")
+    with open(attrs_file, "w") as f:
         json.dump(attrs, f)
 
     print("validating chunks for s3 dataset stored at")
@@ -131,31 +130,31 @@ def validate_s3_dataset(bucket_name,
     return corrupted_chunks
 
 
-# then non-anon authentication doesn't work for the embl s3 server
-# so we can't use 'fix_corrupted_chunks_s3', hence use the minioclient
+# then non-anon authentication doesn"t work for the embl s3 server
+# so we can"t use "fix_corrupted_chunks_s3", hence use the minioclient
 def fix_corrupted_chunks_minio(corrupted_chunks,
                                local_dataset_path,
                                local_dataset_key,
                                bucket_name,
                                path_in_bucket,
                                dataset_name,
-                               server='embl'):
+                               server="embl"):
     try:
-        local_ds = zarr.open(local_dataset_path, 'r')[local_dataset_key]
+        local_ds = zarr.open(local_dataset_path, "r")[local_dataset_key]
     except KeyError:
         raise ValueError(f"No file {path_in_bucket}:{dataset_name} in {bucket_name}")
 
     local_corrupted_chunks = []
     for chunk_id in corrupted_chunks:
         local_chunk_path = os.path.join(local_dataset_path, local_dataset_key, chunk_id)
-        with open(local_chunk_path, 'rb') as f:
+        with open(local_chunk_path, "rb") as f:
             cdata = f.read()
         try:
             cdata = local_ds._decode_chunk(cdata)
         except Exception:
             local_corrupted_chunks.append(chunk_id)
-        remote_chunk_path = os.path.join('embl', bucket_name, path_in_bucket, dataset_name, chunk_id)
-        mc_command = ['mc', 'cp', local_chunk_path, remote_chunk_path]
+        remote_chunk_path = os.path.join("embl", bucket_name, path_in_bucket, dataset_name, chunk_id)
+        mc_command = ["mc", "cp", local_chunk_path, remote_chunk_path]
         run(mc_command)
 
     return local_corrupted_chunks
@@ -170,7 +169,7 @@ def fix_corrupted_chunks_s3(corrupted_chunks,
                             server=None,
                             anon=False):
     try:
-        local_ds = zarr.open(local_dataset_path, 'r')[local_dataset_key]
+        local_ds = zarr.open(local_dataset_path, "r")[local_dataset_key]
     except KeyError:
         raise ValueError(f"No file {path_in_bucket}:{dataset_name} in {bucket_name}")
 
@@ -180,7 +179,7 @@ def fix_corrupted_chunks_s3(corrupted_chunks,
     local_corrupted_chunks = []
     for chunk_id in corrupted_chunks:
         local_chunk_path = os.path.join(local_dataset_path, local_dataset_key, chunk_id)
-        with open(local_chunk_path, 'rb') as f:
+        with open(local_chunk_path, "rb") as f:
             cdata = f.read()
         try:
             cdata = local_ds._decode_chunk(cdata)

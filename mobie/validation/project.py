@@ -26,7 +26,8 @@ def check_version(version_a, version_b, assert_equal):
 
 
 def validate_project(root,
-                     require_data=True,
+                     require_local_data=True,
+                     require_remote_data=False,
                      assert_true=_assert_true,
                      assert_in=_assert_in,
                      assert_equal=_assert_equal):
@@ -53,7 +54,9 @@ def validate_project(root,
         msg = f"Cannot find a dataset {dataset} at {dataset_folder}"
         assert_true(os.path.isdir(dataset_folder), msg)
         validate_dataset(
-            dataset_folder, require_data=require_data,
+            dataset_folder,
+            require_local_data=require_local_data,
+            require_remote_data=require_remote_data,
             assert_true=assert_true, assert_in=assert_in, assert_equal=assert_equal
         )
     print("The project at", root, "is a valid MoBIE project.")
@@ -62,6 +65,9 @@ def validate_project(root,
 def main():
     parser = argparse.ArgumentParser("Validate MoBIE project metadata")
     parser.add_argument("--input", "-i", type=str, required=True, help="the project location")
-    parser.add_argument("--require_data", "-r", type=int, default=1, help="whether to require that local data exists")
+    parser.add_argument("--require_local_data", "-r", type=int, default=1, help="check that local data exists")
+    parser.add_argument("--require_remote_data", "-d", type=int, default=0, help="check that remote data exists")
     args = parser.parse_args()
-    validate_project(args.input, require_data=bool(args.require_data))
+    validate_project(
+        args.input, require_local_data=bool(args.require_local_data), require_remote_data=bool(args.require_remote_data)
+    )
