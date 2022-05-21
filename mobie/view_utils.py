@@ -1,6 +1,37 @@
+import argparse
+import json
 import warnings
 from . import metadata as mobie_metadata
-from .validation import validate_view_metadata
+from .validation import validate_view_metadata, validate_views
+
+
+def merge_view_file(dataset_folder, view_file, overwrite=False):
+    """Merge views from a view file into the views of a dataset.
+
+    Arguments:
+        dataset_folder [str] - path to the dataset_folder
+        view_file [str] - path to the view file
+        overwrite [bool] - whether to over existing views in the dataset (default: False)
+    """
+    validate_views(view_file)
+
+    metadata = mobie_metadata.read_dataset_metadata(dataset_folder)
+    ds_views = metadata["views"]
+
+    with open(view_file) as f:
+        views = json.load(f)["views"]
+
+    duplicate_views = [name for name in views if name in ds_views]
+    if duplicate_views:
+        msg = f"Duplicate views {duplicate_views} in view file {view_file} and dataset {dataset_folder}"
+        if overwrite:
+            raise RuntimeError(msg)
+        else:
+            warnings.warn(msg)
+    ds_views.update(views)
+
+    metadata["views"] = ds_views
+    mobie_metadata.write_dataset_metadata(dataset_folder, metadata)
 
 
 def combine_views(dataset_folder, view_names, new_view_name, menu_name, keep_original_views=True):
@@ -51,3 +82,12 @@ def combine_views(dataset_folder, view_names, new_view_name, menu_name, keep_ori
 
     metadata["views"] = views
     mobie_metadata.write_dataset_metadata(dataset_folder, metadata)
+
+
+def main():
+    parser = argparse.ArgumentParser("Merge views from a view file into the views of a dataset.")
+    parser.add_argument("-d", "--dataset", help="Path to the dataset folder", required=True)
+    parser.add_argument("-v", "--views", help="Path to the view file", required=True)
+    parser.add_argument("-o", "--overwrite", help="Whether to overwrite existing views", default=0, type=int)
+    args = parser.parse_args()
+    merge_view_file(args.dataset, args.views, bool(args.overwrite))

@@ -14,15 +14,16 @@ setup(
         "console_scripts": [
             "mobie.add_image = mobie.image_data:main",
             "mobie.add_registered_source = mobie.registration:main",
+            "mobie.add_remote_metadata = mobie.metadata.remote_metadata:main",
             "mobie.add_segmentation = mobie.segmentation:main",
             "mobie.add_traces = mobie.traces:main",
             "mobie.add_open_organelle_dataset = mobie.open_organelle:main",
+            "mobie.merge_view_file = mobie.view_utils:main",
             "mobie.migrate_dataset = mobie.migration.migrate_dataset:main",
             "mobie.migrate_project = mobie.migration.migrate_project:main",
             "mobie.validate_dataset = mobie.validation.dataset:main",
             "mobie.validate_project = mobie.validation.project:main",
             "mobie.validate_views = mobie.validation.views:main",
-            "mobie.add_remote_metadata = mobie.metadata.remote_metadata:main",
         ]
     },
 )

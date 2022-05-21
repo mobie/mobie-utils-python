@@ -1,6 +1,7 @@
-import unittest
-import multiprocessing as mp
+import json
 import os
+import multiprocessing as mp
+import unittest
 from shutil import rmtree
 
 import h5py
@@ -8,7 +9,7 @@ import mobie
 import numpy as np
 
 
-class TestCombineViews(unittest.TestCase):
+class TestViewUtils(unittest.TestCase):
     root = "./data"
     ds_name = "ds"
     n_views = 3
@@ -64,6 +65,22 @@ class TestCombineViews(unittest.TestCase):
         self.assertIn(new_view_name, metadata["views"])
         for vname in view_names:
             self.assertNotIn(vname, metadata["views"])
+
+    def test_merge_view_file(self):
+        ds_folder = os.path.join(self.root, self.ds_name)
+
+        view_name = "new-view"
+        view = {
+            "isExclusive": True, "uiSelectionGroup": "test-views", "viewerTransform": {"position": [0.1, 1.1, 2.3]}
+        }
+        views = {view_name: view}
+        view_file = os.path.join(self.tmp_root, "views.json")
+        with open(view_file, "w") as f:
+            json.dump({"views": views}, f)
+
+        mobie.merge_view_file(ds_folder, view_file)
+        metadata = mobie.metadata.read_dataset_metadata(ds_folder)
+        self.assertIn(view_name, metadata["views"])
 
 
 if __name__ == "__main__":
