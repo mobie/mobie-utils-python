@@ -1,12 +1,16 @@
 import os
+import json
 from glob import glob
 
 import numpy as np
 import pandas as pd
+import s3fs
 from elf.io import open_file
 from jsonschema import ValidationError
-from pybdv.metadata import get_name
+from pybdv.metadata import get_name, get_data_path
+
 from .utils import _assert_true, _assert_equal, validate_with_schema
+from ..xml_utils import parse_s3_xml
 
 
 def is_default_table(table):
@@ -58,7 +62,72 @@ def check_tables(table_folder, assert_true):
         assert_true(check_table(table, ref_label_ids), msg)
 
 
-def validate_source_metadata(name, metadata, dataset_folder=None, require_data=True,
+def _check_bdv_n5_s3(xml, assert_true):
+    path_in_bucket, server, bucket, _ = parse_s3_xml(xml)
+    address = os.path.join(server, bucket, path_in_bucket)
+    try:
+        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
+        store = s3fs.S3Map(root=os.path.join(bucket, path_in_bucket), s3=fs)
+        attrs = store["attributes.json"]
+    except Exception:
+        assert_true(False, f"Can't find bdv.n5.s3 file at {address}")
+    attrs = json.loads(attrs.decode("utf-8"))
+    assert_true("n5" in attrs, "Invalid n5 file at {address}")
+
+
+def _check_ome_zarr_s3(address, name, assert_true, assert_equal):
+    server = "/".join(address.split("/")[:3])
+    path = "/".join(address.split("/")[3:])
+    try:
+        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
+        store = s3fs.S3Map(root=path, s3=fs)
+        attrs = store[".zattrs"]
+    except Exception:
+        assert_true(False, f"Can't find ome.zarr..s3 file at {address}")
+    attrs = json.loads(attrs.decode("utf-8"))
+    ome_name = attrs["multiscales"][0]["name"]
+    assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+
+
+def _check_data(storage, format_, name, dataset_folder,
+                require_local_data, require_remote_data,
+                assert_true, assert_equal):
+    # checks for bdv format
+    if format_.startswith("bdv"):
+        path = os.path.join(dataset_folder, storage["relativePath"])
+        assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
+
+        # check that the source name and name in the xml agree for bdv formats
+        bdv_name = get_name(path, setup_id=0)
+        msg = f"{path}: Source name and name in bdv metadata disagree: {name} != {bdv_name}"
+        assert_equal(name, bdv_name, msg)
+
+        # check that the remote s3 address exists
+        if format_.endswith(".s3") and require_remote_data:
+            _check_bdv_n5_s3(path, assert_true)
+
+        # check that the referenced local file path exists
+        elif require_local_data:
+            data_path = get_data_path(path, return_absolute_path=True)
+            assert_true(os.path.exists(data_path))
+
+    # local ome.zarr check: source name and name in the ome.zarr metadata agree
+    elif format_ == "ome.zarr" and require_local_data:
+        path = os.path.join(dataset_folder, storage["relativePath"])
+        assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
+
+        with open_file(path, "r") as f:
+            ome_name = f.attrs["multiscales"][0]["name"]
+        assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+
+    # remote ome.zarr check:
+    elif format_ == "ome.zarr.s3" and require_remote_data:
+        s3_address = storage["s3Address"]
+        _check_ome_zarr_s3(s3_address, name, assert_true, assert_equal)
+
+
+def validate_source_metadata(name, metadata, dataset_folder=None,
+                             require_local_data=True, require_remote_data=False,
                              assert_true=_assert_true, assert_equal=_assert_equal):
     # static validation with json schema
     try:
@@ -69,33 +138,12 @@ def validate_source_metadata(name, metadata, dataset_folder=None, require_data=T
 
     source_type = list(metadata.keys())[0]
     metadata = metadata[source_type]
-    # dynamic validation of paths
+    # dynamic validation of paths / remote addresses
     if dataset_folder is not None:
         for format_, storage in metadata["imageData"].items():
-            path = storage.get("relativePath", None)
-            if path is None:
-                continue
-
-            path = os.path.join(dataset_folder, storage["relativePath"])
-            have_path = os.path.exists(path)
-            if require_data:
-                msg = f"Could not find data for {name} at {path}"
-                assert_true(have_path, msg)
-            else:
-                if not have_path:
-                    continue
-
-            # check that the source name and name in the xml agree for bdv formats
-            if format_.startswith("bdv"):
-                bdv_name = get_name(path, setup_id=0)
-                msg = f"{path}: Source name and name in bdv metadata disagree: {name} != {bdv_name}"
-                assert_equal(name, bdv_name, msg)
-
-            # check that the source name and name in the ome.zarr metadata agree
-            if format_ == "ome.zarr":
-                with open_file(path, "r") as f:
-                    ome_name = f.attrs["multiscales"][0]["name"]
-                assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+            _check_data(storage, format_, name, dataset_folder,
+                        require_local_data, require_remote_data,
+                        assert_true, assert_equal)
 
         if "tableData" in metadata:
             table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
