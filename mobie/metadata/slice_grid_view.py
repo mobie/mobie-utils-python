@@ -2,8 +2,9 @@ import json
 import os
 import warnings
 
-import s3fs
+import numpy as np
 import elf.transformation as trafo_utils
+import s3fs
 from pybdv import metadata as bdv_metadata
 from . import view_metadata as view_utils
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
@@ -148,8 +149,8 @@ def _get_slice_grid(
     views = dataset_metadata["views"]
 
     source_type, source_data = next(iter(sources[source].items()))
-    if source_type != "imageSource":
-        raise ValueError("create_slice_grid is only supported for image sources.")
+    if source_type != "image":
+        raise ValueError(f"create_slice_grid is only supported for image sources, got {source_type}.")
 
     z_axis = 0
     shape = _load_shape(source_data["imageData"], dataset_folder)
@@ -166,15 +167,20 @@ def _get_slice_grid(
         # TODO
         raise NotImplementedError
 
+    shape_vector = np.array(list(shape) + [1], dtype="float64")
+    transformed_shape = data_transform @ shape_vector
+    assert transformed_shape.shape == (4,)
+    z_extent = shape_vector[0]
+    z_spacing = z_extent / n_slices
+
     # compute the individual slice transformations (shifts)
     # to enable axis != 0 we would also need to do an axis rotation here
     source_transformations = []
     grid_sources = []
     for slice_id in range(n_slices):
-        # TODO need to bring 'data_transform' and 'shape' into correct shapes and types so that this works;
-        # will need some functionaliy from elf.transformation for this.
-        # and need to find correct shift for this slice
-        slice_trafo_params = data_transform @ shape
+        slice_trafo_params = trafo_utils.affine_matrix_3d(translation=[slice_id * z_spacing, 0.0, 0.0])
+        # TODO do we need the resolution here?!
+        slice_trafo_params = trafo_utils.native_to_bdv(slice_trafo_params)
         name_after_trafo = f"{source}_z{slice_id}"
         slice_trafo = view_utils.get_affine_source_transform(
             [source], slice_trafo_params, source_names_after_transform=[name_after_trafo]
@@ -183,7 +189,8 @@ def _get_slice_grid(
         grid_sources.append(name_after_trafo)
 
     # add the grid transformation
-    grid = view_utils.get_transformed_grid_source_transform(grid_sources)
+    nested_grid_sources = [[src] for src in grid_sources]
+    grid = view_utils.get_transformed_grid_source_transform(nested_grid_sources)
     source_transformations.append(grid)
 
     if display_settings is None:
@@ -210,7 +217,6 @@ def _get_slice_grid(
             display_name = display_settings["name"]
         else:
             display_name = f"{source}-slice-grid"
-            display_settings["name"] = display_name
 
     new_view = view_utils.get_view([display_name], [source_type], [grid_sources], [display_settings],
                                    is_exclusive=is_exclusive, menu_name=menu_name,
@@ -236,7 +242,7 @@ def _write_view(dataset_folder, dataset_metadata, view_file, view_name, new_view
             views = {}
         view_source = view_file
 
-    if view_name in views["views"]:
+    if view_name in views:
         msg = f"The view {view_name} is alread present at {view_source}."
         if overwrite:
             warnings.warn(msg + " It will be over-written.")
