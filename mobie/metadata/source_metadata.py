@@ -3,13 +3,13 @@ import os
 import warnings
 
 import elf.transformation as trafo_utils
-import s3fs
 from pybdv import metadata as bdv_metadata
 
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .utils import get_table_metadata
 from .view_metadata import get_default_view
 from ..validation import validate_source_metadata, validate_view_metadata
+from ..validation.utils import load_json_from_s3
 
 
 #
@@ -20,19 +20,6 @@ from ..validation import validate_source_metadata, validate_view_metadata
 def _load_bdv_metadata(dataset_folder, storage):
     xml_path = os.path.join(dataset_folder, storage["relativePath"])
     return xml_path
-
-
-def _load_json_from_s3(address):
-    server = "/".join(address.split("/")[:3])
-    path = "/".join(address.split("/")[3:])
-    try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=path, s3=fs)
-        attrs = store[".zattrs"]
-    except Exception:
-        return None
-    attrs = json.loads(attrs.decode("utf-8"))
-    return attrs
 
 
 def _load_json_from_file(path):
@@ -49,9 +36,12 @@ def _load_ome_zarr_metadata(dataset_folder, storage, data_format):
         attrs = _load_json_from_file(attrs_path)
     else:
         assert data_format == "ome.zarr.s3"
-        address = storage["s3Address"]
-        attrs = _load_json_from_s3(address)
-    return None if attrs is None else attrs[0]["multiscales"]
+        address = os.path.join(storage["s3Address"], ".zattrs")
+        try:
+            attrs = load_json_from_s3(address)
+        except Exception:
+            attrs = None
+    return None if attrs is None else attrs["multiscales"][0]
 
 
 def _load_image_metadata(source_metadata, dataset_folder):
@@ -81,7 +71,7 @@ def get_shape(source_metadata, dataset_folder):
         dataset_path = image_metadata["datasets"][0]["path"]
         address = source_metadata[data_format]["s3Address"]
         array_address = os.path.join(address, dataset_path, ".zarray")
-        array_metadata = _load_json_from_s3(array_address)
+        array_metadata = load_json_from_s3(array_address)
         shape = array_metadata["shape"]
     else:
         raise ValueError(f"Unsupported data format {data_format}")

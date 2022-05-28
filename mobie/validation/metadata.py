@@ -1,15 +1,13 @@
 import os
-import json
 from glob import glob
 
 import numpy as np
 import pandas as pd
-import s3fs
 from elf.io import open_file
 from jsonschema import ValidationError
 from pybdv.metadata import get_name, get_data_path
 
-from .utils import _assert_true, _assert_equal, validate_with_schema
+from .utils import _assert_true, _assert_equal, validate_with_schema, load_json_from_s3
 from ..xml_utils import parse_s3_xml
 
 
@@ -64,27 +62,19 @@ def check_tables(table_folder, assert_true):
 
 def _check_bdv_n5_s3(xml, assert_true):
     path_in_bucket, server, bucket, _ = parse_s3_xml(xml)
-    address = os.path.join(server, bucket, path_in_bucket)
+    address = os.path.join(server, bucket, path_in_bucket, "attributes.json")
     try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=os.path.join(bucket, path_in_bucket), s3=fs)
-        attrs = store["attributes.json"]
+        attrs = load_json_from_s3(address)
     except Exception:
         assert_true(False, f"Can't find bdv.n5.s3 file at {address}")
-    attrs = json.loads(attrs.decode("utf-8"))
     assert_true("n5" in attrs, "Invalid n5 file at {address}")
 
 
 def _check_ome_zarr_s3(address, name, assert_true, assert_equal):
-    server = "/".join(address.split("/")[:3])
-    path = "/".join(address.split("/")[3:])
     try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=path, s3=fs)
-        attrs = store[".zattrs"]
+        attrs = load_json_from_s3(os.path.join(address, ".zattrs"))
     except Exception:
-        assert_true(False, f"Can't find ome.zarr..s3 file at {address}")
-    attrs = json.loads(attrs.decode("utf-8"))
+        assert_true(False, f"Can't find ome.zarr..s3file at {address}")
     ome_name = attrs["multiscales"][0]["name"]
     assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
