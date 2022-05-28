@@ -4,134 +4,10 @@ import warnings
 
 import numpy as np
 import elf.transformation as trafo_utils
-import s3fs
-from pybdv import metadata as bdv_metadata
+
+from . import source_metadata as source_utils
 from . import view_metadata as view_utils
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
-
-
-# TODO refactor with the rest
-def _load_bdv_metadata(dataset_folder, storage):
-    xml_path = os.path.join(dataset_folder, storage["relativePath"])
-    return xml_path
-
-
-def _load_json_from_s3(address):
-    server = "/".join(address.split("/")[:3])
-    path = "/".join(address.split("/")[3:])
-    try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=path, s3=fs)
-        attrs = store[".zattrs"]
-    except Exception:
-        return None
-    attrs = json.loads(attrs.decode("utf-8"))
-    return attrs
-
-
-def _load_json_from_file(path):
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        attrs = json.load(f)
-    return attrs
-
-
-# TODO refactor with the rest
-def _load_ome_zarr_metadata(dataset_folder, storage, data_format):
-    if data_format == "ome.zarr":
-        attrs_path = os.path.join(dataset_folder, storage["relativePath"], ".zattrs")
-        attrs = _load_json_from_file(attrs_path)
-    else:
-        assert data_format == "ome.zarr.s3"
-        address = storage["s3Address"]
-        attrs = _load_json_from_s3(address)
-    return None if attrs is None else attrs[0]["multiscales"]
-
-
-# TODO refactor with the rest
-def _load_image_metadata(image_data, dataset_folder):
-    image_metadata = None
-    for data_format, storage in image_data.items():
-        if data_format.startswith("bdv"):
-            image_metadata = _load_bdv_metadata(dataset_folder, storage)
-        elif data_format.startswith("ome.zarr"):
-            image_metadata = _load_ome_zarr_metadata(dataset_folder, storage, data_format)
-        if image_metadata is not None:
-            return data_format, image_metadata
-    raise RuntimeError(f"Could not load the image metadata for {image_metadata}")
-
-
-# TODO refactor into source_metadata.py, generally very useful!!!
-def _load_shape(image_data, dataset_folder):
-    data_format, image_metadata = _load_image_metadata(image_data, dataset_folder)
-    if data_format.startswith("bdv"):
-        shape = bdv_metadata.get_size(image_metadata, setup_id=0)
-    elif data_format == "ome.zarr":
-        dataset_path = image_metadata["datasets"][0]["path"]
-        array_path = os.path.join(
-            dataset_folder, image_data["storage"][data_format]["relativePath"], dataset_path, ".zarray"
-        )
-        array_metadata = _load_json_from_file(array_path)
-        shape = array_metadata["shape"]
-    elif data_format == "ome.zarr.s3":
-        dataset_path = image_metadata["datasets"][0]["path"]
-        address = image_data[data_format]["s3Address"]
-        array_address = os.path.join(address, dataset_path, ".zarray")
-        array_metadata = _load_json_from_s3(array_address)
-        shape = array_metadata["shape"]
-    else:
-        raise ValueError(f"Unsupported data format {data_format}")
-    return shape
-
-
-def _bdv_transform_to_affine_matrix(transforms):
-    assert isinstance(transforms, dict)
-    transforms = list(transforms.values())
-    # TODO do we need to pass the resolution here ????
-    transforms = [trafo_utils.bdv_to_native(trafo) for trafo in transforms]
-    # TODO is this the correct order of concatenation?
-    transform = transforms[0]
-    for trafo in transforms[1:]:
-        transform = transform @ trafo
-    return transform
-
-
-# TODO refactor into elf.transformation
-def _ome_zarr_transform_to_affine_matrix(transforms, version):
-    supported_versions = ("0.4",)
-    if version not in supported_versions:
-        raise RuntimeError(f"Currently only support ome.zarr versions {supported_versions}, got {version}")
-    scale, translation = None, None
-    assert len(transforms) <= 2
-    for trafo in transforms:
-        trafo_type = trafo["type"]
-        assert trafo_type in ("scale", "translation"), f"Expected scale or translation transform, got {trafo_type}"
-        if trafo_type == "scale":
-            scale = trafo["scale"]
-        if trafo_type == "translation":
-            translation = trafo["translation"]
-    transform = trafo_utils.affine_matrix_3d(scale=scale, translation=translation)
-    # TODO handle top-level trafo
-    return transform
-
-
-# load the transformation from the metadata of this source
-# TODO refactor into source_metadta.py, generally very useful!!!
-def _load_transformation(image_data, dataset_folder, to_affine_matrix=True):
-    data_format, image_metadata = _load_image_metadata(image_data, dataset_folder)
-    if data_format.startswith("bdv"):
-        transform = bdv_metadata.get_affine(image_metadata, setup_id=0)
-        if to_affine_matrix:
-            transform = _bdv_transform_to_affine_matrix(transform)
-    elif data_format.startswith("ome.zarr"):
-        transform = image_metadata["datasets"][0]["coordinateTransformations"]
-        version = image_metadata["version"]
-        if to_affine_matrix:
-            transform = _ome_zarr_transform_to_affine_matrix(transform, version)
-    else:
-        raise ValueError(f"Unsupported data format {data_format}")
-    return transform
 
 
 def _get_slice_grid(
@@ -153,16 +29,16 @@ def _get_slice_grid(
         raise ValueError(f"create_slice_grid is only supported for image sources, got {source_type}.")
 
     z_axis = 0
-    shape = _load_shape(source_data["imageData"], dataset_folder)
+    shape = source_utils.get_shape(source_data["imageData"], dataset_folder)
     ax_len = shape[z_axis]
     # spacing_pixels = shape[z_axis] / n_slices
     if ax_len % n_slices != 0:
-        msg = "Can't evenly split volume with length {ax_len} into {n_slices} slices.\n"
-        msg += "The space between slices will be {spacing_pixels} pixels."
+        msg = f"Can't evenly split volume with length {ax_len} into {n_slices} slices."
         warnings.warn(msg)
 
     # load the data transformation and compose it with the
-    data_transform = _load_transformation(source_data["imageData"], dataset_folder)
+    resolution = source_utils.get_resolution(source_data["imageData"], dataset_folder)
+    data_transform = source_utils.get_transformation(source_data["imageData"], dataset_folder, resolution=resolution)
     if initial_transforms is not None:
         # TODO
         raise NotImplementedError
@@ -201,8 +77,8 @@ def _get_slice_grid(
             assert len(reference_displays) == 1
             display_settings = reference_displays[0]
             assert "imageDisplay" in display_settings
-            display_settings["imageDispaly"]["name"] = display_name
-            display_settings["imageDispaly"]["sources"] = grid_sources
+            display_settings["imageDisplay"]["name"] = display_name
+            display_settings["imageDisplay"]["sources"] = grid_sources
         # and if we don't have a default view, use the default imageSource settings
         except Exception:
             warnings.warn(f"Could not parse the display settings for {source}, using default settings")
