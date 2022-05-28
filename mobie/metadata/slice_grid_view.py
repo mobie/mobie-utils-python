@@ -100,40 +100,6 @@ def _get_slice_grid(
     return new_view
 
 
-# TODO should be unified with functionality from 'bookmark_metadata'
-# (which is a bad name for this file, eventaully need to restrucure this for a 0.5.0 release)
-def _write_view(dataset_folder, dataset_metadata, view_file, view_name, new_view, overwrite, return_view):
-    # we don't write the view, but return it
-    if return_view:
-        return new_view
-
-    if view_file is None:  # write to dataset metadata
-        views = dataset_metadata["views"]
-        view_source = dataset_folder
-    else:
-        if os.path.exists(view_file):
-            with open(view_file, "r") as f:
-                views = json.load(f)["views"]
-        else:
-            views = {}
-        view_source = view_file
-
-    if view_name in views:
-        msg = f"The view {view_name} is alread present at {view_source}."
-        if overwrite:
-            warnings.warn(msg + " It will be over-written.")
-        else:
-            raise ValueError(msg)
-    views[view_name] = new_view
-
-    if view_file is None:
-        dataset_metadata["views"] = views
-        write_dataset_metadata(dataset_folder, dataset_metadata)
-    else:
-        with open(view_file, "w") as f:
-            json.dump({"views": views}, f)
-
-
 def create_slice_grid(
     dataset_folder,
     source,

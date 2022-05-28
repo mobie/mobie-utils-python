@@ -1,8 +1,154 @@
 import argparse
 import json
+import os
 import warnings
+
 from . import metadata as mobie_metadata
-from .validation import validate_view_metadata, validate_views
+from .validation import validate_view_metadata, validate_views, validate_with_schema
+
+#
+# view creation
+#
+
+
+def _create_view(
+    sources, all_sources, display_settings, source_transforms, viewer_transform, display_group_names, menu_name
+):
+    all_source_names = set(all_sources.keys())
+    source_types = []
+    for source_list in sources:
+
+        invalid_source_names = list(set(source_list) - all_source_names)
+        if invalid_source_names:
+            raise ValueError(f"Invalid source names: {invalid_source_names}")
+
+        this_source_types = list(set(
+            [list(all_sources[source].keys())[0] for source in source_list]
+        ))
+        if len(this_source_types) > 1:
+            raise ValueError(f"Inconsistent source types: {this_source_types}")
+        source_types.append(this_source_types[0])
+
+    if display_group_names is None:
+        display_group_names = [f"{source_type}-group-{i}" for i, source_type in enumerate(source_types)]
+
+    view = mobie_metadata.get_view(
+        display_group_names, source_types,
+        sources, display_settings,
+        is_exclusive=True,
+        menu_name=menu_name,
+        source_transforms=source_transforms,
+        viewer_transform=viewer_transform
+    )
+    return view
+
+
+def _write_view(dataset_folder, view_file, view_name, view, overwrite, return_view):
+    # we don't write the view, but return it
+    if return_view:
+        return view
+    # write the view to the dataset
+    elif view_file is None:
+        mobie_metadata.add_view_to_dataset(dataset_folder, view_name, view, overwrite=overwrite)
+        return
+
+    # write the view to an external view file
+    if os.path.exists(view_file):
+        with open(view_file, "r") as f:
+            views = json.load(f)["views"]
+    else:
+        views = {}
+
+    if view_name in views:
+        msg = f"The view {view_name} is alread present in {view_file}."
+        if overwrite:
+            warnings.warn(msg + " It will be over-written.")
+        else:
+            raise ValueError(msg)
+
+    views[view_name] = view
+    with open(view_file, "w") as f:
+        json.dump({"views": views}, f)
+
+
+def create_view(
+    dataset_folder, view_name,
+    sources, display_settings,
+    source_transforms=None,
+    viewer_transform=None,
+    display_group_names=None,
+    menu_name="bookmark",
+    overwrite=False,
+    view_file=None,
+    return_view=False,
+):
+    """Add or update a view in dataset.json:views.
+
+    Views can reproduce any given viewer state.
+
+    Arguments:
+        dataset_folder [str] - path to the dataset folder
+        view_name [str] - name of the view
+        sources [list[list[str]]] -
+        display_settings [list[dict]] -
+        source_transforms [list[dict]] -
+        viewer_transform [dict] -
+        display_group_names [list[str]] -
+        menu_name [str] - (default: bookmark)
+        overwrite [bool] - whether to overwrite existing views (default: False)
+        view_file [str] -
+        return_view [bool] -
+    """
+    dataset_metadata = mobie_metadata.read_dataset_metadata(dataset_folder)
+    all_sources = dataset_metadata["sources"]
+    view = _create_view(sources, all_sources, display_settings,
+                        source_transforms, viewer_transform,
+                        display_group_names, menu_name=menu_name)
+    validate_with_schema(view, "view")
+    return _write_view(dataset_folder, view_file, view_name, view,
+                       overwrite=overwrite, return_view=return_view)
+
+
+def create_grid_view(
+    dataset_folder, view_name, sources,
+    table_folder=None,
+    display_groups=None,
+    display_group_settings=None,
+    positions=None,
+    menu_name="bookmark",
+    overwrite=False,
+    view_file=None,
+    return_view=False,
+):
+    """ Add or update a grid view.
+
+    Arguments:
+        dataset_folder [str] - path to the dataset folder
+        view_name [str] - name of the view
+        sources [list[list[str]]] - sources to be arranged in the grid
+        table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
+        display_groups [dict[str, str] - (default: None)
+        display_group_settings [dict[str, dict]] - (default: None)
+        positions [list[list[int]]] - (default: None)
+        menu_name [str] - (default: bookmark)
+        overwrite [bool] - whether to overwrite existing view (default: False)
+        view_file [str] - name of the view file,
+            if given, the view will be saved to this file instead of the datast (default: None)
+        return_view [bool] -
+    """
+    view = mobie_metadata.get_grid_view(
+        dataset_folder, view_name, sources, menu_name=menu_name,
+        table_folder=table_folder, display_groups=display_groups,
+        display_group_settings=display_group_settings, positions=positions
+    )
+    validate_with_schema(view, "view")
+    return _write_view(dataset_folder, view_file, view_name, view,
+                       overwrite=overwrite, return_view=return_view)
+
+
+#
+# view merging / combination
+#
 
 
 def merge_view_file(dataset_folder, view_file, overwrite=False):
