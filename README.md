@@ -74,4 +74,4 @@ Run `<COMMAND-NAME> --help` to get more information on how to use them.
 
 ## Citation
 
-If you use the MoBIE framework in your research, please cite [Whole-body integration of gene expression and single-cell morphology](https://www.biorxiv.org/content/10.1101/2020.02.26.961037v1).
+If you use the MoBIE framework in your research, please cite [the MoBIE bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2022.05.27.493763v1).
