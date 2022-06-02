@@ -28,8 +28,10 @@ $ pip install -e .
 
 ## Usage
 
-The library contains functionality to generate MoBIE projects and add data to it.
-Check out [the example notebook](https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_project.ipynb) to see how to generate a MoBIE project.
+The library contains functionality to generate MoBIE projects, add data to it and create complex views.
+For complete examples, please check out the [examples](https://github.com/mobie/mobie-utils-python/blob/master/examples):
+- [normal project creation](https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_project.ipynb): generate a MoBIE project for multi-modal data from a CLEM experiment
+- [htm project creation](https://github.com/mobie/mobie-utils-python/blob/master/examples/create_mobie_htm_project.ipynb): generate a MoBIE project for high-throughput microscopy from a imaging based SARS-CoV-2 antibody assay.
 
 Below is a short code snippet that shows how to use it in a python script.
 
@@ -74,4 +76,4 @@ Run `<COMMAND-NAME> --help` to get more information on how to use them.
 
 ## Citation
 
-If you use the MoBIE framework in your research, please cite [Whole-body integration of gene expression and single-cell morphology](https://www.biorxiv.org/content/10.1101/2020.02.26.961037v1).
+If you use the MoBIE framework in your research, please cite [the MoBIE bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2022.05.27.493763v1).

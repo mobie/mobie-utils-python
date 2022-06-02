@@ -1,15 +1,13 @@
 import os
-import json
 from glob import glob
 
 import numpy as np
 import pandas as pd
-import s3fs
 from elf.io import open_file
 from jsonschema import ValidationError
 from pybdv.metadata import get_name, get_data_path
 
-from .utils import _assert_true, _assert_equal, validate_with_schema
+from .utils import _assert_true, _assert_equal, validate_with_schema, load_json_from_s3
 from ..xml_utils import parse_s3_xml
 
 
@@ -40,7 +38,7 @@ def _load_table(table_path):
     return pd.read_csv(table_path, sep="\t" if os.path.splitext(table_path)[1] == ".tsv" else ",")
 
 
-def check_tables(table_folder, assert_true):
+def check_segmentation_tables(table_folder, assert_true):
     msg = f"Could not find table root folder at {table_folder}"
     assert_true(os.path.isdir(table_folder), msg)
 
@@ -64,27 +62,19 @@ def check_tables(table_folder, assert_true):
 
 def _check_bdv_n5_s3(xml, assert_true):
     path_in_bucket, server, bucket, _ = parse_s3_xml(xml)
-    address = os.path.join(server, bucket, path_in_bucket)
+    address = os.path.join(server, bucket, path_in_bucket, "attributes.json")
     try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=os.path.join(bucket, path_in_bucket), s3=fs)
-        attrs = store["attributes.json"]
+        attrs = load_json_from_s3(address)
     except Exception:
         assert_true(False, f"Can't find bdv.n5.s3 file at {address}")
-    attrs = json.loads(attrs.decode("utf-8"))
     assert_true("n5" in attrs, "Invalid n5 file at {address}")
 
 
 def _check_ome_zarr_s3(address, name, assert_true, assert_equal):
-    server = "/".join(address.split("/")[:3])
-    path = "/".join(address.split("/")[3:])
     try:
-        fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
-        store = s3fs.S3Map(root=path, s3=fs)
-        attrs = store[".zattrs"]
+        attrs = load_json_from_s3(os.path.join(address, ".zattrs"))
     except Exception:
-        assert_true(False, f"Can't find ome.zarr..s3 file at {address}")
-    attrs = json.loads(attrs.decode("utf-8"))
+        assert_true(False, f"Can't find ome.zarr..s3file at {address}")
     ome_name = attrs["multiscales"][0]["name"]
     assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
@@ -147,11 +137,12 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
 
         if "tableData" in metadata:
             table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
-            check_tables(table_folder, assert_true)
+            check_segmentation_tables(table_folder, assert_true)
 
 
-def check_annotation_tables(table_folder, tables, assert_true):
+def check_region_tables(table_folder, tables, assert_true, expected_col=None):
     ref_grid_ids = None
+    have_expected_col = False
     for table_name in tables:
         table_path = os.path.join(table_folder, table_name)
         msg = f"Table {table_path} does not exist."
@@ -172,8 +163,29 @@ def check_annotation_tables(table_folder, tables, assert_true):
             msg = f"The grid ids for the table {table_path} are inconsistent with the grid ids in other tables"
             assert_true(np.array_equal(ref_grid_ids, this_grid_ids), msg)
 
+        if expected_col is not None:
+            have_expected_col = expected_col in table
 
-def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true):
+    if expected_col is not None:
+        msg = f"Could not find the expected column {expected_col} in any of the tables in {table_folder}"
+        assert_true(have_expected_col, msg)
+
+
+def check_expected_column(table_folder, tables, expected_col, assert_true):
+    have_expected_col = False
+    for table_name in tables:
+        table_path = os.path.join(table_folder, table_name)
+        msg = f"Table {table_path} does not exist."
+        assert_true(os.path.exists(table_path), msg)
+
+        table = _load_table(table_path)
+        have_expected_col = expected_col in table
+
+    msg = f"Could not find the expected column {expected_col} in any of the tables in {table_folder}"
+    assert_true(have_expected_col, msg)
+
+
+def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true, dataset_metadata=None):
     # static validation with json schema
     try:
         validate_with_schema(view, "view")
@@ -224,7 +236,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
                 assert_true(len(wrong_sources) == 0, msg)
 
-    # dynamic validation of annotation tables
+    # dynamic validation of tables in region displays
     if displays is not None and dataset_folder is not None:
         for display in displays:
             display_type = list(display.keys())[0]
@@ -232,5 +244,25 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 display_metadata = list(display.values())[0]
                 table_folder = os.path.join(dataset_folder, display_metadata["tableData"]["tsv"]["relativePath"])
                 tables = display_metadata.get("tables")
+                color_by_col = display_metadata.get("colorByColumn", None)
                 if tables is not None:
-                    check_annotation_tables(table_folder, tables, assert_true)
+                    check_region_tables(table_folder, tables, assert_true, color_by_col)
+
+    # dynamic validation of tables in segmentation displays
+    if displays is not None and dataset_metadata is not None:
+        assert dataset_folder is not None
+        display_type = list(display.keys())[0]
+        if display_type == "segmentationDisplay":
+            display_metadata = list(display.values())[0]
+            color_by_col = display_metadata.get("colorByColumn", None)
+            if color_by_col is None:
+                return
+            tables = display_metadata.get("tables", None)
+            msg = f"colorByColumn is set to {color_by_col}, but no tables are set in the segmentation display"
+            assert_true(tables is not None, msg)
+            sources = display_metadata["sources"]
+            for source in sources:
+                table_folder = os.path.join(
+                    dataset_folder, dataset_metadata["sources"][source]["tableData"]["tsv"]["relativePath"]
+                )
+                check_expected_column(table_folder, tables, color_by_col, assert_true)

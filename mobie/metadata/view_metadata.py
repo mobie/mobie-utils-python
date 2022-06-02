@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 from .dataset_metadata import read_dataset_metadata
 from .utils import get_table_metadata
-from ..tables import check_source_annotation_table, compute_source_annotation_table
+from ..tables import check_region_table, compute_region_table
 
 
 #
@@ -61,7 +61,7 @@ def get_segmentation_display(name, sources, **kwargs):
     return {"segmentationDisplay": segmentation_display}
 
 
-def get_source_annotation_display(name, sources, table_data, tables, **kwargs):
+def get_region_display(name, sources, table_data, tables, **kwargs):
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     annotation_display = {
@@ -257,7 +257,7 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, nor
 
 def get_view(names, source_types, sources, display_settings,
              is_exclusive, menu_name,
-             source_transforms=None, viewer_transform=None, source_annotation_displays=None):
+             source_transforms=None, viewer_transform=None, region_displays=None):
     """ Create view for a multiple sources and optional transformations.
 
     Arguments:
@@ -269,7 +269,7 @@ def get_view(names, source_types, sources, display_settings,
         menu_name [str] - menu name for this view
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
-        source_annotation_displays [list[dict]] - (default: None)
+        region_displays [list[dict]] - (default: None)
     """
 
     if len(names) != len(source_types) != len(sources) != len(display_settings):
@@ -311,12 +311,12 @@ def get_view(names, source_types, sources, display_settings,
 
         source_displays.append(display)
 
-    if source_annotation_displays is not None:
-        for name, settings in source_annotation_displays.items():
+    if region_displays is not None:
+        for name, settings in region_displays.items():
             source_map = settings.pop("sources")
             table_data = settings.pop("tableData")
             assert isinstance(source_map, dict)
-            display = get_source_annotation_display(name, source_map, table_data, **settings)
+            display = get_region_display(name, source_map, table_data, **settings)
             source_displays.append(display)
 
     view["sourceDisplays"] = source_displays
@@ -390,8 +390,8 @@ def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
     return source_transforms
 
 
-def create_source_annotation_display(name, sources, dataset_folder, table_folder=None, region_ids=None, **kwargs):
-    """Get a source annotation display and create the corresponding table.
+def create_region_display(name, sources, dataset_folder, table_folder=None, region_ids=None, **kwargs):
+    """Get a region display and create the corresponding table.
     """
     if isinstance(sources, list) and region_ids is None:
         sources = {ii: source_list for ii, source_list in enumerate(sources)}
@@ -408,18 +408,18 @@ def create_source_annotation_display(name, sources, dataset_folder, table_folder
     os.makedirs(table_folder_path, exist_ok=True)
     default_table_path = os.path.join(table_folder_path, "default.tsv")
     if not os.path.exists(default_table_path):
-        compute_source_annotation_table(sources, default_table_path)
-    check_source_annotation_table(sources, default_table_path)
+        compute_region_table(sources, default_table_path)
+    check_region_table(sources, default_table_path)
 
-    source_annotation_display = get_source_annotation_display(
+    region_display = get_region_display(
         name, sources,
         table_data=get_table_metadata(table_folder),
         tables=["default.tsv"],
         **kwargs
     )["regionDisplay"]
-    source_annotation_display.pop("name")
+    region_display.pop("name")
 
-    return {name: source_annotation_display}
+    return {name: region_display}
 
 
 # supporting grid views with transform (if trafo names change) is currently rather cumbersome:
@@ -529,8 +529,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         source_transforms = additional_source_transforms + source_transforms
 
     # create the source annotation display for this grid view, this will show the table for this grid view!
-    source_annotation_displays = create_source_annotation_display(name, grid_sources, dataset_folder, table_folder,
-                                                                  region_ids=region_ids)
+    region_displays = create_region_display(name, grid_sources, dataset_folder, table_folder, region_ids=region_ids)
 
     if menu_name is None:
         menu_name = "grid"
@@ -539,7 +538,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
                     sources=display_sources,
                     display_settings=display_settings,
                     source_transforms=source_transforms,
-                    source_annotation_displays=source_annotation_displays,
+                    region_displays=region_displays,
                     is_exclusive=True,
                     menu_name=menu_name)
     return view

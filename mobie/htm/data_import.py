@@ -42,12 +42,12 @@ def _copy_image_data(files, key, root,
     return input_names, metadata_paths
 
 
-def _require_dataset(root, dataset_name, file_format, is_default_dataset):
+def _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d):
     ds_exists = utils.require_dataset(root, dataset_name, file_format)
     dataset_folder = os.path.join(root, dataset_name)
     if not ds_exists:
         metadata.create_dataset_structure(root, dataset_name, [file_format])
-        metadata.create_dataset_metadata(dataset_folder)
+        metadata.create_dataset_metadata(dataset_folder, is2d=is2d)
         metadata.add_dataset(root, dataset_name, is_default_dataset)
 
 
@@ -89,11 +89,13 @@ def add_images(files, root,
                resolution, scale_factors, chunks,
                key=None, file_format="bdv.n5",
                tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-               unit="micrometer", is_default_dataset=False):
-    assert len(files) == len(image_names)
+               unit="micrometer", is_default_dataset=False, is2d=None):
+    assert len(files) == len(image_names), f"{len(files)}, {len(image_names)}"
 
     # require the dataset
-    _require_dataset(root, dataset_name, file_format, is_default_dataset)
+    if is2d is None:
+        is2d = len(resolution) == 2
+    _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d=is2d)
     tmp_folder = f"tmp_{dataset_name}_{image_names[0]}" if tmp_folder is None else tmp_folder
 
     # copy all the image data into the dataset with the given file format
@@ -114,11 +116,14 @@ def add_segmentations(files, root,
                       resolution, scale_factors, chunks,
                       key=None, file_format="bdv.n5",
                       tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-                      add_default_tables=True, unit="micrometer", is_default_dataset=False):
+                      add_default_tables=True, unit="micrometer",
+                      is_default_dataset=False, is2d=None):
     assert len(files) == len(segmentation_names)
 
     # require the dataset
-    _require_dataset(root, dataset_name, file_format, is_default_dataset)
+    if is2d is None:
+        is2d = len(resolution) == 2
+    _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d=is2d)
     tmp_folder = f"tmp_{dataset_name}_{segmentation_names[0]}" if tmp_folder\
         is None else tmp_folder
 

@@ -4,6 +4,7 @@ import warnings
 
 import jsonschema
 import requests
+import s3fs
 
 
 SCHEMA_URLS = {
@@ -52,6 +53,17 @@ def validate_with_schema(metadata, schema):
         # schema = SCHEMA_URLS[schema]
 
     jsonschema.validate(instance=metadata, schema=schema)
+
+
+def load_json_from_s3(address):
+    server = "/".join(address.split("/")[:3])
+    root_path = "/".join(address.split("/")[3:-1])
+    fname = address.split("/")[-1]
+    fs = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": server})
+    store = s3fs.S3Map(root=root_path, s3=fs)
+    attrs = store[fname]
+    attrs = json.loads(attrs.decode("utf-8"))
+    return attrs
 
 
 def _assert_equal(val, exp, msg=""):
