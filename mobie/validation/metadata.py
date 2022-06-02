@@ -140,8 +140,9 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             check_tables(table_folder, assert_true)
 
 
-def check_annotation_tables(table_folder, tables, assert_true):
+def check_annotation_tables(table_folder, tables, assert_true, expected_col=None):
     ref_grid_ids = None
+    have_expected_col = False
     for table_name in tables:
         table_path = os.path.join(table_folder, table_name)
         msg = f"Table {table_path} does not exist."
@@ -161,6 +162,13 @@ def check_annotation_tables(table_folder, tables, assert_true):
         else:
             msg = f"The grid ids for the table {table_path} are inconsistent with the grid ids in other tables"
             assert_true(np.array_equal(ref_grid_ids, this_grid_ids), msg)
+
+        if expected_col is not None:
+            have_expected_col = expected_col in table
+
+    if expected_col is not None:
+        msg = f"Could not find the expected column {expected_col} in any of the tables in {table_folder}"
+        assert_true(have_expected_col, msg)
 
 
 def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true):
@@ -222,5 +230,6 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 display_metadata = list(display.values())[0]
                 table_folder = os.path.join(dataset_folder, display_metadata["tableData"]["tsv"]["relativePath"])
                 tables = display_metadata.get("tables")
+                color_by_col = display_metadata.get("colorByColumn", None)
                 if tables is not None:
-                    check_annotation_tables(table_folder, tables, assert_true)
+                    check_annotation_tables(table_folder, tables, assert_true, color_by_col)
