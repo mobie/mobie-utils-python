@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import mobie
-from ..tables import compute_source_annotation_table
+from ..tables import compute_region_table
 
 
 def _get_display(name, source_type, sources, settings):
@@ -106,7 +106,7 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
     # create the annotation display for the sites
     if add_annotation_displays:
         assert site_table is not None
-        site_display = mobie.metadata.get_source_annotation_display(
+        site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
             table_data={"tsv": {"relativePath": site_table}},
             tables=["default.tsv"],
@@ -127,7 +127,7 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
     # create the annotation display for wells to plate
     if add_annotation_displays:
         assert well_table is not None
-        well_display = mobie.metadata.get_source_annotation_display(
+        well_display = mobie.metadata.get_region_display(
             "wells", plate_sources,
             table_data={"tsv": {"relativePath": well_table}},
             tables=["default.tsv"],
@@ -210,7 +210,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
 
         # create the annotation display for the sites
         assert site_table is not None
-        site_display = mobie.metadata.get_source_annotation_display(
+        site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
             table_data={"tsv": {"relativePath": site_table}},
             tables=["default.tsv"],
@@ -224,7 +224,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         all_plate_sources = {well: [f"{well}_{prefix}" for prefix in source_prefixes]
                              for well in well_names}
         assert well_table is not None
-        well_display = mobie.metadata.get_source_annotation_display(
+        well_display = mobie.metadata.get_region_display(
             "wells", all_plate_sources,
             table_data={"tsv": {"relativePath": well_table}},
             tables=["default.tsv"],
@@ -256,7 +256,7 @@ def _get_default_site_table(ds_folder, metadata, source_prefixes,
     wells = [site_name_to_well_name(name) for name in site_names]
     sources = {name: source_prefixes for name in site_names}
 
-    compute_source_annotation_table(sources, table_path, wells=wells)
+    compute_region_table(sources, table_path, wells=wells)
     return rel_table_folder
 
 
@@ -273,7 +273,7 @@ def _get_default_well_table(ds_folder, metadata, source_prefixes,
     wells = list(set([site_name_to_well_name(name) for name in site_names]))
     sources = {well: source_prefixes for well in wells}
 
-    compute_source_annotation_table(sources, table_path)
+    compute_region_table(sources, table_path)
     return rel_table_folder
 
 
