@@ -53,7 +53,7 @@ def _get_sources_and_site_names(metadata, source_prefixes, source_name_to_site_n
         for source_prefix, sources in this_sources.items()
     }
     site_names = all_site_names[source_prefixes[0]]
-    assert all(snames == site_names for snames in all_site_names.values())
+    assert all(snames == site_names for snames in all_site_names.values()), f"{site_names}, {all_site_names.values()}"
 
     return this_sources, site_names
 
