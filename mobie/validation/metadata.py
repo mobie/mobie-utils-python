@@ -38,7 +38,7 @@ def _load_table(table_path):
     return pd.read_csv(table_path, sep="\t" if os.path.splitext(table_path)[1] == ".tsv" else ",")
 
 
-def check_tables(table_folder, assert_true):
+def check_segmentation_tables(table_folder, assert_true):
     msg = f"Could not find table root folder at {table_folder}"
     assert_true(os.path.isdir(table_folder), msg)
 
@@ -137,10 +137,10 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
 
         if "tableData" in metadata:
             table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
-            check_tables(table_folder, assert_true)
+            check_segmentation_tables(table_folder, assert_true)
 
 
-def check_annotation_tables(table_folder, tables, assert_true, expected_col=None):
+def check_region_tables(table_folder, tables, assert_true, expected_col=None):
     ref_grid_ids = None
     have_expected_col = False
     for table_name in tables:
@@ -171,7 +171,21 @@ def check_annotation_tables(table_folder, tables, assert_true, expected_col=None
         assert_true(have_expected_col, msg)
 
 
-def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true):
+def check_expected_column(table_folder, tables, expected_col, assert_true):
+    have_expected_col = False
+    for table_name in tables:
+        table_path = os.path.join(table_folder, table_name)
+        msg = f"Table {table_path} does not exist."
+        assert_true(os.path.exists(table_path), msg)
+
+        table = _load_table(table_path)
+        have_expected_col = expected_col in table
+
+    msg = f"Could not find the expected column {expected_col} in any of the tables in {table_folder}"
+    assert_true(have_expected_col, msg)
+
+
+def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true, dataset_metadata=None):
     # static validation with json schema
     try:
         validate_with_schema(view, "view")
@@ -222,7 +236,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
                 assert_true(len(wrong_sources) == 0, msg)
 
-    # dynamic validation of annotation tables
+    # dynamic validation of tables in region displays
     if displays is not None and dataset_folder is not None:
         for display in displays:
             display_type = list(display.keys())[0]
@@ -232,4 +246,23 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 tables = display_metadata.get("tables")
                 color_by_col = display_metadata.get("colorByColumn", None)
                 if tables is not None:
-                    check_annotation_tables(table_folder, tables, assert_true, color_by_col)
+                    check_region_tables(table_folder, tables, assert_true, color_by_col)
+
+    # dynamic validation of tables in segmentation displays
+    if displays is not None and dataset_metadata is not None:
+        assert dataset_folder is not None
+        display_type = list(display.keys())[0]
+        if display_type == "segmentationDisplay":
+            display_metadata = list(display.values())[0]
+            color_by_col = display_metadata.get("colorByColumn", None)
+            if color_by_col is None:
+                return
+            tables = display_metadata.get("tables", None)
+            msg = f"colorByColumn is set to {color_by_col}, but no tables are set in the segmentation display"
+            assert_true(tables is not None, msg)
+            sources = display_metadata["sources"]
+            for source in sources:
+                table_folder = os.path.join(
+                    dataset_folder, dataset_metadata["sources"][source]["tableData"]["tsv"]["relativePath"]
+                )
+                check_expected_column(table_folder, tables, color_by_col, assert_true)

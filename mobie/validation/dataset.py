@@ -42,7 +42,8 @@ def validate_dataset(dataset_folder, require_local_data=True, require_remote_dat
         desc=f"Check views for dataset {ds_name}"
     ):
         validate_view_metadata(
-            view, sources=all_sources, dataset_folder=dataset_folder, assert_true=assert_true
+            view, sources=all_sources, dataset_folder=dataset_folder, assert_true=assert_true,
+            dataset_metadata=dataset_metadata
         )
 
     # check the (potential) additional view files
@@ -53,7 +54,8 @@ def validate_dataset(dataset_folder, require_local_data=True, require_remote_dat
             views = json.load(f)["views"]
         for name, view in views.items():
             validate_view_metadata(
-                view, sources=all_sources, dataset_folder=dataset_folder, assert_true=assert_true
+                view, sources=all_sources, dataset_folder=dataset_folder, assert_true=assert_true,
+                dataset_metadata=dataset_metadata
             )
 
 
