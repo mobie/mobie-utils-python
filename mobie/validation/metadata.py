@@ -106,7 +106,7 @@ def _check_data(storage, format_, name, dataset_folder,
         path = os.path.join(dataset_folder, storage["relativePath"])
         assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
 
-        with open_file(path, "r") as f:
+        with open_file(path, "r", ext=".zarr") as f:
             ome_name = f.attrs["multiscales"][0]["name"]
         assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
