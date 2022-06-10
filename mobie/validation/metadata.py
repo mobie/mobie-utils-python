@@ -108,7 +108,9 @@ def _check_data(storage, format_, name, dataset_folder,
 
         with open_file(path, "r", ext=".zarr") as f:
             ome_name = f.attrs["multiscales"][0]["name"]
-        assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+        # we can't do this check if we only load a sub-channel
+        if "channel" not in storage:
+            assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
     # remote ome.zarr check:
     elif format_ == "ome.zarr.s3" and require_remote_data:
