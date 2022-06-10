@@ -183,6 +183,7 @@ def add_source_to_dataset(
     source_type,
     source_name,
     image_metadata_path,
+    file_format=None,
     view=None,
     table_folder=None,
     overwrite=True,
@@ -218,6 +219,7 @@ def add_source_to_dataset(
 
     if source_type == "image":
         source_metadata = get_image_metadata(dataset_folder, image_metadata_path,
+                                             file_format=file_format,
                                              description=description)
     else:
         source_metadata = get_segmentation_metadata(dataset_folder,
