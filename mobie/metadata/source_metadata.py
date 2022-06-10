@@ -140,7 +140,7 @@ def _get_file_format(path):
     return file_format
 
 
-def _get_image_metadata(dataset_folder, path, type_, file_format, description):
+def _get_image_metadata(dataset_folder, path, type_, file_format, channel, description):
     file_format = _get_file_format(path) if file_format is None else file_format
 
     if file_format.startswith("bdv"):
@@ -155,6 +155,11 @@ def _get_image_metadata(dataset_folder, path, type_, file_format, description):
     else:
         raise ValueError(f"Invalid file format {file_format}")
 
+    if channel is not None:
+        if file_format not in ("ome.zarr", "ome.zarr.s3"):
+            raise NotImplementedError
+        format_["channel"] = channel
+
     source_metadata = {"imageData": {file_format: format_}}
     if description is not None:
         assert isinstance(description, str)
@@ -163,15 +168,16 @@ def _get_image_metadata(dataset_folder, path, type_, file_format, description):
 
 
 def get_image_metadata(dataset_folder, metadata_path,
-                       file_format=None, description=None):
+                       file_format=None, channel=None, description=None):
     return _get_image_metadata(dataset_folder, metadata_path, "image",
-                               file_format=file_format, description=description)
+                               file_format=file_format, channel=channel, description=description)
 
 
 def get_segmentation_metadata(dataset_folder, metadata_path,
-                              table_location=None, file_format=None, description=None):
+                              table_location=None, file_format=None,
+                              channel=None, description=None):
     source_metadata = _get_image_metadata(dataset_folder, metadata_path, "segmentation",
-                                          file_format=file_format, description=description)
+                                          file_format=file_format, channel=channel, description=description)
     if table_location is not None:
         relative_table_location = os.path.relpath(table_location, dataset_folder)
         source_metadata["segmentation"]["tableData"] = get_table_metadata(relative_table_location)
@@ -187,7 +193,8 @@ def add_source_to_dataset(
     view=None,
     table_folder=None,
     overwrite=True,
-    description=None
+    description=None,
+    channel=None,
 ):
     """ Add source metadata to a MoBIE dataset.
 
@@ -196,11 +203,16 @@ def add_source_to_dataset(
         source_type [str] - type of the source, either 'image' or 'segmentation'.
         source_name [str] - name of the source.
         image_metadata_path [str] - path to the image metadata (like BDV-XML) corresponding to this source.
+        file_format [str] - the file format.
+            Normally this will be autodetected
+            and it only needs to be passed here if autodetection fails (default: None)
         view [dict] - view for this source. If None, will create a default view.
             If empty dict, will not add a view (default: None)
         table_folder [str] - table folder for segmentations. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
         description [str] - description for this source (default: None)
+        channel [int] - the channel to load from the data.
+            Currently only supported for the ome.zarr format (default: None)
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
@@ -220,11 +232,14 @@ def add_source_to_dataset(
     if source_type == "image":
         source_metadata = get_image_metadata(dataset_folder, image_metadata_path,
                                              file_format=file_format,
+                                             channel=channel,
                                              description=description)
     else:
         source_metadata = get_segmentation_metadata(dataset_folder,
                                                     image_metadata_path,
                                                     table_folder,
+                                                    file_format=file_format,
+                                                    channel=channel,
                                                     description=description)
     validate_source_metadata(source_name, source_metadata, dataset_folder)
     sources_metadata[source_name] = source_metadata
