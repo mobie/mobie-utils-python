@@ -356,7 +356,8 @@ class TestViewMetadata(unittest.TestCase):
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
-                             use_transformed_grid=True)
+                             use_transformed_grid=True,
+                             menu_name="grid")
         # check that all source displays list the names in transformed sources
         for disp in view["sourceDisplays"]:
             disp_sources = disp[list(disp.keys())[0]]["sources"]
