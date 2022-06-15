@@ -291,7 +291,8 @@ def get_view(names, source_types, sources, display_settings,
                     f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
-                display = get_image_display(name, source_list, **display_setting)
+                this_display_sources = display_setting.pop("sources", source_list)
+                display = get_image_display(name, this_display_sources, **display_setting)
 
         elif source_type == "segmentation":
             # display settings can either be passed as arguments or return values of get_segmentation_display
@@ -426,7 +427,7 @@ def create_region_display(name, sources, dataset_folder, table_folder=None, regi
 # "grid_sources" need to be passed as dict and specify the correct names
 # (i.e. names after transform). dict needs to match from the grid id
 # to list of source names
-def get_grid_view(dataset_folder, name, sources, menu_name=None,
+def get_grid_view(dataset_folder, name, sources, menu_name,
                   table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
@@ -440,6 +441,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
         name [str] - name of this view
         sources [list[list[str]]] - nested list of source names,
             each inner lists contains the source(s) for one grid position
+        menu_name [str] - menu name for this view
         table_folder [str] - table folder to store the annotation table(s) for this grid.
             By default "tables/{name}" will be used (default: None)
         display_groups [dict[str, str]] - dictionary from source name to their display group.
@@ -531,8 +533,6 @@ def get_grid_view(dataset_folder, name, sources, menu_name=None,
     # create the source annotation display for this grid view, this will show the table for this grid view!
     region_displays = create_region_display(name, grid_sources, dataset_folder, table_folder, region_ids=region_ids)
 
-    if menu_name is None:
-        menu_name = "grid"
     view = get_view(names=display_names,
                     source_types=source_types,
                     sources=display_sources,
