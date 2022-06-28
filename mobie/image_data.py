@@ -178,7 +178,7 @@ def add_image(input_path, input_key,
         root [str] - data root folder.
         dataset_name [str] - name of the dataset the image data should be added to.
         image_name [str] - name of the image data.
-        resolution [list[float]] - resolution of the segmentation in micrometer.
+        resolution [list[float]] - resolution of the image data in micrometer.
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         chunks [list[int]] - chunks for the data.
         menu_name [str] - menu name for this source.
