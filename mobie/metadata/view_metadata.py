@@ -284,7 +284,8 @@ def get_view(names, source_types, sources, display_settings,
             # display settings can either be passed as arguments or return values of get_image_display
             if "imageDisplay" in display_setting:
                 assert len(display_setting) == 1
-                assert display_setting["imageDisplay"]["name"] == name
+                assert display_setting["imageDisplay"]["name"] == name,\
+                    f"{display_setting['imageDisplay']['name']}, {name}"
                 _sources = display_setting["imageDisplay"]["sources"]
                 invalid_sources = set(_sources) - set(source_list)
                 assert len(invalid_sources) == 0,\
@@ -297,7 +298,8 @@ def get_view(names, source_types, sources, display_settings,
             # display settings can either be passed as arguments or return values of get_segmentation_display
             if "segmentationDisplay" in display_setting:
                 assert len(display_setting) == 1
-                assert display_setting["segmentationDisplay"]["name"] == name
+                assert display_setting["segmentationDisplay"]["name"] == name,\
+                    f"{display_setting['segmentationDisplay']['name']}, {name}"
                 _sources = display_setting["segmentationDisplay"]["sources"]
                 invalid_sources = set(_sources) - set(source_list)
                 assert len(invalid_sources) == 0,\
