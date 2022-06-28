@@ -81,6 +81,22 @@ def to_csv(input_path, input_key, output_path, resolution,
     return label_ids
 
 
+def check_and_copy_default_table(input_path, output_path):
+    if not os.path.exists(input_path):
+        raise ValueError(f"Can't find a table at {input_path}")
+    tab = pd.read_csv(input_path, sep="\t")
+    expected_column_names = {
+        "label_id",
+        "anchor_x", "anchor_y", "anchor_z",
+        "bb_min_x", "bb_min_y", "bb_min_z",
+        "bb_max_x", "bb_max_y", "bb_max_z",
+    }
+    missing_columns = list(expected_column_names - set(tab.columns))
+    if missing_columns:
+        raise ValueError(f"The table at {input_path} is missing the following expected columns: {missing_columns}")
+    tab.to_csv(output_path, sep="\t", index=False, na_rep="nan")
+
+
 def compute_default_table(seg_path, seg_key, table_path,
                           resolution, tmp_folder, target, max_jobs,
                           correct_anchors=False):
