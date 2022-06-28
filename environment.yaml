@@ -3,7 +3,7 @@ name:
 channels:
     - conda-forge
 dependencies:
-    - cluster_tools >=0.4.0
+    - cluster_tools >=0.4.4
     - python-elf
     - numba
     - jsonschema
@@ -12,4 +12,3 @@ dependencies:
     - requests
     - pybdv >=0.5
     - s3fs
-    - tifffile <=2022.4.8
