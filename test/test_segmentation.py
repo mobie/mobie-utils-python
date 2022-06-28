@@ -10,7 +10,6 @@ import pandas as pd
 
 from elf.io import open_file
 from pybdv.util import get_key
-from mobie import add_image
 from mobie.validation import validate_source_metadata
 from mobie.metadata import read_dataset_metadata
 
@@ -21,24 +20,8 @@ class TestSegmentation(unittest.TestCase):
     shape = (128, 128, 128)
     dataset_name = "test"
 
-    def init_dataset(self):
-        data_path = os.path.join(self.test_folder, "data.n5")
-        data_key = "data"
-        with open_file(data_path, "a") as f:
-            f.create_dataset(data_key, data=np.random.rand(*self.shape))
-
-        tmp_folder = os.path.join(self.test_folder, "tmp-init")
-
-        raw_name = "test-raw"
-        scales = [[2, 2, 2]]
-        add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
-                  resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                  tmp_folder=tmp_folder)
-
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
-        self.init_dataset()
-
         self.seg_path = os.path.join(self.test_folder, "seg.n5")
         self.seg_key = "seg"
         self.data = np.random.randint(0, 100, size=self.shape)
