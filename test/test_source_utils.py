@@ -6,6 +6,7 @@ from shutil import rmtree
 import mobie
 import numpy as np
 from elf.io import open_file
+from mobie.validation import validate_dataset
 
 
 class TestSourceUtils(unittest.TestCase):
@@ -94,6 +95,7 @@ class TestSourceUtils(unittest.TestCase):
         view_sources = next(iter(combined_view["sourceDisplays"][disp_id].values()))["sources"]
         self.assertIn(new_name, view_sources)
         self.assertNotIn(old_name, view_sources)
+        validate_dataset(ds_folder, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual)
 
     def test_rename_image_source(self):
         self._test_rename(self.raw_name, "new-raw-data")
@@ -117,6 +119,11 @@ class TestSourceUtils(unittest.TestCase):
         self.assertNotIn(
             name, combined_view["sourceTransforms"][0]["affine"]["sources"]
         )
+        # name == raw_name will remove the default view, which is required for a valid MoBIE project
+        if name != self.raw_name:
+            validate_dataset(
+                ds_folder, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
+            )
 
     def test_remove_image_source(self):
         self._test_remove(self.raw_name)
