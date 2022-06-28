@@ -101,6 +101,29 @@ class TestSourceUtils(unittest.TestCase):
     def test_rename_segmentation_source(self):
         self._test_rename(self.seg_name, "new-seg-data")
 
+    def _test_remove(self, name):
+        from mobie import remove_source
+        ds_folder = os.path.join(self.root, self.dataset_name)
+        remove_source(ds_folder, name)
+
+        ds_meta = mobie.metadata.read_dataset_metadata(ds_folder)
+        self.assertNotIn(name, ds_meta["sources"])
+
+        views = ds_meta["views"]
+        self.assertNotIn(name, views)
+
+        combined_view = views["my-view"]
+        self.assertEqual(len(combined_view["sourceDisplays"]), 1)
+        self.assertNotIn(
+            name, combined_view["sourceTransforms"][0]["affine"]["sources"]
+        )
+
+    def test_remove_image_source(self):
+        self._test_remove(self.raw_name)
+
+    def test_remove_segmentation_source(self):
+        self._test_remove(self.seg_name)
+
 
 if __name__ == "__main__":
     unittest.main()
