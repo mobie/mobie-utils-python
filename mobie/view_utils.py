@@ -129,6 +129,7 @@ def create_grid_view(
     display_groups=None,
     display_group_settings=None,
     positions=None,
+    use_transformed_grid=True,
     menu_name="bookmark",
     overwrite=False,
     view_file=None,
@@ -139,11 +140,19 @@ def create_grid_view(
     Arguments:
         dataset_folder [str] - path to the dataset folder
         view_name [str] - name of the view
-        sources [list[list[str]]] - sources to be arranged in the grid
+        sources [list[list[str]]] - sources to be arranged in the grid.
+            The sources need to be passed as a nested list, where each inner list contains the
+            sources for one of the grid positions.
         table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
-        display_groups [dict[str, str] - (default: None)
-        display_group_settings [dict[str, dict]] - (default: None)
-        positions [list[list[int]]] - (default: None)
+        display_groups [dict[str, str] - the display groups in this view. Needs to be a map from source name
+            to the name of the display group for this sources. By default all sources will end up in their own
+            display group with the settings for the default view of the source (default: None)
+        display_group_settings [dict[str, dict]] - the settings for the display groups in the view.
+            The keys must be the values of the display_groups parameter (default: None)
+        positions [list[list[int]]] - list of explicit grid positions.
+            If given, must have the same length as sources, the inner lists must contain two values,
+            corresponding to the 2d grid positions (default: None)
+        use_transformed_grid [bool] - whether to use a transformed or merged grid (default: True)
         menu_name [str] - name of the menu from whil this view can be selected (default: bookmark)
         overwrite [bool] - whether to overwrite existing view (default: False)
         view_file [str] - name of the view file where this view should be saved.
@@ -151,10 +160,12 @@ def create_grid_view(
         return_view [bool] - whether to return the created view instead of
             saving it to the dataset or to an external view file (default: False)
     """
+    assert all(source_list for source_list in sources)
     view = mobie_metadata.get_grid_view(
         dataset_folder, view_name, sources, menu_name=menu_name,
         table_folder=table_folder, display_groups=display_groups,
-        display_group_settings=display_group_settings, positions=positions
+        display_group_settings=display_group_settings, positions=positions,
+        use_transformed_grid=use_transformed_grid,
     )
     validate_with_schema(view, "view")
     return _write_view(dataset_folder, view_file, view_name, view,
