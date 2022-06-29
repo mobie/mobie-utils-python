@@ -7,7 +7,7 @@ from mobie.import_data import (import_segmentation,
                                import_segmentation_from_node_labels,
                                import_segmentation_from_paintera,
                                is_paintera)
-from mobie.tables import compute_default_table
+from mobie.tables import check_and_copy_default_table, compute_default_table
 
 
 # TODO support transformation
@@ -19,7 +19,7 @@ def add_segmentation(input_path, input_key,
                      node_label_path=None, node_label_key=None,
                      tmp_folder=None, target="local",
                      max_jobs=multiprocessing.cpu_count(),
-                     add_default_table=True, view=None,
+                     add_default_table=True, init_table=None, view=None,
                      postprocess_config=None, unit="micrometer",
                      is_default_dataset=False, description=None):
     """ Add segmentation source to MoBIE dataset.
@@ -41,7 +41,9 @@ def add_segmentation(input_path, input_key,
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
-        add_default_table [bool] - whether to add the default table (default: True)
+        add_default_table [bool, str] - whether to add the default table.
+            Can also be a filepath to a table, that will then be used instead
+            of calculating the default table (default: True)
         view [dict] - default view settings for this source (default: None)
         postprocess_config [dict] - config for postprocessing,
             only available for paintera dataset (default: None)
@@ -90,8 +92,15 @@ def add_segmentation(input_path, input_key,
                             source_name=segmentation_name,
                             file_format=file_format)
 
+    # we initialize with an already computed default table
+    if isinstance(add_default_table, str):
+        table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
+        table_path = os.path.join(table_folder, "default.tsv")
+        os.makedirs(table_folder, exist_ok=True)
+        input_table = add_default_table
+        check_and_copy_default_table(input_table, table_path)
     # compute the default segmentation table
-    if add_default_table:
+    elif add_default_table:
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
         table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
