@@ -33,9 +33,17 @@ def _create_view(
         source_types.append(this_source_types[0])
 
     if display_group_names is None:
+        # 'unpack' display settings if needed, i.e. go from {"imageDisplay": {...}} to {...}
+        # if the display settings are passed like this
+        display_settings_unpacked = [
+            next(iter(display.values()))
+            if (len(display) == 1 and "imageDisplay" in display or "segmentationDisplay" in display)
+            else display
+            for display in display_settings
+        ]
         display_group_names = [
-            next(iter(display.values())).get("name", f"{source_type}-group-{i}")
-            for i, (source_type, display) in enumerate(zip(source_types, display_settings))
+            display.get("name", f"{source_type}-group-{i}")
+            for i, (source_type, display) in enumerate(zip(source_types, display_settings_unpacked))
         ]
 
     view = mobie_metadata.get_view(
@@ -110,8 +118,6 @@ def create_view(
         return_view [bool] - whether to return the created view instead of
             saving it to the dataset or to an external view file (default: False)
     """
-    if len(sources) != len(display_settings):
-        raise ValueError("The number of source lists and display settings must agree, got {len(sources)} != {len(display_settings)}")
     dataset_metadata = mobie_metadata.read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata["sources"]
     view = _create_view(sources, all_sources, display_settings,
