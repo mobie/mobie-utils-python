@@ -70,13 +70,15 @@ def _check_bdv_n5_s3(xml, assert_true):
     assert_true("n5" in attrs, "Invalid n5 file at {address}")
 
 
-def _check_ome_zarr_s3(address, name, assert_true, assert_equal):
+def _check_ome_zarr_s3(address, name, assert_true, assert_equal, channel):
     try:
         attrs = load_json_from_s3(os.path.join(address, ".zattrs"))
     except Exception:
         assert_true(False, f"Can't find ome.zarr..s3file at {address}")
-    ome_name = attrs["multiscales"][0]["name"]
-    assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+    # we can't do this check if we only load a sub-channel
+    if channel is None:
+        ome_name = attrs["multiscales"][0]["name"]
+        assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
 
 def _check_data(storage, format_, name, dataset_folder,
@@ -108,12 +110,15 @@ def _check_data(storage, format_, name, dataset_folder,
 
         with open_file(path, "r", ext=".zarr") as f:
             ome_name = f.attrs["multiscales"][0]["name"]
-        assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+        # we can't do this check if we only load a sub-channel
+        if "channel" not in storage:
+            assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
     # remote ome.zarr check:
     elif format_ == "ome.zarr.s3" and require_remote_data:
         s3_address = storage["s3Address"]
-        _check_ome_zarr_s3(s3_address, name, assert_true, assert_equal)
+        channel = storage.get("channel")
+        _check_ome_zarr_s3(s3_address, name, assert_true, assert_equal, channel)
 
 
 def validate_source_metadata(name, metadata, dataset_folder=None,

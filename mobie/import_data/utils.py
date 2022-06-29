@@ -47,7 +47,10 @@ def compute_node_labels(seg_path, seg_key,
     return data
 
 
-def check_input_data(in_path, in_key, resolution, require3d):
+def check_input_data(in_path, in_key, resolution, require3d, channel):
+    # TODO to support data with channel, we need to support dowscaling with channels
+    if channel is not None:
+        raise NotImplementedError
     with open_file(in_path, "r") as f:
         ndim = f[in_key].ndim
     if require3d and ndim != 3:
@@ -63,14 +66,14 @@ def downscale(in_path, in_key, out_path,
               metadata_format="bdv.n5", out_key="",
               unit="micrometer", source_name=None,
               roi_begin=None, roi_end=None,
-              int_to_uint=False):
+              int_to_uint=False, channel=None):
     task = DownscalingWorkflow
 
     block_shape = chunks if block_shape is None else block_shape
     config_dir = os.path.join(tmp_folder, "configs")
     # ome.zarr can also be written in 2d, all other formats require 3d
     require3d = metadata_format != "ome.zarr"
-    check_input_data(in_path, in_key, resolution, require3d)
+    check_input_data(in_path, in_key, resolution, require3d, channel)
     write_global_config(config_dir, block_shape=block_shape, require3d=require3d,
                         roi_begin=roi_begin, roi_end=roi_end)
 

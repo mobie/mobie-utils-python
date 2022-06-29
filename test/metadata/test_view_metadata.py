@@ -316,10 +316,10 @@ class TestViewMetadata(unittest.TestCase):
         grid_sources = [[source] for source in sources]
 
         # only grid transform
-        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=False)
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=False, menu_name="grid")
         validate_with_schema(view, "view")
 
-        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=True)
+        view = get_grid_view(self.ds_folder, "grid-view", grid_sources, use_transformed_grid=True, menu_name="grid")
         validate_with_schema(view, "view")
 
         # additional transforms
@@ -327,7 +327,7 @@ class TestViewMetadata(unittest.TestCase):
             get_affine_source_transform([source], np.random.rand(12)) for source in sources
         ]
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
-                             additional_source_transforms=trafos)
+                             additional_source_transforms=trafos, menu_name="grid")
         validate_with_schema(view, "view")
 
         # additional transforms, changed source names and grid_sources
@@ -342,7 +342,8 @@ class TestViewMetadata(unittest.TestCase):
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
-                             use_transformed_grid=False)
+                             use_transformed_grid=False,
+                             menu_name="grid")
         # check that all source displays list the names in transformed sources
         for disp in view["sourceDisplays"]:
             disp_sources = disp[list(disp.keys())[0]]["sources"]
@@ -355,7 +356,8 @@ class TestViewMetadata(unittest.TestCase):
         view = get_grid_view(self.ds_folder, "grid-view", grid_sources,
                              additional_source_transforms=trafos,
                              grid_sources=transformed_sources,
-                             use_transformed_grid=True)
+                             use_transformed_grid=True,
+                             menu_name="grid")
         # check that all source displays list the names in transformed sources
         for disp in view["sourceDisplays"]:
             disp_sources = disp[list(disp.keys())[0]]["sources"]

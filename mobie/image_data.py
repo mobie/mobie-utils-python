@@ -167,7 +167,8 @@ def add_image(input_path, input_key,
               is_default_dataset=False,
               description=None,
               move_only=False,
-              int_to_uint=False):
+              int_to_uint=False,
+              channel=None):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -197,7 +198,13 @@ def add_image(input_path, input_key,
         move_only [bool] - if input data is already in a MoBIE compatible format,
             just move it into the project directory. (default: False)
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
+        channel [int] - the channel to load from the data.
+            Currently only supported for the ome.zarr format (default: None)
     """
+    # TODO add 'setup_id' to the json schema fro bdv formats to also support it there
+    if channel is not None and file_format != "ome.zarr":
+        raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
+
     # set default contrast_limits if we don't have a view
     # or if the passed view doesn't hav contrast limits
     if view is None or "contrastLimits" not in view:
@@ -230,10 +237,11 @@ def add_image(input_path, input_key,
                           max_jobs=max_jobs, unit=unit,
                           source_name=image_name,
                           file_format=file_format,
-                          int_to_uint=int_to_uint)
+                          int_to_uint=int_to_uint,
+                          channel=channel)
 
     metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
-                                   view=view, description=description)
+                                   view=view, description=description, channel=channel)
 
     if transformation is not None:
         update_transformation_parameter(image_metadata_path, transformation)

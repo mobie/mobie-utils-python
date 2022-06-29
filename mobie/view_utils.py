@@ -12,7 +12,10 @@ from .validation import validate_view_metadata, validate_views, validate_with_sc
 
 
 def _create_view(
-    sources, all_sources, display_settings, source_transforms, viewer_transform, display_group_names, menu_name
+    sources, all_sources, display_settings,
+    source_transforms, viewer_transform,
+    display_group_names, menu_name,
+    is_exclusive=True
 ):
     all_source_names = set(all_sources.keys())
     source_types = []
@@ -30,12 +33,23 @@ def _create_view(
         source_types.append(this_source_types[0])
 
     if display_group_names is None:
-        display_group_names = [f"{source_type}-group-{i}" for i, source_type in enumerate(source_types)]
+        # 'unpack' display settings if needed, i.e. go from {"imageDisplay": {...}} to {...}
+        # if the display settings are passed like this
+        display_settings_unpacked = [
+            next(iter(display.values()))
+            if (len(display) == 1 and "imageDisplay" in display or "segmentationDisplay" in display)
+            else display
+            for display in display_settings
+        ]
+        display_group_names = [
+            display.get("name", f"{source_type}-group-{i}")
+            for i, (source_type, display) in enumerate(zip(source_types, display_settings_unpacked))
+        ]
 
     view = mobie_metadata.get_view(
         display_group_names, source_types,
         sources, display_settings,
-        is_exclusive=True,
+        is_exclusive=is_exclusive,
         menu_name=menu_name,
         source_transforms=source_transforms,
         viewer_transform=viewer_transform
@@ -78,6 +92,7 @@ def create_view(
     viewer_transform=None,
     display_group_names=None,
     menu_name="bookmark",
+    is_exclusive=True,
     overwrite=False,
     view_file=None,
     return_view=False,
@@ -96,6 +111,7 @@ def create_view(
         viewer_transform [dict] - the viewer transformation. (default:None)
         display_group_names [list[str]] - the names for the source displays (default: None)
         menu_name [str] - name for the menu where this view will be saved (default: bookmark)
+        is_exclusive [bool] - whether the view is exclusive (default: True)
         overwrite [bool] - whether to overwrite existing views (default: False)
         view_file [str] - name of the view file where this view should be saved.
             By default it will be saved directly in the dataset metadata (default: None)
@@ -106,7 +122,8 @@ def create_view(
     all_sources = dataset_metadata["sources"]
     view = _create_view(sources, all_sources, display_settings,
                         source_transforms, viewer_transform,
-                        display_group_names, menu_name=menu_name)
+                        display_group_names, menu_name=menu_name,
+                        is_exclusive=is_exclusive)
     validate_with_schema(view, "view")
     return _write_view(dataset_folder, view_file, view_name, view,
                        overwrite=overwrite, return_view=return_view)
@@ -118,6 +135,7 @@ def create_grid_view(
     display_groups=None,
     display_group_settings=None,
     positions=None,
+    use_transformed_grid=True,
     menu_name="bookmark",
     overwrite=False,
     view_file=None,
@@ -128,11 +146,19 @@ def create_grid_view(
     Arguments:
         dataset_folder [str] - path to the dataset folder
         view_name [str] - name of the view
-        sources [list[list[str]]] - sources to be arranged in the grid
+        sources [list[list[str]]] - sources to be arranged in the grid.
+            The sources need to be passed as a nested list, where each inner list contains the
+            sources for one of the grid positions.
         table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
-        display_groups [dict[str, str] - (default: None)
-        display_group_settings [dict[str, dict]] - (default: None)
-        positions [list[list[int]]] - (default: None)
+        display_groups [dict[str, str] - the display groups in this view. Needs to be a map from source name
+            to the name of the display group for this sources. By default all sources will end up in their own
+            display group with the settings for the default view of the source (default: None)
+        display_group_settings [dict[str, dict]] - the settings for the display groups in the view.
+            The keys must be the values of the display_groups parameter (default: None)
+        positions [list[list[int]]] - list of explicit grid positions.
+            If given, must have the same length as sources, the inner lists must contain two values,
+            corresponding to the 2d grid positions (default: None)
+        use_transformed_grid [bool] - whether to use a transformed or merged grid (default: True)
         menu_name [str] - name of the menu from whil this view can be selected (default: bookmark)
         overwrite [bool] - whether to overwrite existing view (default: False)
         view_file [str] - name of the view file where this view should be saved.
@@ -140,10 +166,12 @@ def create_grid_view(
         return_view [bool] - whether to return the created view instead of
             saving it to the dataset or to an external view file (default: False)
     """
+    assert all(source_list for source_list in sources)
     view = mobie_metadata.get_grid_view(
         dataset_folder, view_name, sources, menu_name=menu_name,
         table_folder=table_folder, display_groups=display_groups,
-        display_group_settings=display_group_settings, positions=positions
+        display_group_settings=display_group_settings, positions=positions,
+        use_transformed_grid=use_transformed_grid,
     )
     validate_with_schema(view, "view")
     return _write_view(dataset_folder, view_file, view_name, view,

@@ -85,10 +85,12 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
         dataset_name,
         rel_path
     ])
-    address = {"s3Address": s3_address}
+    s3_storage = {"s3Address": s3_address}
     if region != "":
-        address["region"] = region
-    return "ome.zarr.s3", address
+        s3_storage["region"] = region
+    if "channel" in storage:
+        s3_storage["channel"] = storage["channel"]
+    return "ome.zarr.s3", s3_storage
 
 
 def add_remote_source_metadata(metadata, new_file_formats,
