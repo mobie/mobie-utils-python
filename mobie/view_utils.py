@@ -12,7 +12,10 @@ from .validation import validate_view_metadata, validate_views, validate_with_sc
 
 
 def _create_view(
-    sources, all_sources, display_settings, source_transforms, viewer_transform, display_group_names, menu_name
+    sources, all_sources, display_settings,
+    source_transforms, viewer_transform,
+    display_group_names, menu_name,
+    is_exclusive=True
 ):
     all_source_names = set(all_sources.keys())
     source_types = []
@@ -30,12 +33,15 @@ def _create_view(
         source_types.append(this_source_types[0])
 
     if display_group_names is None:
-        display_group_names = [f"{source_type}-group-{i}" for i, source_type in enumerate(source_types)]
+        display_group_names = [
+            next(iter(display.values())).get("name", f"{source_type}-group-{i}")
+            for i, (source_type, display) in enumerate(zip(source_types, display_settings))
+        ]
 
     view = mobie_metadata.get_view(
         display_group_names, source_types,
         sources, display_settings,
-        is_exclusive=True,
+        is_exclusive=is_exclusive,
         menu_name=menu_name,
         source_transforms=source_transforms,
         viewer_transform=viewer_transform
@@ -78,6 +84,7 @@ def create_view(
     viewer_transform=None,
     display_group_names=None,
     menu_name="bookmark",
+    is_exclusive=True,
     overwrite=False,
     view_file=None,
     return_view=False,
@@ -96,17 +103,21 @@ def create_view(
         viewer_transform [dict] - the viewer transformation. (default:None)
         display_group_names [list[str]] - the names for the source displays (default: None)
         menu_name [str] - name for the menu where this view will be saved (default: bookmark)
+        is_exclusive [bool] - whether the view is exclusive (default: True)
         overwrite [bool] - whether to overwrite existing views (default: False)
         view_file [str] - name of the view file where this view should be saved.
             By default it will be saved directly in the dataset metadata (default: None)
         return_view [bool] - whether to return the created view instead of
             saving it to the dataset or to an external view file (default: False)
     """
+    if len(sources) != len(display_settings):
+        raise ValueError("The number of source lists and display settings must agree, got {len(sources)} != {len(display_settings)}")
     dataset_metadata = mobie_metadata.read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata["sources"]
     view = _create_view(sources, all_sources, display_settings,
                         source_transforms, viewer_transform,
-                        display_group_names, menu_name=menu_name)
+                        display_group_names, menu_name=menu_name,
+                        is_exclusive=is_exclusive)
     validate_with_schema(view, "view")
     return _write_view(dataset_folder, view_file, view_name, view,
                        overwrite=overwrite, return_view=return_view)
