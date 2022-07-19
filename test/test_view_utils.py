@@ -83,7 +83,7 @@ class TestViewCreation(unittest.TestCase):
         sources = [[self.raw_name], [self.seg_name]]
         display_settings = [
             {"color": "white", "contrastLimits": [0., 1000.]},
-            {"opacity": 0.8, "lut": "viridis", "colorByColumn": "n_pixels"}
+            {"opacity": 0.8, "lut": "viridis", "colorByColumn": "n_pixels", "valueLimits": [0, 1000]}
         ]
 
         create_view(dataset_folder, bookmark_name, sources, display_settings)
@@ -100,7 +100,7 @@ class TestViewCreation(unittest.TestCase):
         sources = [[self.raw_name], [self.seg_name]]
         display_settings = [
             {"color": "white", "contrastLimits": [0., 1000.]},
-            {"opacity": 0.8, "lut": "viridis", "colorByColumn": "n_pixels"}
+            {"opacity": 0.8, "lut": "viridis", "colorByColumn": "n_pixels", "valueLimits": [0, 1000]}
         ]
 
         view_file = os.path.join(dataset_folder, "misc", "views", bookmark_file_name)
