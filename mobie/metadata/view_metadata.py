@@ -39,7 +39,7 @@ def get_image_display(name, sources, **kwargs):
 def _validate_lut(lut, kwargs):
     numeric_luts = ("viridis", "blueWhiteRed")
     if lut in numeric_luts and "valueLimits" not in kwargs:
-        msg = f"You have specified a numeric lut {lut}. In this case you also need to pass the 'valueLimits' argument."
+        msg = f"You have specified a numeric lut: {lut}. In this case you also need to pass the 'valueLimits' argument."
         raise ValueError(msg)
 
 
