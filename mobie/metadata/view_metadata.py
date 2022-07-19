@@ -36,11 +36,19 @@ def get_image_display(name, sources, **kwargs):
     return {"imageDisplay": image_display}
 
 
+def _validate_lut(lut, kwargs):
+    numeric_luts = ("viridis", "blueWhiteRed")
+    if lut in numeric_luts and "valueLimits" not in kwargs:
+        msg = f"You have specified a numeric lut {lut}. In this case you also need to pass the 'valueLimits' argument."
+        raise ValueError(msg)
+
+
 def get_segmentation_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
+    _validate_lut(lut, kwargs)
     segmentation_display = {
         "opacity": opacity,
         "lut": lut,
@@ -64,6 +72,7 @@ def get_segmentation_display(name, sources, **kwargs):
 def get_region_display(name, sources, table_data, tables, **kwargs):
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
+    _validate_lut(lut, kwargs)
     annotation_display = {
         "opacity": opacity,
         "lut": lut,

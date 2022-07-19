@@ -241,6 +241,15 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
                 assert_true(len(wrong_sources) == 0, msg)
 
+    # validate that valueLimits are given for numeric luts
+    if displays is not None:
+        numeric_luts = ("viridis", "blueWhiteRed")
+        for display in displays:
+            display_metadata = list(display.values())[0]
+            lut = display_metadata.get("lut", None)
+            if lut is not None and lut in numeric_luts:
+                assert_true("valueLimits" in display_metadata)
+
     # dynamic validation of tables in region displays
     if displays is not None and dataset_folder is not None:
         for display in displays:
