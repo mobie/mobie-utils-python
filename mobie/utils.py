@@ -4,6 +4,7 @@ import multiprocessing
 import os
 from copy import deepcopy
 
+import elf.transformation as trafo_helper
 import mobie.metadata as metadata
 from cluster_tools.cluster_tasks import BaseClusterTask
 from elf.io import open_file
@@ -246,3 +247,17 @@ def write_global_config(config_folder,
 
     with open(conf_path, "w") as f:
         json.dump(global_config, f)
+
+
+def transformation_to_xyz(transform, invert=False):
+    """Convert a transformation from zyx coordinates (python default)
+    to xyz coordinates (expected by mobie).
+
+    Arguments:
+        transform [list, np.ndarray] - the transformation parameters (12 values = upper 3 rows of affine matrix)
+        invert [bool] - whether to invert the transformation.
+            This can be necessary because e.g. scipy uses the different transformation direction (default: False)
+    """
+    trafo = trafo_helper.parameters_to_matrix(transform)
+    trafo = trafo_helper.native_to_bdv(trafo, invert=invert)
+    return trafo

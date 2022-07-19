@@ -1,8 +1,9 @@
 import os
+import warnings
 import xml.etree.ElementTree as ET
 import numpy as np
-from pybdv.metadata import get_data_path, indent_xml, get_bdv_format
-from pybdv.metadata import write_affine
+
+from pybdv.metadata import get_data_path, indent_xml, get_bdv_format, get_resolution, write_affine
 
 
 def copy_xml_with_abspath(xml_in, xml_out):
@@ -121,5 +122,11 @@ def update_transformation_parameter(xml_path, parameter):
             raise ValueError("Expected all affine transformation with 12 parameters.")
     else:
         raise ValueError(f"Invalid affine transformation {parameter}")
-    write_affine(xml_path, setup_id=0, affine=parameter,
-                 overwrite=True, timepoint=0)
+    resolution = get_resolution(xml_path, setup_id=0)
+    if np.product(resolution) != 1:
+        warnings.warn(
+            f"The xml file at {xml_path} has the resolution {resolution}."
+            "The corresponding transformation will be over-written,"
+            "make sure to factor it in with the transformation you have specified."
+        )
+    write_affine(xml_path, setup_id=0, affine=parameter, overwrite=True, timepoint=0)
