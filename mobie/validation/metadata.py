@@ -7,7 +7,7 @@ from elf.io import open_file
 from jsonschema import ValidationError
 from pybdv.metadata import get_name, get_data_path
 
-from .utils import _assert_true, _assert_equal, validate_with_schema, load_json_from_s3
+from .utils import _assert_true, _assert_equal, _assert_in, validate_with_schema, load_json_from_s3
 from ..xml_utils import parse_s3_xml
 
 
@@ -123,7 +123,8 @@ def _check_data(storage, format_, name, dataset_folder,
 
 def validate_source_metadata(name, metadata, dataset_folder=None,
                              require_local_data=True, require_remote_data=False,
-                             assert_true=_assert_true, assert_equal=_assert_equal):
+                             assert_true=_assert_true, assert_equal=_assert_equal,
+                             assert_in=_assert_in, data_formats=None):
     # static validation with json schema
     try:
         validate_with_schema(metadata, "source")
@@ -136,6 +137,8 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     # dynamic validation of paths / remote addresses
     if dataset_folder is not None:
         for format_, storage in metadata["imageData"].items():
+            if data_formats is not None:
+                assert_in(format_, data_formats)
             _check_data(storage, format_, name, dataset_folder,
                         require_local_data, require_remote_data,
                         assert_true, assert_equal)

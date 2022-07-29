@@ -4,6 +4,7 @@ import os
 from .dataset import validate_dataset
 from .utils import _assert_true, _assert_in, _assert_equal, validate_with_schema
 from ..__version__ import SPEC_VERSION
+from ..utils import FILE_FORMATS
 
 
 def check_version(version_a, version_b, assert_equal):
@@ -49,6 +50,10 @@ def validate_project(root,
     msg = f"Cannot find default dataset {default_dataset} in {datasets}"
     assert_in(default_dataset, datasets, msg)
 
+    data_formats = project_metadata["imageDataFormats"]
+    invalid_formats = list(set(data_formats) - set(FILE_FORMATS))
+    assert_true(len(invalid_formats) == 0)
+
     for dataset in datasets:
         dataset_folder = os.path.join(root, dataset)
         msg = f"Cannot find a dataset {dataset} at {dataset_folder}"
@@ -57,7 +62,8 @@ def validate_project(root,
             dataset_folder,
             require_local_data=require_local_data,
             require_remote_data=require_remote_data,
-            assert_true=assert_true, assert_in=assert_in, assert_equal=assert_equal
+            assert_true=assert_true, assert_in=assert_in, assert_equal=assert_equal,
+            data_formats=data_formats,
         )
     print("The project at", root, "is a valid MoBIE project.")
 
