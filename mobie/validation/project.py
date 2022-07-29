@@ -51,7 +51,7 @@ def validate_project(root,
     assert_in(default_dataset, datasets, msg)
 
     data_formats = project_metadata["imageDataFormats"]
-    invalid_formats = list(set(FILE_FORMATS) - set(data_formats))
+    invalid_formats = list(set(data_formats) - set(FILE_FORMATS))
     assert_true(len(invalid_formats) == 0)
 
     for dataset in datasets:
