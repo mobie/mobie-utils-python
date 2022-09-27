@@ -1,6 +1,7 @@
 import argparse
 from .migrate_v1.migrate import migrate_to_mobie as migrate_project_v1
 from .migrate_v2 import migrate_project as migrate_project_v2
+from .migrate_v3 import migrate_project as migrate_project_v3
 
 
 def main():
@@ -29,6 +30,8 @@ def main():
                            update_table_spec=bool(args.update_table_spec),
                            update_grid_spec=bool(args.update_grid_spec),
                            update_name_spec=bool(args.update_name_spec))
+    elif version == 3:
+        migrate_dataset_v3(args.root)
     else:
         raise ValueError(f"Invalid version {version}")
 

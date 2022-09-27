@@ -1,6 +1,7 @@
 import argparse
 from .migrate_v1.migrate_dataset import migrate_dataset_to_mobie as migrate_dataset_v1
 from .migrate_v2 import migrate_dataset as migrate_dataset_v2
+from .migrate_v3 import migrate_dataset as migrate_dataset_v3
 
 
 def main():
@@ -17,6 +18,8 @@ def main():
     if version == 1:
         migrate_dataset_v1(args.folder, bool(args.anon))
     elif version == 2:
+        migrate_dataset_v2(args.folder)
+    elif version == 3:
         migrate_dataset_v2(args.folder)
     else:
         raise ValueError(f"Invalid version {version}")
