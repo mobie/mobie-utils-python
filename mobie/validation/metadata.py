@@ -121,33 +121,6 @@ def _check_data(storage, format_, name, dataset_folder,
         _check_ome_zarr_s3(s3_address, name, assert_true, assert_equal, channel)
 
 
-def validate_source_metadata(name, metadata, dataset_folder=None,
-                             require_local_data=True, require_remote_data=False,
-                             assert_true=_assert_true, assert_equal=_assert_equal,
-                             assert_in=_assert_in, data_formats=None):
-    # static validation with json schema
-    try:
-        validate_with_schema(metadata, "source")
-    except ValidationError as e:
-        msg = f"{e}"
-        assert_true(False, msg)
-
-    source_type = list(metadata.keys())[0]
-    metadata = metadata[source_type]
-    # dynamic validation of paths / remote addresses
-    if dataset_folder is not None:
-        for format_, storage in metadata["imageData"].items():
-            if data_formats is not None:
-                assert_in(format_, data_formats)
-            _check_data(storage, format_, name, dataset_folder,
-                        require_local_data, require_remote_data,
-                        assert_true, assert_equal)
-
-        if "tableData" in metadata:
-            table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
-            check_segmentation_tables(table_folder, assert_true)
-
-
 def check_region_tables(table_folder, tables, assert_true, expected_col=None):
     ref_grid_ids = None
     have_expected_col = False
@@ -191,6 +164,39 @@ def check_expected_column(table_folder, tables, expected_col, assert_true):
 
     msg = f"Could not find the expected column {expected_col} in any of the tables in {table_folder}"
     assert_true(have_expected_col, msg)
+
+
+def validate_source_metadata(name, metadata, dataset_folder=None,
+                             require_local_data=True, require_remote_data=False,
+                             assert_true=_assert_true, assert_equal=_assert_equal,
+                             assert_in=_assert_in, data_formats=None):
+    # static validation with json schema
+    try:
+        validate_with_schema(metadata, "source")
+    except ValidationError as e:
+        msg = f"{e}"
+        assert_true(False, msg)
+
+    source_type = list(metadata.keys())[0]
+    metadata = metadata[source_type]
+    # dynamic validation of paths / remote addresses
+    if dataset_folder is not None:
+        if "imageData" in metadata:
+            for format_, storage in metadata["imageData"].items():
+                if data_formats is not None:
+                    assert_in(format_, data_formats)
+                _check_data(storage, format_, name, dataset_folder,
+                            require_local_data, require_remote_data,
+                            assert_true, assert_equal)
+
+        if "tableData" in metadata:
+            table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
+            if source_type == "segmentation":
+                check_segmentation_tables(table_folder, assert_true)
+            elif source_type == "regionTable":
+                check_region_tables(table_folder, ["default.tsv"], assert_true)
+            elif source_type == "spots":
+                pass
 
 
 def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true, dataset_metadata=None):
@@ -253,33 +259,41 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
             if lut is not None and lut in numeric_luts:
                 assert_true("valueLimits" in display_metadata)
 
-    # dynamic validation of tables in region displays
-    if displays is not None and dataset_folder is not None:
+    if displays is not None and dataset_metadata is not None:
+        assert dataset_folder is not None
+
+        # dynamic validation of tables in region displays
         for display in displays:
             display_type = list(display.keys())[0]
             if display_type == "regionDisplay":
                 display_metadata = list(display.values())[0]
-                table_folder = os.path.join(dataset_folder, display_metadata["tableData"]["tsv"]["relativePath"])
-                tables = display_metadata.get("tables")
-                color_by_col = display_metadata.get("colorByColumn", None)
-                if tables is not None:
-                    check_region_tables(table_folder, tables, assert_true, color_by_col)
 
-    # dynamic validation of tables in segmentation displays
-    if displays is not None and dataset_metadata is not None:
-        assert dataset_folder is not None
+                table_source = display_metadata["tableSource"]
+                assert_true(table_source in dataset_metadata["sources"])
+                table_folder = os.path.join(
+                    dataset_folder,
+                    dataset_metadata["sources"][table_source]["regionTable"]["tableData"]["tsv"]["relativePath"]
+                )
+
+                additional_tables = display_metadata.get("additionalTables", [])
+                tables = ["default.tsv"] + additional_tables
+                color_by_col = display_metadata.get("colorByColumn", None)
+                check_region_tables(table_folder, tables, assert_true, color_by_col)
+
+        # dynamic validation of tables in segmentation displays
         display_type = list(display.keys())[0]
         if display_type == "segmentationDisplay":
             display_metadata = list(display.values())[0]
+            # check that the color_by_col column is actually in he tables (if given)
             color_by_col = display_metadata.get("colorByColumn", None)
             if color_by_col is None:
                 return
-            tables = display_metadata.get("tables", None)
-            msg = f"colorByColumn is set to {color_by_col}, but no tables are set in the segmentation display"
-            assert_true(tables is not None, msg)
-            sources = display_metadata["sources"]
-            for source in sources:
-                table_folder = os.path.join(
-                    dataset_folder, dataset_metadata["sources"][source]["tableData"]["tsv"]["relativePath"]
-                )
+
+            additional_tables = display_metadata.get("additionalTables", [])
+            tables = ["default.tsv"] + additional_tables
+            for source in display_metadata["sources"]:
+                source_data = dataset_metadata["sources"][source]
+                msg = f"colorByColumn is set to {color_by_col}, but tableData is not available for the source {source}"
+                assert_true("tableData" in source_data, msg)
+                table_folder = os.path.join(dataset_folder, source_data["tableData"]["tsv"]["relativePath"])
                 check_expected_column(table_folder, tables, color_by_col, assert_true)
