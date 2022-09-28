@@ -1,17 +1,15 @@
 import os
+from glob import glob
+
 import mobie.metadata as metadata
 from mobie.validation import validate_dataset
 
 
-def migrate_table_spec(folder):
-    ds_meta = metadata.read_dataset_metadata(folder)
-
-    # go through the views and:
-    # - rename 'tables' -> 'additionalTables', drop 'default.tsv' from the tables
-    #   and drop 'additionalTables' altogether if nothing is left
-    # - for regionDisplay: move 'tableData' to 'sources' and add reference to it
-    views = ds_meta["views"]
-    region_table_sources = {}
+# go through the views and:
+# - rename 'tables' -> 'additionalTables', drop 'default.tsv' from the tables
+#   and drop 'additionalTables' altogether if nothing is left
+# - for regionDisplay: move 'tableData' to 'sources' and add reference to it
+def migrate_table_spec(views, sources):
 
     def _update_tables_in_display(display):
         tables = display.pop("tables")
@@ -21,6 +19,7 @@ def migrate_table_spec(folder):
             display["additionalTables"] = tables
         return display
 
+    region_table_sources = {}
     new_views = {}
     for name, view in views.items():
 
@@ -48,18 +47,46 @@ def migrate_table_spec(folder):
 
         new_views[name] = view
 
-    if region_table_sources:
-        sources = ds_meta["sources"]
-        for name, table_data in region_table_sources.items():
-            sources[name] = {"regionTable": {"tableData": table_data}}
-        ds_meta["sources"] = sources
+    for name, table_data in region_table_sources.items():
+        sources[name] = {"regionTable": {"tableData": table_data}}
+
+    return new_views, sources
+
+
+def migrate_merged_grid_spec(views):
+    new_views = {}
+
+    # check if we have grid views
+    for name, view in views.items():
+        pass
+
+    return new_views
+
+
+def migrate_view_file(view_file, sources):
+    views = metadata.utils.read_metadata(view_file)["views"]
+    new_views, new_sources = migrate_table_spec(views, sources)
+    # new_views = migrate_merged_grid_spec(new_views)
+    metadata.utils.write_metadata(view_file, {"views": new_views})
+    return new_sources
+
+
+def migrate_views(folder):
+    ds_meta = metadata.read_dataset_metadata(folder)
+    views, sources = ds_meta["views"], ds_meta["sources"]
+
+    new_views, new_sources = migrate_table_spec(views, sources)
+    # TODO implement this after migrating the covid plate
+    # (since the migration there is alsready done, and we don't want to map the complicated logic for nested grids here)
+    # new_views = migrate_merged_grid_spec(new_views)
+
+    additional_view_files = glob(os.path.join(folder, "misc", "views", "*.json"))
+    for view_file in additional_view_files:
+        new_sources = migrate_view_file(view_file, new_sources)
 
     ds_meta["views"] = new_views
+    ds_meta["sources"] = new_sources
     metadata.write_dataset_metadata(folder, ds_meta)
-
-
-def migrate_merged_grid_spec(folder):
-    pass
 
 
 def migrate_dataset(folder):
@@ -68,6 +95,5 @@ def migrate_dataset(folder):
     Arguments:
         folder [str] - dataset folder
     """
-    migrate_table_spec(folder)
-    migrate_merged_grid_spec(folder)
+    migrate_views(folder)
     validate_dataset(folder, require_local_data=False, require_remote_data=False)

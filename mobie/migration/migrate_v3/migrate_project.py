@@ -18,7 +18,10 @@ def migrate_project(root,):
         assert os.path.exists(ds_folder), ds_folder
         print("Migrate dataset:", ds)
         migrate_dataset(ds_folder)
+
+    # write spec version and remove imageDataFormats, which is not needed any more
     metadata["specVersion"] = "0.3.0"
+    metadata.pop("imageDataFormats")
 
     write_project_metadata(root, metadata)
     validate_project(root, require_local_data=False, require_remote_data=False)
