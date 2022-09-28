@@ -169,7 +169,7 @@ def check_expected_column(table_folder, tables, expected_col, assert_true):
 def validate_source_metadata(name, metadata, dataset_folder=None,
                              require_local_data=True, require_remote_data=False,
                              assert_true=_assert_true, assert_equal=_assert_equal,
-                             assert_in=_assert_in, data_formats=None):
+                             assert_in=_assert_in):
     # static validation with json schema
     try:
         validate_with_schema(metadata, "source")
@@ -183,8 +183,6 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
     if dataset_folder is not None:
         if "imageData" in metadata:
             for format_, storage in metadata["imageData"].items():
-                if data_formats is not None:
-                    assert_in(format_, data_formats)
                 _check_data(storage, format_, name, dataset_folder,
                             require_local_data, require_remote_data,
                             assert_true, assert_equal)
@@ -216,14 +214,19 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
         source_transformations = view.get("sourceTransforms")
         if source_transformations is not None:
             for transform in source_transformations:
-                transform_metadata = list(transform.values())[0]
+                transform_type, transform_metadata = next(iter(transform.items()))
 
                 # validate the sources for this source transform
+                assert_true(
+                    "sources" in transform_metadata or "nestedSources" in transform_metadata,
+                    "Need either 'sources' or 'nestedSources' in transform metadata"
+                )
                 if "sources" in transform_metadata:
                     transform_sources = transform_metadata["sources"]
                 else:
                     transform_sources = transform_metadata["nestedSources"]
                     transform_sources = [src for srcs in transform_sources for src in srcs]
+
                 wrong_sources = list(set(transform_sources) - valid_sources)
                 msg = f"Found wrong sources {wrong_sources} in source transform"
                 assert_true(len(wrong_sources) == 0, msg)
@@ -235,9 +238,12 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                         new_source_names = [source for v in new_source_names.values() for source in v]
                     valid_sources = valid_sources.union(set(new_source_names))
 
-                if "mergedGridSourceName" in transform_metadata:
-                    new_source_names = {transform_metadata["mergedGridSourceName"]}
-                    valid_sources = valid_sources.union(set(new_source_names))
+                # for a merged grid we extend the sources by the merged grid itself, and also
+                # add new sources (the individual sources after transformation) that get the grid name as suffix
+                if transform_type == "mergedGrid":
+                    grid_name = transform_metadata["mergedGridSourceName"]
+                    valid_sources = valid_sources.union({grid_name})
+                    valid_sources = valid_sources.union({f"{source}_{grid_name}" for source in transform_sources})
 
         # validate source displays
         if displays is not None:
