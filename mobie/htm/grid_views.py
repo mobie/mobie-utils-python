@@ -105,6 +105,7 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
 
     # create the annotation display for the sites
     if add_region_displays:
+        # TODO update this to new spec
         assert site_table is not None
         site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
@@ -126,6 +127,7 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
 
     # create the annotation display for wells to plate
     if add_region_displays:
+        # TODO update this to new spec
         assert well_table is not None
         well_display = mobie.metadata.get_region_display(
             "wells", plate_sources,
@@ -210,6 +212,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
 
         # create the annotation display for the sites
         assert site_table is not None
+        # TODO update this to new spec
         site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
             table_data={"tsv": {"relativePath": site_table}},
@@ -224,6 +227,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         all_plate_sources = {well: [f"{well}_{prefix}" for prefix in source_prefixes]
                              for well in well_names}
         assert well_table is not None
+        # TODO update this to new spec
         well_display = mobie.metadata.get_region_display(
             "wells", all_plate_sources,
             table_data={"tsv": {"relativePath": well_table}},

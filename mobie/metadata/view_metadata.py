@@ -3,7 +3,7 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from .dataset_metadata import read_dataset_metadata
+from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .utils import get_table_metadata
 from ..tables import check_region_table, compute_region_table
 
@@ -59,7 +59,7 @@ def get_segmentation_display(name, sources, **kwargs):
                              "randomColorSeed", "resolution3dView",
                              "selectedSegmentIds", "showAsBoundaries",
                              "showSelectedSegmentsIn3d", "showTable",
-                             "tables", "valueLimits", "visible"]
+                             "additionalTables", "valueLimits", "visible"]
     for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -69,7 +69,7 @@ def get_segmentation_display(name, sources, **kwargs):
     return {"segmentationDisplay": segmentation_display}
 
 
-def get_region_display(name, sources, table_data, tables, **kwargs):
+def get_region_display(name, sources, table_source, **kwargs):
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     _validate_lut(lut, kwargs)
@@ -78,10 +78,10 @@ def get_region_display(name, sources, table_data, tables, **kwargs):
         "lut": lut,
         "name": name,
         "sources": sources,
-        "tableData": table_data,
-        "tables": tables
+        "tableSource": table_source,
     }
-    additional_annotation_kwargs = ["boundaryThickness",
+    additional_annotation_kwargs = ["additionalTables"
+                                    "boundaryThickness",
                                     "colorByColumn",
                                     "randomColorSeed",
                                     "selectedRegionIds",
@@ -402,7 +402,34 @@ def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
     return source_transforms
 
 
-def create_region_display(name, sources, dataset_folder, table_folder=None, region_ids=None, **kwargs):
+def require_region_table(dataset_folder, table_source, table_folder, this_sources):
+    ds_metadata = read_dataset_metadata(dataset_folder)
+    sources = ds_metadata["sources"]
+
+    if table_source in sources:
+        table_folder_path = os.path.join(
+            dataset_folder, sources[table_source]["regionTable"]["tableData"]["tsv"]["relativePath"]
+        )
+        default_table_path = os.path.join(table_folder_path, "default.tsv")
+        check_region_table(this_sources, default_table_path)
+    else:
+        # create and write the default region table
+        table_folder_path = os.path.join(dataset_folder, table_folder)
+        os.makedirs(table_folder_path, exist_ok=True)
+        default_table_path = os.path.join(table_folder_path, "default.tsv")
+        compute_region_table(this_sources, default_table_path)
+        check_region_table(this_sources, default_table_path)
+
+        # create the table source
+        table_data = get_table_metadata(table_folder)
+        # this should eventually be wrapped in a function,
+        # in case we get more properties for the region table source
+        sources[table_source] = {"regionTable": table_data}
+        ds_metadata["sources"] = sources
+        write_dataset_metadata(dataset_folder, ds_metadata)
+
+
+def create_region_display(name, sources, dataset_folder, table_source, table_folder=None, region_ids=None, **kwargs):
     """Get a region display and create the corresponding table.
     """
     if isinstance(sources, list) and region_ids is None:
@@ -413,22 +440,10 @@ def create_region_display(name, sources, dataset_folder, table_folder=None, regi
     assert isinstance(sources, dict)
     assert all(isinstance(source_list, list) for source_list in sources.values())
 
-    # process the table folder
-    if table_folder is None:
-        table_folder = os.path.join("tables", name)
-    table_folder_path = os.path.join(dataset_folder, table_folder)
-    os.makedirs(table_folder_path, exist_ok=True)
-    default_table_path = os.path.join(table_folder_path, "default.tsv")
-    if not os.path.exists(default_table_path):
-        compute_region_table(sources, default_table_path)
-    check_region_table(sources, default_table_path)
-
-    region_display = get_region_display(
-        name, sources,
-        table_data=get_table_metadata(table_folder),
-        tables=["default.tsv"],
-        **kwargs
-    )["regionDisplay"]
+    require_region_table(dataset_folder, table_source,
+                         table_folder=os.path.join("tables", name) if table_folder is None else table_folder,
+                         sources=sources)
+    region_display = get_region_display(name, sources, table_source, **kwargs)["regionDisplay"]
     region_display.pop("name")
 
     return {name: region_display}
@@ -438,7 +453,7 @@ def create_region_display(name, sources, dataset_folder, table_folder=None, regi
 # "grid_sources" need to be passed as dict and specify the correct names
 # (i.e. names after transform). dict needs to match from the grid id
 # to list of source names
-def get_grid_view(dataset_folder, name, sources, menu_name,
+def get_grid_view(dataset_folder, name, sources, menu_name, table_source,
                   table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
@@ -453,6 +468,8 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         sources [list[list[str]]] - nested list of source names,
             each inner lists contains the source(s) for one grid position
         menu_name [str] - menu name for this view
+        table_source [str] - name of the table source for the region display that is create
+            for this grid view. If the source is not present yet it will be created.
         table_folder [str] - table folder to store the annotation table(s) for this grid.
             By default "tables/{name}" will be used (default: None)
         display_groups [dict[str, str]] - dictionary from source name to their display group.
@@ -541,9 +558,9 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         assert isinstance(additional_source_transforms, list)
         source_transforms = additional_source_transforms + source_transforms
 
-    # create the source annotation display for this grid view, this will show the table for this grid view!
-    region_displays = create_region_display(name, grid_sources, dataset_folder, table_folder, region_ids=region_ids)
-
+    region_displays = create_region_display(name, grid_sources, dataset_folder,
+                                            table_source=table_source, table_folder=table_folder,
+                                            region_ids=region_ids)
     view = get_view(names=display_names,
                     source_types=source_types,
                     sources=display_sources,
