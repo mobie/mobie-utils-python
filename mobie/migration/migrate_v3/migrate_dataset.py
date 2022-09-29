@@ -53,12 +53,38 @@ def migrate_table_spec(views, sources):
     return new_views, sources
 
 
+# for merged grids the source names are automatically suffixed with "_{gridName}"
+# so if we have a merged grid with a region display we assume the regionDisplay
+# refers to the sources arranged in the grid and update the source names in there
 def migrate_merged_grid_spec(views):
     new_views = {}
 
     # check if we have grid views
     for name, view in views.items():
-        pass
+        updated_names = {}
+
+        if "sourceTransforms" in view:
+            transforms = view["sourceTransforms"]
+            for transform in transforms:
+                trafo_type, trafo = next(iter(transform.items()))
+                if trafo_type == "mergedGrid":
+                    grid_name = trafo["mergedGridSourceName"]
+                    updated_names.update({source: f"{source}_{grid_name}" for source in trafo["sources"]})
+
+        if "sourceDisplays" in view:
+            displays = view["sourceDisplays"]
+            new_displays = []
+            for display in displays:
+                display_type, disp = next(iter(display.items()))
+                if display_type == "regionDisplay":
+                    sources = disp["sources"]
+                    sources = {position: [updated_names[source] for source in position_sources]
+                               for position, position_sources in sources.items()}
+                    disp["sources"] = sources
+                new_displays.append({display_type: disp})
+            view["sourceDisplays"] = new_displays
+
+        new_views[name] = view
 
     return new_views
 
@@ -66,7 +92,7 @@ def migrate_merged_grid_spec(views):
 def migrate_view_file(view_file, sources):
     views = metadata.utils.read_metadata(view_file)["views"]
     new_views, new_sources = migrate_table_spec(views, sources)
-    # new_views = migrate_merged_grid_spec(new_views)
+    new_views = migrate_merged_grid_spec(new_views)
     metadata.utils.write_metadata(view_file, {"views": new_views})
     return new_sources
 
@@ -76,9 +102,7 @@ def migrate_views(folder):
     views, sources = ds_meta["views"], ds_meta["sources"]
 
     new_views, new_sources = migrate_table_spec(views, sources)
-    # TODO implement this after migrating the covid plate
-    # (since the migration there is alsready done, and we don't want to map the complicated logic for nested grids here)
-    # new_views = migrate_merged_grid_spec(new_views)
+    new_views = migrate_merged_grid_spec(new_views)
 
     additional_view_files = glob(os.path.join(folder, "misc", "views", "*.json"))
     for view_file in additional_view_files:
