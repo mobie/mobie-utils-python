@@ -16,12 +16,12 @@ from ..xml_utils import copy_xml_with_newpath
 
 
 def write_dataset_metadata(dataset_folder, dataset_metadata):
-    path = os.path.join(dataset_folder, 'dataset.json')
+    path = os.path.join(dataset_folder, "dataset.json")
     write_metadata(path, dataset_metadata)
 
 
 def read_dataset_metadata(dataset_folder):
-    path = os.path.join(dataset_folder, 'dataset.json')
+    path = os.path.join(dataset_folder, "dataset.json")
     return read_metadata(path)
 
 
@@ -37,7 +37,7 @@ def create_dataset_metadata(dataset_folder,
                             sources=None,
                             default_location=None,
                             n_timepoints=1):
-    path = os.path.join(dataset_folder, 'dataset.json')
+    path = os.path.join(dataset_folder, "dataset.json")
     if os.path.exists(path):
         raise RuntimeError(f"Dataset metadata at {path} already exists")
     metadata = {
@@ -97,10 +97,10 @@ def create_dataset_structure(root, dataset_name, file_formats):
         dataset_name [str] - name of the dataset
     """
     dataset_folder = os.path.join(root, dataset_name)
-    os.makedirs(os.path.join(dataset_folder, 'tables'), exist_ok=True)
-    os.makedirs(os.path.join(dataset_folder, 'misc', 'views'), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, "tables"), exist_ok=True)
+    os.makedirs(os.path.join(dataset_folder, "misc", "views"), exist_ok=True)
     for file_format in file_formats:
-        os.makedirs(os.path.join(dataset_folder, 'images', file_format.replace('.', '-')), exist_ok=True)
+        os.makedirs(os.path.join(dataset_folder, "images", file_format.replace(".", "-")), exist_ok=True)
     return dataset_folder
 
 
@@ -109,6 +109,17 @@ def set_is2d(dataset_folder, is2d):
     metadata = read_dataset_metadata(dataset_folder)
     metadata["is2D"] = is2d
     write_dataset_metadata(dataset_folder, metadata)
+
+
+def get_file_formats(dataset_folder):
+    metadata = read_dataset_metadata(dataset_folder)
+    sources = metadata["sources"]
+    file_formats = []
+    for source in sources:
+        source_data = next(iter(sources.values()))
+        if "imageData" in source_data:
+            file_formats.extend(list(source_data["imageData"].keys()))
+    return list(set(file_formats))
 
 
 #
@@ -135,11 +146,11 @@ def make_squashed_link(src_file, dst_file, override=False):
 def link_id_lut(src_folder, dst_folder, name):
     # for local storage:
     # make link to the previous id look-up-table (if present)
-    lut_name = 'new_id_lut_%s.json' % name
-    lut_in = os.path.join(src_folder, 'misc', lut_name)
+    lut_name = "new_id_lut_%s.json" % name
+    lut_in = os.path.join(src_folder, "misc", lut_name)
     if not os.path.exists(lut_in):
         return
-    lut_out = os.path.join(dst_folder, 'misc', lut_name)
+    lut_out = os.path.join(dst_folder, "misc", lut_name)
     if not os.path.exists(lut_out):
         rel_path = os.path.relpath(lut_in, os.path.split(lut_out)[0])
         os.symlink(rel_path, lut_out)
@@ -155,7 +166,7 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
     os.makedirs(table_out, exist_ok=True)
 
     table_files = os.listdir(table_in)
-    table_files = [ff for ff in table_files if os.path.splitext(ff)[1] in ('.csv', '.tsv')]
+    table_files = [ff for ff in table_files if os.path.splitext(ff)[1] in (".csv", ".tsv")]
 
     for ff in table_files:
         src_file = os.path.join(table_in, ff)
@@ -164,14 +175,14 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
 
 
 def copy_xml_file(xml_in, xml_out, file_format):
-    if file_format in ('bdv.hdf5', 'bdv.n5'):
+    if file_format in ("bdv.hdf5", "bdv.n5"):
         data_path = get_data_path(xml_in, return_absolute_path=True)
         bdv_format = get_bdv_format(xml_in)
         xml_dir = os.path.split(xml_out)[0]
         data_path = os.path.relpath(data_path, start=xml_dir)
         copy_xml_with_newpath(xml_in, xml_out, data_path,
-                              path_type='relative', data_format=bdv_format)
-    elif file_format == 'bdv.n5.s3':
+                              path_type="relative", data_format=bdv_format)
+    elif file_format == "bdv.n5.s3":
         shutil.copyfile(xml_in, xml_out)
     else:
         raise ValueError(f"Invalid file format {file_format}")
@@ -183,7 +194,7 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
     new_sources = {}
     for name, metadata in sources.items():
-        # don't copy exclude sources
+        # don"t copy exclude sources
         if name in exclude_sources:
             continue
 
@@ -191,10 +202,10 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
         metadata = metadata[source_type]
 
         # copy the xml file (if we have a bdv format)
-        storage = metadata['imageData']
-        for file_format, storage in metadata['imageData'].items():
-            if file_format.startswith('bdv'):
-                rel_path = storage['relativePath']
+        storage = metadata["imageData"]
+        for file_format, storage in metadata["imageData"].items():
+            if file_format.startswith("bdv"):
+                rel_path = storage["relativePath"]
                 in_path = os.path.join(src_folder, rel_path)
                 out_path = os.path.join(dst_folder, rel_path)
                 copy_xml_file(in_path, out_path, file_format)
@@ -202,9 +213,9 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
                 print(f"Image data for source {name} in format {format} cannot be copied.")
 
         # copy table if we have it
-        if source_type == 'segmentation':
-            if 'tableData' in metadata:
-                copy_tables(src_folder, dst_folder, metadata['tableData']['source'])
+        if source_type == "segmentation":
+            if "tableData" in metadata:
+                copy_tables(src_folder, dst_folder, metadata["tableData"]["source"])
             # link the id look-up-table (platybrowser specific functionality)
             link_id_lut(src_folder, dst_folder, name)
 
@@ -215,21 +226,21 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
 
 def copy_misc_data(src_folder, dst_folder, copy_misc=None):
-    misc_src = os.path.join(src_folder, 'misc')
-    misc_dst = os.path.join(dst_folder, 'misc')
+    misc_src = os.path.join(src_folder, "misc")
+    misc_dst = os.path.join(dst_folder, "misc")
 
     # copy the views
-    view_src = os.path.join(misc_src, 'views')
-    view_dst = os.path.join(misc_dst, 'views')
+    view_src = os.path.join(misc_src, "views")
+    view_dst = os.path.join(misc_dst, "views")
 
-    for bkmrk in glob(os.path.join(view_src, '*.json')):
+    for bkmrk in glob(os.path.join(view_src, "*.json")):
         bkmrk_out = os.path.join(view_dst, os.path.split(bkmrk)[1])
         shutil.copyfile(bkmrk, bkmrk_out)
 
     # copy the leveling.json file
-    leveling_src = os.path.join(misc_src, 'leveling.json')
+    leveling_src = os.path.join(misc_src, "leveling.json")
     if os.path.exists(leveling_src):
-        shutil.copyfile(leveling_src, os.path.join(misc_dst, 'leveling.json'))
+        shutil.copyfile(leveling_src, os.path.join(misc_dst, "leveling.json"))
 
     # copy additional data in the misc folder if copy_misc function is given
     if copy_misc is not None:

@@ -1,6 +1,8 @@
 import json
 import unittest
+
 from jsonschema import ValidationError
+from mobie import SPEC_VERSION
 from mobie.validation.utils import validate_with_schema
 
 
@@ -9,8 +11,7 @@ class TestProjectMetadata(unittest.TestCase):
         project_metadata = {
             "datasets": ["alpha", "beta", "gamma"],
             "defaultDataset": "alpha",
-            "specVersion": "0.2.0",
-            "imageDataFormats": ["bdv.n5"]
+            "specVersion": SPEC_VERSION,
         }
         return project_metadata
 
@@ -36,7 +37,6 @@ class TestProjectMetadata(unittest.TestCase):
         validate_with_schema(metadata, schema)
 
         metadata = self.get_project_metadata()
-        metadata["imageDataFormats"] = ["bdv.n5", "bdv.n5.s3", "bdv.hdf5"]
         validate_with_schema(metadata, schema)
 
         # check missing fields
@@ -53,14 +53,12 @@ class TestProjectMetadata(unittest.TestCase):
 
         # check invalid values
         metadata = self.get_project_metadata()
-        metadata["specVersion"] = "0.3.3"
+        invalid_version = SPEC_VERSION.split(".")
+        invalid_version = invalid_version[0:1] + [str(int(invalid_version[1]) + 1)] + invalid_version[2:]
+        invalid_version = ".".join(invalid_version)
+        metadata["specVersion"] = invalid_version
         with self.assertRaises(ValidationError):
             validate_with_schema(metadata, "project")
-
-        metadata = self.get_project_metadata()
-        metadata["imageDataFormats"] = ["bdv.n5", "tiff"]
-        with self.assertRaises(ValidationError):
-            validate_with_schema(metadata, schema)
 
 
 if __name__ == '__main__':

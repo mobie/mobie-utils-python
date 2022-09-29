@@ -67,9 +67,6 @@ class TestRemoteMetadata(unittest.TestCase):
 
         proj_metadata = read_project_metadata(self.root)
         validate_with_schema(proj_metadata, "project")
-        file_formats = proj_metadata["imageDataFormats"]
-        self.assertIn(file_format, file_formats)
-        self.assertIn(new_file_format, file_formats)
 
     def _test_remote_metadata(self, file_format):
         from mobie.metadata import add_remote_project_metadata
