@@ -326,9 +326,9 @@ def get_view(names, source_types, sources, display_settings,
     if region_displays is not None:
         for name, settings in region_displays.items():
             source_map = settings.pop("sources")
-            table_data = settings.pop("tableData")
+            table_source = settings.pop("tableSource")
             assert isinstance(source_map, dict)
-            display = get_region_display(name, source_map, table_data, **settings)
+            display = get_region_display(name, source_map, table_source, **settings)
             source_displays.append(display)
 
     view["sourceDisplays"] = source_displays
@@ -442,7 +442,7 @@ def create_region_display(name, sources, dataset_folder, table_source, table_fol
 
     require_region_table(dataset_folder, table_source,
                          table_folder=os.path.join("tables", name) if table_folder is None else table_folder,
-                         sources=sources)
+                         this_sources=sources)
     region_display = get_region_display(name, sources, table_source, **kwargs)["regionDisplay"]
     region_display.pop("name")
 
@@ -453,8 +453,8 @@ def create_region_display(name, sources, dataset_folder, table_source, table_fol
 # "grid_sources" need to be passed as dict and specify the correct names
 # (i.e. names after transform). dict needs to match from the grid id
 # to list of source names
-def get_grid_view(dataset_folder, name, sources, menu_name, table_source,
-                  table_folder=None, display_groups=None,
+def get_grid_view(dataset_folder, name, sources, menu_name,
+                  table_source=None, table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
@@ -470,6 +470,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name, table_source,
         menu_name [str] - menu name for this view
         table_source [str] - name of the table source for the region display that is create
             for this grid view. If the source is not present yet it will be created.
+            If the table source is None than no region table and display will be created for this view (default: None)
         table_folder [str] - table folder to store the annotation table(s) for this grid.
             By default "tables/{name}" will be used (default: None)
         display_groups [dict[str, str]] - dictionary from source name to their display group.
@@ -558,9 +559,12 @@ def get_grid_view(dataset_folder, name, sources, menu_name, table_source,
         assert isinstance(additional_source_transforms, list)
         source_transforms = additional_source_transforms + source_transforms
 
-    region_displays = create_region_display(name, grid_sources, dataset_folder,
-                                            table_source=table_source, table_folder=table_folder,
-                                            region_ids=region_ids)
+    if table_source is None:
+        region_displays = None
+    else:
+        region_displays = create_region_display(name, grid_sources, dataset_folder,
+                                                table_source=table_source, table_folder=table_folder,
+                                                region_ids=region_ids)
     view = get_view(names=display_names,
                     source_types=source_types,
                     sources=display_sources,

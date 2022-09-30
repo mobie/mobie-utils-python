@@ -115,10 +115,11 @@ def get_file_formats(dataset_folder):
     metadata = read_dataset_metadata(dataset_folder)
     sources = metadata["sources"]
     file_formats = []
-    for source in sources:
-        source_data = next(iter(sources.values()))
+    for source in sources.values():
+        source_data = next(iter(source.values()))
         if "imageData" in source_data:
             file_formats.extend(list(source_data["imageData"].keys()))
+    assert file_formats
     return list(set(file_formats))
 
 

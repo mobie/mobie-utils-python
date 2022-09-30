@@ -122,6 +122,14 @@ class TestViewCreation(unittest.TestCase):
         dataset_metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
         self.assertIn(bookmark_name, dataset_metadata["views"])
 
+        # test grid bookmark with table
+        bookmark_name = "grid-with-table"
+        sources = [[self.raw_name, self.seg_name], [self.extra_name, self.extra_seg_name]]
+        create_grid_view(dataset_folder, bookmark_name, sources, table_source="grid-table")
+        dataset_metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
+        self.assertIn(bookmark_name, dataset_metadata["views"])
+        self.assertIn("grid-table", dataset_metadata["sources"])
+
         # test bookmark with positions
         bookmark_name = "grid-with-pos"
         sources = [[self.raw_name, self.seg_name], [self.extra_name, self.extra_seg_name]]

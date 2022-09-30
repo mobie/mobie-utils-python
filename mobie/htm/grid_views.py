@@ -305,7 +305,6 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                                                        site_name_to_well_name,
                                                        name_filter)
 
-    breakpoint()
     if use_transformed_grid:
         view = get_transformed_plate_grid_view(metadata, source_prefixes, source_types,
                                                source_settings, menu_name,

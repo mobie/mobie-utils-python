@@ -131,6 +131,7 @@ def create_view(
 
 def create_grid_view(
     dataset_folder, view_name, sources,
+    table_source=None,
     table_folder=None,
     display_groups=None,
     display_group_settings=None,
@@ -149,7 +150,11 @@ def create_grid_view(
         sources [list[list[str]]] - sources to be arranged in the grid.
             The sources need to be passed as a nested list, where each inner list contains the
             sources for one of the grid positions.
-        table_folder [str] - path to the table folder, relative to the dataset folder (default: None)
+        table_source [str] - name of the region table source for this view.
+            If the source does not exist yet it will be created.
+            If not given then no region table will be created. (default: None)
+        table_folder [str] - path to the table folder, relative to the dataset folder.
+            Will only be used if a new region table source needs to be created. (default: None)
         display_groups [dict[str, str] - the display groups in this view. Needs to be a map from source name
             to the name of the display group for this sources. By default all sources will end up in their own
             display group with the settings for the default view of the source (default: None)
@@ -169,7 +174,7 @@ def create_grid_view(
     assert all(source_list for source_list in sources)
     view = mobie_metadata.get_grid_view(
         dataset_folder, view_name, sources, menu_name=menu_name,
-        table_folder=table_folder, display_groups=display_groups,
+        table_source=table_source, table_folder=table_folder, display_groups=display_groups,
         display_group_settings=display_group_settings, positions=positions,
         use_transformed_grid=use_transformed_grid,
     )
