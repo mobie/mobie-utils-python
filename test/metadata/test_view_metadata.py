@@ -83,7 +83,7 @@ class TestViewMetadata(unittest.TestCase):
         custom_kwargs = [
             {"opacity": 0.5, "lut": "glasbey"},
             {"opacity": 0.9, "lut": "viridis",
-             "colorByColumn": "colname", "showSelectedSegmentsIn3d": True, "tables": ["a.csv", "b.tsv"],
+             "colorByColumn": "colname", "showSelectedSegmentsIn3d": True, "additionalTables": ["a.csv", "b.tsv"],
              "valueLimits": [0, 2500]},
             {"selectedSegmentIds": ["my-seg;0;1", "my-seg;0;2", "my-seg;1;10"]},
             {"showAsBoundaries": True, "boundaryThickness": 12}
