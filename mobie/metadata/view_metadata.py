@@ -408,7 +408,7 @@ def require_region_table(dataset_folder, table_source, table_folder, this_source
 
     if table_source in sources:
         table_folder_path = os.path.join(
-            dataset_folder, sources[table_source]["regionTable"]["tableData"]["tsv"]["relativePath"]
+            dataset_folder, sources[table_source]["regions"]["tableData"]["tsv"]["relativePath"]
         )
         default_table_path = os.path.join(table_folder_path, "default.tsv")
         check_region_table(this_sources, default_table_path)
@@ -424,7 +424,7 @@ def require_region_table(dataset_folder, table_source, table_folder, this_source
         table_data = get_table_metadata(table_folder)
         # this should eventually be wrapped in a function,
         # in case we get more properties for the region table source
-        sources[table_source] = {"regionTable": table_data}
+        sources[table_source] = {"regions": table_data}
         ds_metadata["sources"] = sources
         write_dataset_metadata(dataset_folder, ds_metadata)
 

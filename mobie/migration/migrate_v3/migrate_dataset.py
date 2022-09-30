@@ -48,7 +48,7 @@ def migrate_table_spec(views, sources):
         new_views[name] = view
 
     for name, table_data in region_table_sources.items():
-        sources[name] = {"regionTable": {"tableData": table_data}}
+        sources[name] = {"regions": {"tableData": table_data}}
 
     return new_views, sources
 

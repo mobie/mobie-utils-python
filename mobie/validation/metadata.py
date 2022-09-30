@@ -191,7 +191,7 @@ def validate_source_metadata(name, metadata, dataset_folder=None,
             table_folder = os.path.join(dataset_folder, metadata["tableData"]["tsv"]["relativePath"])
             if source_type == "segmentation":
                 check_segmentation_tables(table_folder, assert_true)
-            elif source_type == "regionTable":
+            elif source_type == "regions":
                 check_region_tables(table_folder, ["default.tsv"], assert_true)
             elif source_type == "spots":
                 pass
@@ -278,7 +278,7 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 assert_true(table_source in dataset_metadata["sources"])
                 table_folder = os.path.join(
                     dataset_folder,
-                    dataset_metadata["sources"][table_source]["regionTable"]["tableData"]["tsv"]["relativePath"]
+                    dataset_metadata["sources"][table_source]["regions"]["tableData"]["tsv"]["relativePath"]
                 )
 
                 additional_tables = display_metadata.get("additionalTables", [])

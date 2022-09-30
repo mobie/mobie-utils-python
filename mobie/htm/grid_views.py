@@ -252,7 +252,7 @@ def _get_default_site_table(ds_folder, metadata, source_prefixes,
 
         compute_region_table(sources, table_path, wells=wells)
         all_sources[table_source_name] = {
-            "regionTable": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
+            "regions": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
         }
         metadata["sources"] = all_sources
 
@@ -276,7 +276,7 @@ def _get_default_well_table(ds_folder, metadata, source_prefixes,
 
         compute_region_table(sources, table_path)
         all_sources[table_source_name] = {
-            "regionTable": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
+            "regions": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
         }
         metadata["sources"] = all_sources
 
