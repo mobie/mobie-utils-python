@@ -41,8 +41,7 @@ class TestGridViews(unittest.TestCase):
         except OSError:
             pass
 
-    def test_plate_grid_view(self):
-        from mobie.htm import get_merged_plate_grid_view
+    def _test_plate_grid_view(self, get_view):
         from mobie.htm.grid_views import _get_default_site_table, _get_default_well_table
 
         ds_folder = os.path.join(self.root, self.ds_name)
@@ -59,16 +58,24 @@ class TestGridViews(unittest.TestCase):
         def to_well_name(site_name):
             return site_name.split("-")[1]
 
-        site_table = _get_default_site_table(ds_folder, metadata, source_prefixes,
-                                             to_site_name, to_well_name, None)
-        well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
-                                             to_site_name, to_well_name, None)
+        metadata, site_table = _get_default_site_table(ds_folder, metadata, source_prefixes,
+                                                       to_site_name, to_well_name, None)
+        metadata, well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
+                                                       to_site_name, to_well_name, None)
 
-        view = get_merged_plate_grid_view(metadata, source_prefixes, source_types, source_settings,
-                                          menu_name, to_site_name, to_well_name,
-                                          site_table=site_table,
-                                          well_table=well_table)
+        view = get_view(metadata, source_prefixes, source_types, source_settings,
+                        menu_name, to_site_name, to_well_name,
+                        site_table=site_table,
+                        well_table=well_table)
         validate_view_metadata(view, dataset_folder=ds_folder, assert_true=self.assertTrue)
+
+    def test_plate_merged_grid_view(self):
+        from mobie.htm.grid_views import get_merged_plate_grid_view
+        self._test_plate_grid_view(get_merged_plate_grid_view)
+
+    def test_plate_transformed_grid_view(self):
+        from mobie.htm.grid_views import get_transformed_plate_grid_view
+        self._test_plate_grid_view(get_transformed_plate_grid_view)
 
 
 if __name__ == '__main__':
