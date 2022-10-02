@@ -213,6 +213,9 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
         # validate source trafos
         source_transformations = view.get("sourceTransforms")
         if source_transformations is not None:
+
+            # we need to keep track of merged grid sources to deal with nested grid sources
+            merged_grid_sources = {}
             for transform in source_transformations:
                 transform_type, transform_metadata = next(iter(transform.items()))
 
@@ -243,7 +246,14 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
                 if transform_type == "mergedGrid":
                     grid_name = transform_metadata["mergedGridSourceName"]
                     valid_sources = valid_sources.union({grid_name})
+                    merged_grid_sources[grid_name] = [f"{source}_{grid_name}" for source in transform_sources]
                     valid_sources = valid_sources.union({f"{source}_{grid_name}" for source in transform_sources})
+                    # if we have nested grids we need to also update all the implicitly contained sources
+                    nested_grids = list(set(transform_sources).intersection(set(merged_grid_sources.keys())))
+                    for nested_grid in nested_grids:
+                        valid_sources = valid_sources.union(
+                            {f"{source}_{grid_name}" for source in merged_grid_sources[nested_grid]}
+                        )
 
         # validate source displays
         if displays is not None:
