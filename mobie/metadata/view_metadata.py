@@ -13,6 +13,13 @@ from ..tables import check_region_table, compute_region_table
 #
 
 
+def _validate_lut(lut, kwargs):
+    numeric_luts = ("viridis", "blueWhiteRed")
+    if lut in numeric_luts and "valueLimits" not in kwargs:
+        msg = f"You have specified a numeric lut: {lut}. In this case you also need to pass the 'valueLimits' argument."
+        raise ValueError(msg)
+
+
 def get_image_display(name, sources, **kwargs):
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
@@ -34,39 +41,6 @@ def get_image_display(name, sources, **kwargs):
     if kwargs:
         raise ValueError(f"Invalid keyword arguments for image display: {list(kwargs.keys())}")
     return {"imageDisplay": image_display}
-
-
-def _validate_lut(lut, kwargs):
-    numeric_luts = ("viridis", "blueWhiteRed")
-    if lut in numeric_luts and "valueLimits" not in kwargs:
-        msg = f"You have specified a numeric lut: {lut}. In this case you also need to pass the 'valueLimits' argument."
-        raise ValueError(msg)
-
-
-def get_segmentation_display(name, sources, **kwargs):
-    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
-        raise ValueError(f"Invalid sources: {sources}")
-    opacity = kwargs.pop("opacity", 0.5)
-    lut = kwargs.pop("lut", "glasbey")
-    _validate_lut(lut, kwargs)
-    segmentation_display = {
-        "opacity": opacity,
-        "lut": lut,
-        "name": name,
-        "sources": sources
-    }
-    additional_seg_kwargs = ["boundaryThickness", "colorByColumn",
-                             "randomColorSeed", "resolution3dView",
-                             "selectedSegmentIds", "showAsBoundaries",
-                             "showSelectedSegmentsIn3d", "showTable",
-                             "additionalTables", "valueLimits", "visible"]
-    for kwarg_name in additional_seg_kwargs:
-        kwarg_val = kwargs.pop(kwarg_name, None)
-        if kwarg_val is not None:
-            segmentation_display[kwarg_name] = kwarg_val
-    if kwargs:
-        raise ValueError(f"Invalid keyword arguments for segmentation display: {list(kwargs.keys())}")
-    return {"segmentationDisplay": segmentation_display}
 
 
 def get_region_display(name, sources, table_source, **kwargs):
@@ -96,6 +70,32 @@ def get_region_display(name, sources, table_source, **kwargs):
     if kwargs:
         raise ValueError(f"Invalid keyword arguments for source annotation display: {list(kwargs.keys())}")
     return {"regionDisplay": annotation_display}
+
+
+def get_segmentation_display(name, sources, **kwargs):
+    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
+        raise ValueError(f"Invalid sources: {sources}")
+    opacity = kwargs.pop("opacity", 0.5)
+    lut = kwargs.pop("lut", "glasbey")
+    _validate_lut(lut, kwargs)
+    segmentation_display = {
+        "opacity": opacity,
+        "lut": lut,
+        "name": name,
+        "sources": sources
+    }
+    additional_seg_kwargs = ["boundaryThickness", "colorByColumn",
+                             "randomColorSeed", "resolution3dView",
+                             "selectedSegmentIds", "showAsBoundaries",
+                             "showSelectedSegmentsIn3d", "showTable",
+                             "additionalTables", "valueLimits", "visible"]
+    for kwarg_name in additional_seg_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            segmentation_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments for segmentation display: {list(kwargs.keys())}")
+    return {"segmentationDisplay": segmentation_display}
 
 
 #
@@ -188,7 +188,7 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
 def get_merged_grid_source_transform(sources, merged_source_name,
                                      positions=None, timepoints=None,
                                      name=None, center_at_origin=None,
-                                     encode_source=None):
+                                     encode_source=None, metadata_source=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -198,14 +198,16 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
-    if name is not None:
-        grid_transform["name"] = name
+
     if encode_source is not None:
         assert isinstance(encode_source, bool)
         grid_transform["encodeSource"] = encode_source
 
     if center_at_origin is not None:
         warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
+
+    if metadata_source is not None:
+        grid_transform["metadataSource"] = metadata_source
 
     return {"mergedGrid": grid_transform}
 
