@@ -95,7 +95,7 @@ def check_tables_in_view(
     if additional_tables is not None:
         for table in additional_tables:
             assert_true(
-                os.path.exists(os.path.exists(dataset_folder, table)),
+                os.path.exists(os.path.join(table_folder, table)),
                 f"Could not find additional table {table} in {dataset_folder}"
             )
 

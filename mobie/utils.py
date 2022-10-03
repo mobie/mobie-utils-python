@@ -88,6 +88,7 @@ def require_dataset_and_view(root, dataset_name, file_format,
     validate_view_metadata(view, sources=[source_name])
 
     if not ds_exists:
+        assert file_format is not None
         metadata.create_dataset_structure(root, dataset_name, [file_format])
         default_view = deepcopy(view)
         default_view.update({"uiSelectionGroup": "bookmark"})
