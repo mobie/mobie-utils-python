@@ -33,7 +33,7 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
             expected_merge_columns[col] = set(default_table[col].values)
     # we always have at least one of the merge columns, so this is a normal assert
     # because it can only be triggered by an internal error
-    assert expected_merge_columns
+    assert expected_merge_columns, merge_columns
 
     # check the additional tables
     additional_tables = list(
@@ -78,7 +78,7 @@ def check_spot_tables(table_folder, is_2d, assert_true=_assert_true):
     default_columns = ["spot_id", "x", "y"]
     if not is_2d:
         default_columns.append("z")
-    merge_columns = ["region_id", "timepoint"]
+    merge_columns = ["spot_id", "timepoint"]
     _check_tables(table_folder, default_columns, merge_columns, assert_true=assert_true)
 
 
@@ -87,7 +87,7 @@ def check_tables_in_view(
 ):
     assert_true(table_source in sources, f"The table source {table_source} is not present in the source metadata.")
 
-    source_metadata = next(sources[table_source].values())
+    source_metadata = next(iter(sources[table_source].values()))
     assert_true("tableData" in source_metadata, f"Source {table_source} does not contain tableData.")
     table_folder = os.path.join(dataset_folder, source_metadata["tableData"]["tsv"]["relativePath"])
 

@@ -67,7 +67,7 @@ class TestGridViews(unittest.TestCase):
                         menu_name, to_site_name, to_well_name,
                         site_table=site_table,
                         well_table=well_table)
-        validate_view_metadata(view, dataset_folder=ds_folder, assert_true=self.assertTrue)
+        validate_view_metadata(view, dataset_folder=ds_folder, assert_true=self.assertTrue, dataset_metadata=metadata)
 
     def test_plate_merged_grid_view(self):
         from mobie.htm.grid_views import get_merged_plate_grid_view

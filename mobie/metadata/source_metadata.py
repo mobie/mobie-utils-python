@@ -260,10 +260,6 @@ def add_source_to_dataset(
     sources_metadata = dataset_metadata["sources"]
     view_metadata = dataset_metadata["views"]
 
-    # validate the arguments
-    if source_type not in ("image", "segmentation"):
-        raise ValueError(f"Expect source_type to be 'image' or 'segmentation', got {source_type}")
-
     if source_name in sources_metadata or source_name in view_metadata:
         msg = f"A source with name {source_name} already exists for the dataset {dataset_folder}"
         if overwrite:

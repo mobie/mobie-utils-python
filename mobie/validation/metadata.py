@@ -178,7 +178,7 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
             color_by_col = display_metadata.get("colorByColumn", None)
             check_tables_in_view(
                 all_sources, table_source, dataset_folder, additional_tables=additional_tables,
-                expected_columns=[color_by_col], assert_true=assert_true,
+                expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
             )
 
         elif display_type == "spotDisplay":
@@ -188,7 +188,7 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
             for source in display_sources:
                 check_tables_in_view(
                     all_sources, source, dataset_folder, additional_tables=additional_tables,
-                    expected_columns=[color_by_col], assert_true=assert_true,
+                    expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
                 )
 
         elif display_type == "segmentationDisplay":
@@ -204,7 +204,7 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
                 for source in display_sources:
                     check_tables_in_view(
                         all_sources, source, dataset_folder, additional_tables=additional_tables,
-                        expected_columns=[color_by_col], assert_true=assert_true,
+                        expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
                     )
 
 
