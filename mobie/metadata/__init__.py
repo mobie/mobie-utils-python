@@ -10,6 +10,6 @@ from .source_metadata import add_source_to_dataset, get_image_metadata, get_segm
 from .view_metadata import (is_grid_view, create_region_display,
                             get_affine_source_transform, get_crop_source_transform, get_default_view,
                             get_merged_grid_source_transform,
-                            get_image_display, get_segmentation_display, get_region_display,
+                            get_image_display, get_segmentation_display, get_region_display, get_spot_display,
                             get_transformed_grid_source_transform, get_grid_view,
                             get_view, get_viewer_transform)

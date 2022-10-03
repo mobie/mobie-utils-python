@@ -98,6 +98,32 @@ def get_segmentation_display(name, sources, **kwargs):
     return {"segmentationDisplay": segmentation_display}
 
 
+def get_spot_display(name, sources, **kwargs):
+    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
+        raise ValueError(f"Invalid sources: {sources}")
+    opacity = kwargs.pop("opacity", 0.5)
+    lut = kwargs.pop("lut", "glasbey")
+    _validate_lut(lut, kwargs)
+    spot_display = {
+        "opacity": opacity,
+        "lut": lut,
+        "name": name,
+        "sources": sources
+    }
+    additional_seg_kwargs = ["additionalTables",
+                             "boundaryThickness", "colorByColumn",
+                             "randomColorSeed", "spotRadius",
+                             "selectedSpotIds", "showAsBoundaries",
+                             "showTable", "valueLimits", "visible"]
+    for kwarg_name in additional_seg_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            spot_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments for region display: {list(kwargs.keys())}")
+    return {"spotDisplay": spot_display}
+
+
 #
 # source transformations
 #
@@ -320,8 +346,22 @@ def get_view(names, source_types, sources, display_settings,
             else:
                 display = get_segmentation_display(name, source_list, **display_setting)
 
+        elif source_type == "spots":
+            # display settings can either be passed as arguments or return values of get_spot_display
+            if "spotDisplay" in display_settings:
+                assert len(display_setting) == 1
+                assert display_setting["spotDisplay"]["name"] == name,\
+                    f"{display_setting['spotDisplay']['name']}, {name}"
+                _sources = display_setting["spotDisplay"]["sources"]
+                invalid_sources = set(_sources) - set(source_list)
+                assert len(invalid_sources) == 0,\
+                    f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
+                display = display_setting
+            else:
+                display = get_spot_display(name, source_list, **display_setting)
+
         else:
-            raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
+            raise ValueError(f"Invalid source_type {source_type}, expect one of 'image', 'segmentation' or 'spots'")
 
         source_displays.append(display)
 
@@ -360,7 +400,7 @@ def get_default_view(source_type, source_name, menu_name=None,
     """ Create default view metadata for a single source.
 
     Arguments:
-        source_type [str] - type of the source, either "image" or "segmentation"
+        source_type [str] - type of the source, either "image", "segmentation" or "spots"
         source_name [str] - name of the source.
         menu_name [str] - menu name for this view (default: None)
         source_transform [dict] - dict with affine source transform.
