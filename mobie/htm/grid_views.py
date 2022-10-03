@@ -1,7 +1,8 @@
 import os
 
-import numpy as np
 import mobie
+import numpy as np
+import pandas as pd
 from ..tables import compute_region_table
 
 
@@ -290,6 +291,34 @@ def _get_default_well_table(ds_folder, metadata, source_prefixes,
     return metadata, table_source_name
 
 
+def _require_table_source(ds_folder, metadata, table, name):
+    all_sources = metadata["sources"]
+    if name in all_sources:
+        return metadata, name
+
+    # the table can either be passed as filepath or pandas dataframe
+    if isinstance(table, str):
+        assert os.path.exists(table)
+        table = pd.read_csv(table, sep="\t")
+    assert isinstance(table, pd.DataFrame)
+    if "region_id" not in table:
+        raise ValueError("Invalid region table")
+
+    # write the table
+    table_folder = os.path.join(ds_folder, "tables", name)
+    os.makedirs(table_folder, exist_ok=True)
+    default_table = os.path.join(table_folder, "default.tsv")
+    table.to_csv(default_table, sep="\t", index=False, na_rep="nan")
+
+    # add the region table source
+    all_sources[name] = {
+        "regions": {"tableData": mobie.metadata.utils.get_table_metadata(f"tables/{name}")}
+    }
+    metadata["sources"] = all_sources
+
+    return metadata, name
+
+
 def add_plate_grid_view(ds_folder, view_name, menu_name,
                         source_prefixes, source_types, source_settings,
                         source_name_to_site_name,
@@ -306,11 +335,16 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
                                                        source_name_to_site_name,
                                                        site_name_to_well_name,
                                                        name_filter)
+    elif site_table is not None:
+        metadata, site_table = _require_table_source(ds_folder, metadata, site_table, "sites")
+
     if well_table is None and add_region_displays:
         metadata, well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
                                                        source_name_to_site_name,
                                                        site_name_to_well_name,
                                                        name_filter)
+    elif well_table is not None:
+        metadata, well_table = _require_table_source(ds_folder, metadata, well_table, "wells")
 
     if use_transformed_grid:
         view = get_transformed_plate_grid_view(metadata, source_prefixes, source_types,
