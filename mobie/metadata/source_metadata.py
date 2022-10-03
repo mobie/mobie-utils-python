@@ -123,6 +123,25 @@ def get_resolution(source_metadata, dataset_folder):
     return resolution
 
 
+def get_unit(source_metadata, dataset_folder):
+    data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
+    if data_format.startswith("bdv"):
+        unit = bdv_metadata.get_unit(image_metadata, setup_id=0)
+    elif data_format.startswith("ome.zarr"):
+        axes = image_metadata["datasets"][0]["axes"]
+        unit = None
+        for ax in axes:
+            ax_unit = ax.get("unit", None)
+            if ax_unit is not None and ax["type"] == "space":
+                if unit is None:
+                    unit = ax_unit
+                elif unit != ax_unit:
+                    raise RuntimeError(f"Incosistent units: {unit} and {ax_unit}")
+    else:
+        raise ValueError(f"Unsupported data format {data_format}")
+    return unit
+
+
 #
 # functionality for creating source metadata and adding it to datasets
 #
@@ -184,6 +203,27 @@ def get_segmentation_metadata(dataset_folder, metadata_path,
     return source_metadata
 
 
+def get_spot_metadata(dataset_folder, table_folder,
+                      bounding_box_min,
+                      bounding_box_max,
+                      unit,
+                      description=None):
+    relative_table_location = os.path.relpath(table_folder, dataset_folder)
+    table_data = get_table_metadata(relative_table_location)
+
+    source_metadata = {
+        "spots": {
+            "boundingBoxMin": bounding_box_min,
+            "boundingBoxMax": bounding_box_max,
+            "tableData": table_data,
+            "unit": unit,
+        }
+    }
+    if description is not None:
+        source_metadata["spots"]["description"] = description
+    return source_metadata
+
+
 def add_source_to_dataset(
     dataset_folder,
     source_type,
@@ -195,6 +235,7 @@ def add_source_to_dataset(
     overwrite=True,
     description=None,
     channel=None,
+    **kwargs,
 ):
     """ Add source metadata to a MoBIE dataset.
 
@@ -213,6 +254,7 @@ def add_source_to_dataset(
         description [str] - description for this source (default: None)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        kwargs - additional keyword arguments for spot source
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
@@ -234,14 +276,23 @@ def add_source_to_dataset(
                                              file_format=file_format,
                                              channel=channel,
                                              description=description)
-    else:
+    elif source_type == "segmentation":
         source_metadata = get_segmentation_metadata(dataset_folder,
                                                     image_metadata_path,
                                                     table_folder,
                                                     file_format=file_format,
                                                     channel=channel,
                                                     description=description)
-    validate_source_metadata(source_name, source_metadata, dataset_folder)
+    elif source_type == "spots":
+        source_metadata = get_spot_metadata(dataset_folder,
+                                            table_folder,
+                                            description=description,
+                                            **kwargs)
+    else:
+        raise ValueError(f"Invalid source type: {source_type}, expect one of 'image', 'segmentation' or 'spots'")
+
+    is_2d = dataset_metadata.get("is2D", False)
+    validate_source_metadata(source_name, source_metadata, dataset_folder, is_2d=is_2d)
     sources_metadata[source_name] = source_metadata
     dataset_metadata["sources"] = sources_metadata
 

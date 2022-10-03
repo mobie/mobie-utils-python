@@ -25,13 +25,15 @@ def validate_dataset(
 
     # check the sources
     ds_name = os.path.split(dataset_folder)[1]
+    is_2d = dataset_metadata.get("is2D", False)
     for name, metadata in tqdm(
         dataset_metadata["sources"].items(),
         total=len(dataset_metadata["sources"]),
         desc=f"Check sources for dataset {ds_name}"
     ):
         validate_source_metadata(
-            name, metadata, dataset_folder,
+            name, metadata,
+            dataset_folder=dataset_folder, is_2d=is_2d,
             require_local_data=require_local_data,
             require_remote_data=require_remote_data,
             assert_true=assert_true,

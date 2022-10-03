@@ -5,13 +5,12 @@ import unittest
 from shutil import rmtree
 from sys import platform
 
+import mobie
 import numpy as np
 import pandas as pd
 
 from elf.io import open_file
 from pybdv.util import get_key
-from mobie.validation import validate_source_metadata
-from mobie.metadata import read_dataset_metadata
 
 
 class TestSegmentation(unittest.TestCase):
@@ -40,9 +39,8 @@ class TestSegmentation(unittest.TestCase):
         exp_data = self.data
 
         # check the segmentation metadata
-        metadata = read_dataset_metadata(dataset_folder)
+        metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
         self.assertIn(name, metadata["sources"])
-        validate_source_metadata(name, metadata["sources"][name], dataset_folder)
 
         # check the segmentation data
         seg_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
@@ -62,6 +60,12 @@ class TestSegmentation(unittest.TestCase):
         if 0 in exp_label_ids:
             exp_label_ids = exp_label_ids[1:]
         self.assertTrue(np.array_equal(label_ids, exp_label_ids))
+
+        # check the full dataset metadata
+        mobie.validation.validate_dataset(
+            dataset_folder,
+            assert_true=self.assertTrue, assert_equal=self.assertEqual, assert_in=self.assertIn
+        )
 
     def test_add_segmentation(self):
         from mobie import add_segmentation
