@@ -7,7 +7,7 @@ import pandas as pd
 from cluster_tools.morphology import MorphologyWorkflow
 from elf.io import open_file
 from .utils import remove_background_label_row
-from ..utils import write_global_config
+from ..utils import read_table, write_global_config
 
 
 def _table_impl(input_path, input_key, tmp_folder, target, max_jobs):
@@ -81,16 +81,16 @@ def to_csv(input_path, input_key, output_path, resolution,
     return label_ids
 
 
-def check_and_copy_default_table(input_path, output_path):
-    if not os.path.exists(input_path):
-        raise ValueError(f"Can't find a table at {input_path}")
-    tab = pd.read_csv(input_path, sep="\t")
+def check_and_copy_default_table(input_path, output_path, is_2d):
+    tab = read_table(input_path)
     expected_column_names = {
         "label_id",
-        "anchor_x", "anchor_y", "anchor_z",
-        "bb_min_x", "bb_min_y", "bb_min_z",
-        "bb_max_x", "bb_max_y", "bb_max_z",
+        "anchor_x", "anchor_y",
+        "bb_min_x", "bb_min_y",
+        "bb_max_x", "bb_max_y",
     }
+    if not is_2d:
+        expected_column_names = expected_column_names.union({"anchor_z", "bb_min_z", "bb_max_z"})
     missing_columns = list(expected_column_names - set(tab.columns))
     if missing_columns:
         raise ValueError(f"The table at {input_path} is missing the following expected columns: {missing_columns}")

@@ -2,7 +2,6 @@ import argparse
 import os
 
 import mobie
-import pandas as pd
 from mobie.tables import process_spot_table
 
 
@@ -41,7 +40,7 @@ def _process_spot_metadata(
 
     # if bounding_box_min or max are not passed determine it from the table
     if bounding_box_min is None or bounding_box_max is None:
-        table = pd.read_csv(os.path.join(table_folder, "default.tsv"), sep="\t")
+        table = mobie.utils.read_table(os.path.join(table_folder, "default.tsv"))
         coordinates = table[["y", "x"]] if is_2d else table[["z", "y", "x"]]
         if bounding_box_min is None:
             bounding_box_min = coordinates.min(axis=0).values.tolist()
@@ -58,7 +57,7 @@ def add_spots(input_table, root, dataset_name, spot_name,
               additional_tables=None, bounding_box_min=None, bounding_box_max=None,
               menu_name=None, view=None, unit="micrometer",
               reference_source=None, description=None):
-    """ Add spot source to MoBIE dataset.
+    """Add spot source to MoBIE dataset.
 
     Arguments:
         input_table [str or pandas.DataFrame] - the main table for the spots data.

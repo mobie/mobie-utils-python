@@ -1,14 +1,8 @@
 import os
 from glob import glob
 
-import pandas as pd
-
 from .utils import _assert_true
-
-
-# TODO refactor into upstream utils, use where we load external tables to support tsv or csv
-def _load_table(table_path):
-    return pd.read_csv(table_path, sep="\t" if os.path.splitext(table_path)[1] == ".tsv" else ",")
+from ..utils import read_table
 
 
 def _check_tables(table_folder, default_table_columns, merge_columns, assert_true):
@@ -18,7 +12,7 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
     assert_true(os.path.exists(default_table_path), f"Default table {default_table_path} does not exist.")
 
     # check that the default table contains all the expected columns
-    default_table = _load_table(default_table_path)
+    default_table = read_table(default_table_path)
     assert_true(default_table.shape[1] > 1, f"Default table {default_table_path} contains only a single column")
     for col in default_table_columns:
         assert_true(
@@ -42,7 +36,7 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
         ) - {default_table_path}
     )
     for table_path in additional_tables:
-        table = _load_table(table_path)
+        table = read_table(table_path)
         assert_true(table.shape[1] > 1, f"Table {table_path} contains only a single column")
 
         # check that the merge columns are present
@@ -102,12 +96,10 @@ def check_tables_in_view(
     # check that expected columns are in the loaded tables
     if expected_columns is not None:
 
-        tables = [_load_table(os.path.join(table_folder, "default.tsv"))]
+        tables = [read_table(os.path.join(table_folder, "default.tsv"))]
         if additional_tables is not None:
             for table in additional_tables:
-                tables.append(
-                    _load_table(os.path.join(table_folder, table))
-                )
+                tables.append(read_table(os.path.join(table_folder, table)))
 
         for col in expected_columns:
             have_expected_col = False

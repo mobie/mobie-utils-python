@@ -2,8 +2,9 @@ import os
 
 import mobie
 import numpy as np
-import pandas as pd
+
 from ..tables import compute_region_table
+from ..utils import read_table
 
 
 def _get_display(name, source_type, sources, settings):
@@ -296,11 +297,7 @@ def _require_table_source(ds_folder, metadata, table, name):
     if name in all_sources:
         return metadata, name
 
-    # the table can either be passed as filepath or pandas dataframe
-    if isinstance(table, str):
-        assert os.path.exists(table)
-        table = pd.read_csv(table, sep="\t")
-    assert isinstance(table, pd.DataFrame)
+    table = read_table(table)
     if "region_id" not in table:
         raise ValueError("Invalid region table")
 

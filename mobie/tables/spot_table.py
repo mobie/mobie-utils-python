@@ -2,14 +2,12 @@ import os
 import warnings
 
 import numpy as np
-import pandas as pd
+
+from ..utils import read_table
 
 
 def _process_additional_spot_table(input_table, table_out_path, spot_ids):
-    if isinstance(input_table, str):
-        input_table = pd.read_csv(input_table, sep="\t")
-    assert isinstance(input_table, pd.DataFrame)
-
+    input_table = read_table(input_table)
     if "spot_id" in input_table.columns:
         this_spot_ids = input_table["spot_id"].values
         # make sure there are no extra spot ids (missing ones are fine)
@@ -26,10 +24,7 @@ def process_spot_table(table_folder, input_table, is_2d, additional_tables=None,
     os.makedirs(table_folder, exist_ok=True)
 
     # process the input table
-    if isinstance(input_table, str):
-        input_table = pd.read_csv(input_table, sep="\t")
-    assert isinstance(input_table, pd.DataFrame)
-
+    input_table = read_table(input_table)
     if "spot_id" in input_table.columns:
         spot_ids = input_table["spot_id"].values
     else:

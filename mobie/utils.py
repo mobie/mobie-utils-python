@@ -6,6 +6,8 @@ from copy import deepcopy
 
 import elf.transformation as trafo_helper
 import mobie.metadata as metadata
+import pandas as pd
+
 from cluster_tools.cluster_tasks import BaseClusterTask
 from elf.io import open_file
 from mobie.validation import validate_view_metadata
@@ -19,6 +21,20 @@ FILE_FORMATS = [
     "ome.zarr.s3",
     "openOrganelle.s3"
 ]
+
+
+# tables can either be passed as filepath or as pandas DataFrame (in this case they are just returned)
+# this can later be extended to support tables in other data formats (ome.zarr)
+def read_table(table):
+    if isinstance(table, pd.DataFrame):
+        return table
+    # support reading tables in csv and tsv format
+    elif isinstance(table, str):
+        if not os.path.exists(table):
+            raise ValueError(f"Table {table} does not exist.")
+        return pd.read_csv(table, sep="\t" if os.path.splitext(table)[1] == ".tsv" else ",")
+    else:
+        raise ValueError(f"Invalid table format, expected either filepath or pandas DataFrame, got {type(table)}.")
 
 
 def get_data_key(file_format, scale, path=None):
