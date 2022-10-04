@@ -151,6 +151,14 @@ def _dynamic_view_source_validation(view, sources, displays, assert_true):
                     valid_sources = valid_sources.union(
                         {f"{source}_{grid_name}" for source in merged_grid_sources[nested_grid]}
                     )
+                # if we have a metadata source check that it is included in our actual sources
+                if "metadataSource" in transform_metadata:
+                    metadata_source = transform_metadata["metadataSource"]
+                    assert_true(metadata_source in valid_sources,
+                                f"Cannot find metadata source {metadata_source} in the list of sources.")
+                    # advanced checks: could check that the dtype, shape etc. agree for all sources,
+                    # see https://github.com/mobie/covid-if-project/issues/11#issue-1393850820
+                    # (but this would make the checks more complicated and they would potentially take much longer)
 
     # validate source displays
     if displays is not None:
