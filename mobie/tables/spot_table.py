@@ -3,7 +3,7 @@ import warnings
 
 import numpy as np
 
-from ..utils import read_table
+from .utils import read_table
 
 
 def _process_additional_spot_table(input_table, table_out_path, spot_ids):

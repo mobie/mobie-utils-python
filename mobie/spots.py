@@ -2,7 +2,7 @@ import argparse
 import os
 
 import mobie
-from mobie.tables import process_spot_table
+from mobie.tables import process_spot_table, read_table
 
 
 def _get_spot_metadata_from_source(dataset_folder, source, is_2d):
@@ -40,7 +40,7 @@ def _process_spot_metadata(
 
     # if bounding_box_min or max are not passed determine it from the table
     if bounding_box_min is None or bounding_box_max is None:
-        table = mobie.utils.read_table(os.path.join(table_folder, "default.tsv"))
+        table = read_table(os.path.join(table_folder, "default.tsv"))
         coordinates = table[["y", "x"]] if is_2d else table[["z", "y", "x"]]
         if bounding_box_min is None:
             bounding_box_min = coordinates.min(axis=0).values.tolist()

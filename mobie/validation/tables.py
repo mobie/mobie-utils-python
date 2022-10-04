@@ -1,8 +1,21 @@
 import os
 from glob import glob
 
+import pandas as pd
 from .utils import _assert_true
-from ..utils import read_table
+
+
+# need to duplicate this function from ..tables.utils to avoid circular imports
+def _read_table(table):
+    if isinstance(table, pd.DataFrame):
+        return table
+    # support reading tables in csv and tsv format
+    elif isinstance(table, str):
+        if not os.path.exists(table):
+            raise ValueError(f"Table {table} does not exist.")
+        return pd.read_csv(table, sep="\t" if os.path.splitext(table)[1] == ".tsv" else ",")
+    else:
+        raise ValueError(f"Invalid table format, expected either filepath or pandas DataFrame, got {type(table)}.")
 
 
 def _check_tables(table_folder, default_table_columns, merge_columns, assert_true):
@@ -12,7 +25,7 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
     assert_true(os.path.exists(default_table_path), f"Default table {default_table_path} does not exist.")
 
     # check that the default table contains all the expected columns
-    default_table = read_table(default_table_path)
+    default_table = _read_table(default_table_path)
     assert_true(default_table.shape[1] > 1, f"Default table {default_table_path} contains only a single column")
     for col in default_table_columns:
         assert_true(
@@ -36,7 +49,7 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
         ) - {default_table_path}
     )
     for table_path in additional_tables:
-        table = read_table(table_path)
+        table = _read_table(table_path)
         assert_true(table.shape[1] > 1, f"Table {table_path} contains only a single column")
 
         # check that the merge columns are present
@@ -96,10 +109,10 @@ def check_tables_in_view(
     # check that expected columns are in the loaded tables
     if expected_columns is not None:
 
-        tables = [read_table(os.path.join(table_folder, "default.tsv"))]
+        tables = [_read_table(os.path.join(table_folder, "default.tsv"))]
         if additional_tables is not None:
             for table in additional_tables:
-                tables.append(read_table(os.path.join(table_folder, table)))
+                tables.append(_read_table(os.path.join(table_folder, table)))
 
         for col in expected_columns:
             have_expected_col = False

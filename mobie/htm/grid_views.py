@@ -3,8 +3,7 @@ import os
 import mobie
 import numpy as np
 
-from ..tables import compute_region_table
-from ..utils import read_table
+from ..tables import compute_region_table, read_table
 
 
 def _get_display(name, source_type, sources, settings):

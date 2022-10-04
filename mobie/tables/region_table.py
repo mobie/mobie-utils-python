@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from ..utils import read_table
+from .utils import read_table
 
 
 def compute_region_table(sources, table_path, **additional_columns):
