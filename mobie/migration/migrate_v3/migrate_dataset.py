@@ -76,7 +76,7 @@ def migrate_merged_grid_spec(views):
             new_displays = []
             for display in displays:
                 display_type, disp = next(iter(display.items()))
-                if display_type == "regionDisplay":
+                if display_type == "regionDisplay" and updated_names:
                     sources = disp["sources"]
                     sources = {position: [updated_names[source] for source in position_sources]
                                for position, position_sources in sources.items()}
