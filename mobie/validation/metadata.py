@@ -1,6 +1,6 @@
 import os
 
-from elf.io import open_file
+# from elf.io import open_file
 from jsonschema import ValidationError
 from pybdv.metadata import get_name, get_data_path
 
@@ -57,11 +57,13 @@ def _check_data(storage, format_, name, dataset_folder,
         path = os.path.join(dataset_folder, storage["relativePath"])
         assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
 
-        with open_file(path, "r", ext=".zarr") as f:
-            ome_name = f.attrs["multiscales"][0]["name"]
-        # we can't do this check if we only load a sub-channel
-        if "channel" not in storage:
-            assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
+        # we disable the name check for the time being since it seems to not be necessary,
+        # AND restricting the name in this fashion prevents embedding existing ome.zarr files in mobie projects
+        # with open_file(path, "r", ext=".zarr") as f:
+        #     ome_name = f.attrs["multiscales"][0]["name"]
+        # # we can't do this check if we only load a sub-channel
+        # if "channel" not in storage:
+        #     assert_equal(name, ome_name, f"Source name and name in ngff metadata don't match: {name} != {ome_name}")
 
     # remote ome.zarr check:
     elif format_ == "ome.zarr.s3" and require_remote_data:

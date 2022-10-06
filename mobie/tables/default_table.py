@@ -107,7 +107,7 @@ def compute_default_table(seg_path, seg_key, table_path,
         seg_path [str] - input path to the segmentation
         seg_key [str] - key to the segmenation
         table_path [str] - path to the output table
-        resolution [list[folat]] - resolution of the data in microns
+        resolution [list[float]] - resolution of the data in microns
         tmp_folder [str] - folder for temporary files
         target [str] - computation target
         max_jobs [int] - number of jobs

@@ -8,6 +8,7 @@ from pybdv import metadata as bdv_metadata
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .utils import get_table_metadata
 from .view_metadata import get_default_view
+from ..tables import read_table
 from ..validation import validate_source_metadata, validate_view_metadata
 from ..validation.utils import load_json_from_s3
 
@@ -298,5 +299,34 @@ def add_source_to_dataset(
         validate_view_metadata(view)
         view_metadata[source_name] = view
         dataset_metadata["views"] = view_metadata
+
+    write_dataset_metadata(dataset_folder, dataset_metadata)
+
+
+def add_regions_to_dataset(dataset_folder, source_name, default_table, table_folder=None, additional_tables=None):
+    dataset_metadata = read_dataset_metadata(dataset_folder)
+    sources_metadata = dataset_metadata["sources"]
+
+    if table_folder is None:
+        table_folder = os.path.join(dataset_folder, "tables", source_name)
+    default_table = read_table(default_table)
+    os.makedirs(table_folder, exist_ok=True)
+    default_table.to_csv(os.path.join(table_folder, "default.tsv"),
+                         sep="\t", index=False, na_rep="nan")
+
+    if additional_tables is not None:
+        assert isinstance(additional_tables, dict)
+        for name, table in additional_tables.items():
+            table_path = os.path.join(table_folder, name if name.endswith(".tsv") else f"{name}.tsv")
+            default_table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
+
+    relative_table_location = os.path.relpath(table_folder, dataset_folder)
+    table_data = get_table_metadata(relative_table_location)
+    source_metadata = {"regions": {"tableData": table_data}}
+
+    is_2d = dataset_metadata.get("is2D", False)
+    validate_source_metadata(source_name, source_metadata, dataset_folder, is_2d=is_2d)
+    sources_metadata[source_name] = source_metadata
+    dataset_metadata["sources"] = sources_metadata
 
     write_dataset_metadata(dataset_folder, dataset_metadata)

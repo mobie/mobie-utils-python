@@ -510,7 +510,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         sources [list[list[str]]] - nested list of source names,
             each inner lists contains the source(s) for one grid position
         menu_name [str] - menu name for this view
-        table_source [str] - name of the table source for the region display that is create
+        table_source [str] - name of the table source for the region display that is created
             for this grid view. If the source is not present yet it will be created.
             If the table source is None than no region table and display will be created for this view (default: None)
         table_folder [str] - table folder to store the annotation table(s) for this grid.
