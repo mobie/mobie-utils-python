@@ -85,9 +85,14 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
 def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
                                service_endpoint, bucket_name, region=""):
     new_metadata = deepcopy(metadata)
-    source_type = list(metadata.keys())[0]
+    source_type, source_data = next(iter(metadata.items()))
 
-    for file_format, storage in metadata[source_type]["imageData"].items():
+    image_data = source_data.get("imageData", None)
+    if image_data is None:
+        assert source_type not in ("image", "segmentation")
+        return new_metadata
+
+    for file_format, storage in image_data.items():
         if file_format == "bdv.n5":
             new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
                                                 service_endpoint, bucket_name, region)
