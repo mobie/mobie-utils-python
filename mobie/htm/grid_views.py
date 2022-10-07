@@ -167,6 +167,11 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
     all_site_sources = {site_name: [] for site_name in site_names}
     for prefix in source_prefixes:
         prefix_sources = this_sources[prefix]
+
+        # add all the sources with this prefix to the site source list
+        for source in prefix_sources:
+            all_site_sources[source_name_to_site_name(source, prefix)].append(source)
+
         metadata_source = None
         for well in well_names:
             trafo_name = f"{well}_{prefix}"
@@ -175,21 +180,13 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
                 site_name_to_well_name(source_name_to_site_name(source, prefix)) == well
             ]
             source_type = list(metadata["sources"][prefix_sources[0]].keys())[0]
-            encode_source = True if source_type == "segmentation" else None
             if metadata_source is None:
                 metadata_source = well_sources[0]
             trafo = mobie.metadata.get_merged_grid_source_transform(
-                well_sources, trafo_name, encode_source=encode_source, center_at_origin=True,
-                metadata_source=metadata_source
+                well_sources, trafo_name, center_at_origin=True,
+                metadata_source=metadata_source,
             )
             source_transforms.append(trafo)
-
-            # add the sources with the updated names from the two merged grid transforms
-            # to to the big site source list
-            for source in well_sources:
-                all_site_sources[source_name_to_site_name(source, prefix)].append(
-                    f"{source}_{trafo_name}_plate_{prefix}"
-                )
 
     # create the grid transforms for arranging wells on the plate
     if well_to_position is None:
@@ -223,8 +220,9 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         source_displays.append(site_display)
 
         assert well_table is not None
-        all_plate_sources = {well: [f"{well}_{prefix}_plate_{prefix}" for prefix in source_prefixes]
-                             for well in well_names}
+        all_plate_sources = {
+            well: [f"{well}_{prefix}" for prefix in source_prefixes] for well in well_names
+        }
         well_display = mobie.metadata.get_region_display(
             "wells", all_plate_sources,
             table_source=well_table,

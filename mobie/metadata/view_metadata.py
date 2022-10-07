@@ -214,7 +214,7 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
 def get_merged_grid_source_transform(sources, merged_source_name,
                                      positions=None, timepoints=None,
                                      name=None, center_at_origin=None,
-                                     encode_source=None, metadata_source=None):
+                                     metadata_source=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -224,10 +224,6 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
-
-    if encode_source is not None:
-        assert isinstance(encode_source, bool)
-        grid_transform["encodeSource"] = encode_source
 
     if center_at_origin is not None:
         warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
@@ -429,7 +425,7 @@ def _to_transformed_grid(sources, positions, center_at_origin):
     return [grid_trafo]
 
 
-def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
+def _to_merged_grid(sources, name, positions, center_at_origin):
     assert isinstance(sources, (dict, list))
     grid_sources = sources if isinstance(sources, list) else list(sources.values())
     sources_per_pos = len(grid_sources[0])
@@ -438,7 +434,6 @@ def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
         get_merged_grid_source_transform(
            [source[ii] for source in grid_sources], f"{name}-{ii}",
            positions=positions, center_at_origin=center_at_origin,
-           encode_source=encode_source
         ) for ii in range(sources_per_pos)
     ]
     return source_transforms
@@ -500,8 +495,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transformed_grid=True, region_ids=None,
-                  encode_source=None):
+                  use_transformed_grid=True, region_ids=None):
     """ Create a view that places multiple sources in a grid.
 
     Arguments:
@@ -531,7 +525,6 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
             into a single source in the MoBIE viewer (default: True)
         region_ids [list[str]] - Custom keys for the regionDisplay source map (default: None)
-        encode_source [bool] - (default: None)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
 
@@ -595,7 +588,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
     if use_transformed_grid:
         source_transforms = _to_transformed_grid(grid_sources, positions, center_at_origin)
     else:
-        source_transforms = _to_merged_grid(grid_sources, name, positions, center_at_origin, encode_source)
+        source_transforms = _to_merged_grid(grid_sources, name, positions, center_at_origin)
 
     if additional_source_transforms is not None:
         assert isinstance(additional_source_transforms, list)
