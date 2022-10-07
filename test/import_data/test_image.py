@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from multiprocessing import cpu_count
@@ -77,6 +78,12 @@ class TestImportImage(unittest.TestCase):
             for scale in range(len(scales) + 1):
                 key = f"s{scale}"
                 self.assertIn(key, f)
+
+                attrs_path = os.path.join(out_path, key, ".zarray")
+                with open(attrs_path, "r") as ff:
+                    dimension_separator = json.load(ff).get("dimension_separator", ".")
+                self.assertEqual(dimension_separator, "/")
+
                 scale_data.append(f[key][:])
         self._check_data(exp_data, scale_data, scales)
 
