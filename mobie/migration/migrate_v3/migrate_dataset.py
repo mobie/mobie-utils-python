@@ -41,6 +41,11 @@ def migrate_table_spec(views, sources):
                         region_table_sources[table_source_name] = table_data
                     display["tableSource"] = table_source_name
 
+                elif display_type == "imageDisplay":
+                    blending_mode = display.get("blendingMode", None)
+                    if blending_mode == "sumOccluding":
+                        display["blendingMode"] = "alpha"
+
                 new_source_displays.append({display_type: display})
 
             view["sourceDisplays"] = new_source_displays
