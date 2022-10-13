@@ -576,8 +576,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
                 if display_group_settings is None:
                     # if not, we just take the first source"s display settings here
                     display_setting = deepcopy(views[source_name])
-                    setting_key = "imageDisplay" if source_type == "image" else "segmentationDisplay"
-                    display_setting = display_setting["sourceDisplays"][0][setting_key]
+                    display_setting = next(iter(display_setting["sourceDisplays"][0].values()))
                     display_setting.pop("name")
                     display_setting.pop("sources")
                 else:
