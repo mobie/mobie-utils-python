@@ -104,6 +104,7 @@ def migrate_view_file(view_file, sources):
 
 def migrate_views(folder):
     ds_meta = metadata.read_dataset_metadata(folder)
+    ds_meta.pop("timepoints", None)
     views, sources = ds_meta["views"], ds_meta["sources"]
 
     new_views, new_sources = migrate_table_spec(views, sources)

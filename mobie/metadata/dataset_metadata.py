@@ -35,14 +35,12 @@ def create_dataset_metadata(dataset_folder,
                             is2d=False,
                             views=None,
                             sources=None,
-                            default_location=None,
-                            n_timepoints=1):
+                            default_location=None):
     path = os.path.join(dataset_folder, "dataset.json")
     if os.path.exists(path):
         raise RuntimeError(f"Dataset metadata at {path} already exists")
     metadata = {
         "is2D": is2d,
-        "timepoints": n_timepoints,
         # we assume sources are already validated
         "sources": {} if sources is None else sources,
         # we assume views are already validated
