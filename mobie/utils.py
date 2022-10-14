@@ -4,6 +4,7 @@ import multiprocessing
 import os
 from copy import deepcopy
 
+import h5py
 import elf.transformation as trafo_helper
 import mobie.metadata as metadata
 
@@ -78,6 +79,8 @@ def require_dataset_and_view(root, dataset_name, file_format,
     if view is None:
         kwargs = {"contrastLimits": contrast_limits} if source_type == "image" else {}
         view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, **kwargs)
+    elif view == {}:
+        pass
     else:
         update_view = {}
         if menu_name is not None:
@@ -86,7 +89,8 @@ def require_dataset_and_view(root, dataset_name, file_format,
             update_view["contrastLimits"] = contrast_limits
         if update_view:
             view.update(update_view)
-    validate_view_metadata(view, sources=[source_name])
+    if view != {}:
+        validate_view_metadata(view, sources=[source_name])
 
     if not ds_exists:
         assert file_format is not None
@@ -261,3 +265,17 @@ def transformation_to_xyz(transform, invert=False):
     trafo = trafo_helper.parameters_to_matrix(transform)
     trafo = trafo_helper.native_to_bdv(trafo, invert=invert)
     return trafo
+
+
+def save_temp_input(data, tmp_folder, name):
+    os.makedirs(tmp_folder, exist_ok=True)
+
+    save_path = os.path.join(tmp_folder, f"{name}.h5")
+    save_key = "data"
+
+    with h5py.File(save_path, "a") as f:
+        if save_key in f:
+            return save_path, save_key
+        f.create_dataset(save_key, data=data, compression="gzip")
+
+    return save_path, save_key

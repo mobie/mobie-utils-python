@@ -205,6 +205,9 @@ def add_image(input_path, input_key,
     if channel is not None and file_format != "ome.zarr":
         raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
 
+    if isinstance(input_path, np.ndarray):
+        input_path, input_key = utils.save_temp_input(input_path, tmp_folder, image_name)
+
     # set default contrast_limits if we don't have a view
     # or if the passed view doesn't hav contrast limits
     if view is None or "contrastLimits" not in view:

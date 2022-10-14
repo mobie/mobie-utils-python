@@ -3,11 +3,51 @@ import os
 import luigi
 import numpy as np
 import pandas as pd
+import vigra
 
 from cluster_tools.morphology import MorphologyWorkflow
 from elf.io import open_file
+from skimage.measure import regionprops
 from .utils import remove_background_label_row, read_table
 from ..utils import write_global_config
+
+
+def check_and_copy_default_table(input_path, output_path, is_2d):
+    tab = read_table(input_path)
+    expected_column_names = {
+        "label_id",
+        "anchor_x", "anchor_y",
+        "bb_min_x", "bb_min_y",
+        "bb_max_x", "bb_max_y",
+    }
+    if not is_2d:
+        expected_column_names = expected_column_names.union({"anchor_z", "bb_min_z", "bb_max_z"})
+    missing_columns = list(expected_column_names - set(tab.columns))
+    if missing_columns:
+        raise ValueError(f"The table at {input_path} is missing the following expected columns: {missing_columns}")
+    tab.to_csv(output_path, sep="\t", index=False, na_rep="nan")
+
+
+def _compute_table_2d(seg_path, seg_key, resolution):
+    ndim = 2
+    with open_file(seg_path, "r") as f:
+        seg = f[seg_key][:]
+
+    centers = vigra.filters.eccentricityCenters(seg.astype("uint32"))
+    props = regionprops(seg)
+    tab = np.array([
+        [p.label]
+        + [ce / res for ce, res in zip(centers[p.label], resolution)]
+        + [float(bb) / res for bb, res in zip(p.bbox[:ndim], resolution)]
+        + [float(bb) / res for bb, res in zip(p.bbox[ndim:], resolution)]
+        + [p.area]
+        for p in props
+    ])
+
+    col_names = ["label_id", "anchor_y", "anchor_x",
+                 "bb_min_y", "bb_min_x", "bb_max_y", "bb_max_x", "n_pixels"]
+    assert tab.shape[1] == len(col_names), f"{tab.shape}, {len(col_names)}"
+    return pd.DataFrame(tab, columns=col_names)
 
 
 def _table_impl(input_path, input_key, tmp_folder, target, max_jobs):
@@ -28,8 +68,7 @@ def _table_impl(input_path, input_key, tmp_folder, target, max_jobs):
     return out_path, out_key
 
 
-def to_csv(input_path, input_key, output_path, resolution,
-           anchors=None):
+def _n5_to_pandas(input_path, input_key, resolution, anchors):
     # load the attributes from n5
     with open_file(input_path, "r") as f:
         attributes = f[input_key][:]
@@ -76,25 +115,22 @@ def to_csv(input_path, input_key, output_path, resolution,
     data = np.concatenate([label_ids, anchors, minc, maxc, attributes[:, 1:2]], axis=1)
     df = pd.DataFrame(data, columns=col_names)
     df = remove_background_label_row(df)
-    df.to_csv(output_path, sep="\t", index=False, na_rep="nan")
-
-    return label_ids
+    return df
 
 
-def check_and_copy_default_table(input_path, output_path, is_2d):
-    tab = read_table(input_path)
-    expected_column_names = {
-        "label_id",
-        "anchor_x", "anchor_y",
-        "bb_min_x", "bb_min_y",
-        "bb_max_x", "bb_max_y",
-    }
-    if not is_2d:
-        expected_column_names = expected_column_names.union({"anchor_z", "bb_min_z", "bb_max_z"})
-    missing_columns = list(expected_column_names - set(tab.columns))
-    if missing_columns:
-        raise ValueError(f"The table at {input_path} is missing the following expected columns: {missing_columns}")
-    tab.to_csv(output_path, sep="\t", index=False, na_rep="nan")
+def _compute_table_3d(seg_path, seg_key, resolution, correct_anchors, tmp_folder, target, max_jobs):
+    # prepare cluster tools tasks
+    write_global_config(os.path.join(tmp_folder, "configs"))
+    # make base attributes as n5 dataset
+    tmp_path, tmp_key = _table_impl(seg_path, seg_key, tmp_folder, target, max_jobs)
+    # TODO implement scalable anchor correction via distance transform maxima
+    # correct anchor positions
+    if correct_anchors:
+        raise NotImplementedError("Anchor correction is not implemented yet")
+        # anchors = anchor_correction(seg_path, seg_key, tmp_folder, target, max_jobs)
+    else:
+        anchors = None
+    return _n5_to_pandas(tmp_path, tmp_key, resolution, anchors)
 
 
 def compute_default_table(seg_path, seg_key, table_path,
@@ -115,24 +151,15 @@ def compute_default_table(seg_path, seg_key, table_path,
             Anchor points may be outside of objects in case of concave objects. (default: False)
     """
 
-    # prepare cluster tools tasks
-    write_global_config(os.path.join(tmp_folder, "configs"))
+    with open_file(seg_path, "r") as f:
+        ndim = f[seg_key].ndim
 
-    # make base attributes as n5 dataset
-    tmp_path, tmp_key = _table_impl(seg_path, seg_key,
-                                    tmp_folder, target, max_jobs)
-
-    # TODO implement scalable anchor correction via distance transform maxima
-    # correct anchor positions
-    if correct_anchors:
-        raise NotImplementedError("Anchor correction is not implemented yet")
-        # anchors = anchor_correction(seg_path, seg_key,
-        #                             tmp_folder, target, max_jobs)
+    if ndim == 2:
+        table = _compute_table_2d(seg_path, seg_key, resolution)
     else:
-        anchors = None
+        table = _compute_table_3d(seg_path, seg_key, resolution, correct_anchors, tmp_folder, target, max_jobs)
 
     # write output to csv
     table_folder = os.path.split(table_path)[0]
     os.makedirs(table_folder, exist_ok=True)
-    label_ids = to_csv(tmp_path, tmp_key, table_path, resolution, anchors)
-    return label_ids
+    table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
