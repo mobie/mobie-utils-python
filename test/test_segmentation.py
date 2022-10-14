@@ -115,7 +115,7 @@ class TestSegmentation(unittest.TestCase):
                          add_default_table=table_path)
         self.check_segmentation(dataset_folder, seg_name)
 
-    def test_add_numpy_3d(self):
+    def test_numpy_3d(self):
         from mobie import add_segmentation
         dataset_folder = os.path.join(self.root, self.dataset_name)
         seg_name = "seg"
@@ -129,7 +129,7 @@ class TestSegmentation(unittest.TestCase):
                          chunks=(64, 64, 64), tmp_folder=tmp_folder)
         self.check_segmentation(dataset_folder, seg_name)
 
-    def test_add_numpy_2d(self):
+    def test_numpy_2d(self):
         from mobie import add_segmentation
         dataset_folder = os.path.join(self.root, self.dataset_name)
         seg = self.data[0]
