@@ -106,8 +106,15 @@ def downscale(in_path, in_key, out_path,
 
 
 def compute_max_id(path, key, tmp_folder, target, max_jobs):
-    task = DataStatisticsWorkflow
+    # the workflow only works for 3d data, and 2d data is usually small enough to easily do this in memory
+    with open_file(path, "r") as f:
+        ds = f[key]
+        if ds.ndim == 2:
+            ds.n_threads = max_jobs
+            max_id = int(ds[:].max())
+            return max_id
 
+    task = DataStatisticsWorkflow
     stat_path = os.path.join(tmp_folder, "statistics.json")
     t = task(tmp_folder=tmp_folder, config_dir=os.path.join(tmp_folder, "configs"),
              target=target, max_jobs=max_jobs,
@@ -133,8 +140,7 @@ def add_max_id(in_path, in_key, out_path, out_key,
         max_id = f[in_key].attrs.get("maxId", None)
 
     if max_id is None:
-        max_id = compute_max_id(out_path, out_key,
-                                tmp_folder, target, max_jobs)
+        max_id = compute_max_id(out_path, out_key, tmp_folder, target, max_jobs)
 
     with open_file(out_path, "a") as f:
         f[out_key].attrs["maxId"] = int(max_id)

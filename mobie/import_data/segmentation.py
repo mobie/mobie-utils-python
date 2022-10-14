@@ -26,8 +26,9 @@ def import_segmentation(in_path, in_key, out_path,
         source_name [str] - name of the source (default: None)
         file_format [str] - the file format (default: "bdv.n5")
     """
-    in_path, in_key = ensure_volume(in_path, in_key,
-                                    tmp_folder, chunks)
+    # we allow 2d data for ome.zarr file format
+    if file_format != "ome.zarr":
+        in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
 
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,

@@ -2,6 +2,7 @@ import multiprocessing
 import os
 
 import mobie
+import numpy as np
 import pandas as pd
 
 from mobie.import_data import (import_segmentation,
@@ -53,6 +54,9 @@ def add_segmentation(input_path, input_key,
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this segmentation (default: None)
     """
+    if isinstance(input_path, np.ndarray):
+        input_path, input_key = mobie.utils.save_temp_input(input_path, tmp_folder, segmentation_name)
+
     view = mobie.utils.require_dataset_and_view(root, dataset_name, file_format,
                                                 source_type="segmentation",
                                                 source_name=segmentation_name,
