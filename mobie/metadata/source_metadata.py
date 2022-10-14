@@ -250,7 +250,7 @@ def add_source_to_dataset(
             and it only needs to be passed here if autodetection fails (default: None)
         view [dict] - view for this source. If None, will create a default view.
             If empty dict, will not add a view (default: None)
-        table_folder [str] - table folder for segmentations. (default: None)
+        table_folder [str] - table folder for segmentations and spots. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
         description [str] - description for this source (default: None)
         channel [int] - the channel to load from the data.
