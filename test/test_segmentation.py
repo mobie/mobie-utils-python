@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from elf.io import open_file
+from pybdv.metadata import get_data_path
 from pybdv.util import get_key
 
 
@@ -34,18 +35,29 @@ class TestSegmentation(unittest.TestCase):
         except OSError:
             pass
 
-    def check_segmentation(self, dataset_folder, name):
+    def check_segmentation(self, dataset_folder, name, exp_data=None):
         self.assertTrue(os.path.exists(dataset_folder))
-        exp_data = self.data
+        if exp_data is None:
+            exp_data = self.data
 
         # check the segmentation metadata
         metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
         self.assertIn(name, metadata["sources"])
 
         # check the segmentation data
-        seg_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
+        image_metadata = metadata["sources"][name]["segmentation"]["imageData"]
+        assert len(image_metadata) == 1
+        format_, format_metadata = next(iter(image_metadata.items()))
+        rel_data_path = format_metadata["relativePath"]
+        seg_path = os.path.join(dataset_folder, rel_data_path)
+
+        if format_ == "bdv.n5":
+            seg_path = get_data_path(seg_path, True)
+            key = get_key(False, 0, 0, 0)
+        else:
+            key = "s0"
         self.assertTrue(os.path.exists(seg_path))
-        key = get_key(False, 0, 0, 0)
+
         with open_file(seg_path, "r") as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
@@ -102,6 +114,42 @@ class TestSegmentation(unittest.TestCase):
                          chunks=(64, 64, 64), tmp_folder=tmp_folder,
                          add_default_table=table_path)
         self.check_segmentation(dataset_folder, seg_name)
+
+    def test_add_numpy_3d(self):
+        from mobie import add_segmentation
+        dataset_folder = os.path.join(self.root, self.dataset_name)
+        seg_name = "seg"
+
+        tmp_folder = os.path.join(self.test_folder, "tmp-seg")
+
+        scales = [[2, 2, 2]]
+        add_segmentation(self.data, None,
+                         self.root, self.dataset_name, seg_name,
+                         resolution=(1, 1, 1), scale_factors=scales,
+                         chunks=(64, 64, 64), tmp_folder=tmp_folder)
+        self.check_segmentation(dataset_folder, seg_name)
+
+    def test_add_numpy_2d(self):
+        from mobie import add_segmentation
+        dataset_folder = os.path.join(self.root, self.dataset_name)
+        seg = self.data[0]
+
+        scales = [[2, 2]]
+        tmp_folder = os.path.join(self.test_folder, "tmp-im")
+        mobie.add_image(np.random.rand(*seg.shape), None, self.root, self.dataset_name, "image",
+                        resolution=(1, 1), scale_factors=scales,
+                        chunks=(64, 64), tmp_folder=tmp_folder,
+                        file_format="ome.zarr")
+        mobie.metadata.set_is2d(dataset_folder, True)
+
+        seg_name = "seg"
+        tmp_folder = os.path.join(self.test_folder, "tmp-seg")
+
+        add_segmentation(seg, None, self.root, self.dataset_name, seg_name,
+                         resolution=(1, 1), scale_factors=scales,
+                         chunks=(64, 64), tmp_folder=tmp_folder,
+                         file_format="ome.zarr")
+        self.check_segmentation(dataset_folder, seg_name, seg)
 
     def test_add_segmentation_with_wrong_initial_table(self):
         from mobie import add_segmentation
