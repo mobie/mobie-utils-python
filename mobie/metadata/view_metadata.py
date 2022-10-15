@@ -404,7 +404,8 @@ def get_default_view(source_type, source_name, menu_name=None,
         viewer_transform [dict] - dict with viewer transform (default: None)
         **kwargs - additional settings for this view
     """
-    menu_name = f"{source_type}s" if menu_name is None else menu_name
+    if menu_name is None:
+        menu_name = source_type if source_type.endswith("s") else f"{source_type}s"
     if source_transform is None:
         source_transforms = None
     else:
