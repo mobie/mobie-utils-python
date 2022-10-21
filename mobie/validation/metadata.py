@@ -50,7 +50,7 @@ def _check_data(storage, format_, name, dataset_folder,
         # check that the referenced local file path exists
         elif require_local_data:
             data_path = get_data_path(path, return_absolute_path=True)
-            assert_true(os.path.exists(data_path))
+            assert_true(os.path.exists(data_path), f"Can't find local data @ {data_path}")
 
     # local ome.zarr check: source name and name in the ome.zarr metadata agree
     elif format_ == "ome.zarr" and require_local_data:
@@ -156,7 +156,7 @@ def _dynamic_view_source_validation(view, sources, displays, assert_true):
     # validate source displays
     if displays is not None:
         for display in displays:
-            display_metadata = list(display.values())[0]
+            display_metadata = next(iter(display.values()))
             display_sources = display_metadata["sources"]
             if isinstance(display_sources, dict):
                 display_sources = [source for this_sources in display_sources.values() for source in this_sources]
@@ -209,6 +209,40 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
                     )
 
 
+def _dynamic_view_display_validation(displays, dataset_folder, dataset_metadata, assert_true):
+    sources = dataset_metadata["sources"]
+
+    display_to_source_type = {"spotDisplay": "spots", "imageDisplay": "image", "segmentationDisplay": "segmentation"}
+
+    for display in displays:
+        display_type, display_data = next(iter(display.items()))
+
+        # nothing to check for region displays
+        if display_type == "regionDisplay":
+            continue
+
+        this_sources = display_data["sources"]
+        if isinstance(this_sources, dict):
+            this_sources = [source for this_sources in this_sources.values() for source in this_sources]
+        # we may have transient sources that are created in the view and which are not part of the sources listed
+        # in the dataset metadata. We can't check those for correctness, so we skip them here.
+        this_sources = [source for source in this_sources if source in sources]
+
+        expected_source_type = display_to_source_type[display_type]
+        assert_true(
+            all((next(iter(sources[name])) == expected_source_type for name in this_sources)),
+            f"Not all sources are of the expected type {expected_source_type} for a {display_type}"
+        )
+
+        # for segmentation displays: make sure that either all or none of the sources have table data
+        if display_type == "segmentationDisplay":
+            have_table = ["tableData" in next(iter(sources[name].values())) for name in this_sources]
+            if any(have_table):
+                assert_true(
+                    all(have_table), "Either all or none of the sources in a segmentation display need to have tables"
+                )
+
+
 def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true, dataset_metadata=None):
     # static validation with json schema
     try:
@@ -234,6 +268,9 @@ def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=
     if sources is not None:
         _dynamic_view_source_validation(view, sources, displays, assert_true)
 
+    # dynamic validation: check that the sourceDisplays are correct.
+    # can only be checked if the dataset_metadata nd dataset_folder are passed
     if displays is not None and dataset_metadata is not None:
         assert dataset_folder is not None
+        _dynamic_view_display_validation(displays, dataset_folder, dataset_metadata, assert_true)
         _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, assert_true)
