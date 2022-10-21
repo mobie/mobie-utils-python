@@ -73,6 +73,15 @@ The package also installs some command line scripts that can create MoBIE projec
 
 Run `<COMMAND-NAME> --help` to get more information on how to use them.
 
+## Updating MoBIE projects
+
+This library also provides functionality to update MoBIE projects to new specification versions. Updating is performed with the command line function `mobie.migrate_project`. Its only mandatory argument is the filepat to the project data:
+```
+mobie.migrate_project data
+```
+**Warning**: this command will update the metadata files without creating backups. You should either run this on projects within git, or create a manual backup of your project.
+
+The most recent update is from version `0.2.1` to `0.3.0`. Previous version updates can be performed by passing the `-v` flag to the `migrate_project` command.
 
 ## Citation
 
