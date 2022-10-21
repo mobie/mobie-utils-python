@@ -1,8 +1,10 @@
 import multiprocessing
 import os
 
-import mobie.metadata as metadata
-import mobie.utils as utils
+import mobie
+import numpy as np
+import pandas as pd
+
 from mobie.import_data import (import_segmentation,
                                import_segmentation_from_node_labels,
                                import_segmentation_from_paintera,
@@ -41,9 +43,9 @@ def add_segmentation(input_path, input_key,
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
-        add_default_table [bool, str] - whether to add the default table.
-            Can also be a filepath to a table, that will then be used instead
-            of calculating the default table (default: True)
+        add_default_table [bool, str, pd.DataFrame] - whether to add the default table.
+            Can also be a filepath to a table or a pandas DataFrame.
+            In the two latter cases the default table will be initialized from the passed data. (default: True)
         view [dict] - default view settings for this source (default: None)
         postprocess_config [dict] - config for postprocessing,
             only available for paintera dataset (default: None)
@@ -52,20 +54,21 @@ def add_segmentation(input_path, input_key,
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this segmentation (default: None)
     """
-    view = utils.require_dataset_and_view(root, dataset_name, file_format,
-                                          source_type="segmentation",
-                                          source_name=segmentation_name,
-                                          menu_name=menu_name, view=view,
-                                          is_default_dataset=is_default_dataset)
-    if add_default_table:
-        view["sourceDisplays"][0]["segmentationDisplay"]["tables"] = ["default.tsv"]
+    if isinstance(input_path, np.ndarray):
+        input_path, input_key = mobie.utils.save_temp_input(input_path, tmp_folder, segmentation_name)
+
+    view = mobie.utils.require_dataset_and_view(root, dataset_name, file_format,
+                                                source_type="segmentation",
+                                                source_name=segmentation_name,
+                                                menu_name=menu_name, view=view,
+                                                is_default_dataset=is_default_dataset)
 
     dataset_folder = os.path.join(root, dataset_name)
     tmp_folder = f"tmp_{dataset_name}_{segmentation_name}" if tmp_folder is None else tmp_folder
 
     # import the segmentation data
-    data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format,
-                                                              segmentation_name)
+    data_path, image_metadata_path = mobie.utils.get_internal_paths(dataset_folder, file_format,
+                                                                    segmentation_name)
     if node_label_path is not None:
         if node_label_key is None:
             raise ValueError("Expect node_label_key if node_label_path is given")
@@ -93,34 +96,35 @@ def add_segmentation(input_path, input_key,
                             file_format=file_format)
 
     # we initialize with an already computed default table
-    if isinstance(add_default_table, str):
+    if isinstance(add_default_table, (str, pd.DataFrame)):
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
         table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
         input_table = add_default_table
-        check_and_copy_default_table(input_table, table_path)
+        is_2d = mobie.metadata.read_dataset_metadata(dataset_folder).get("is2D", False)
+        check_and_copy_default_table(input_table, table_path, is_2d)
     # compute the default segmentation table
     elif add_default_table:
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
         table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
-        key = utils.get_data_key(file_format, scale=0, path=data_path)
+        key = mobie.utils.get_data_key(file_format, scale=0, path=data_path)
         compute_default_table(data_path, key, table_path, resolution,
                               tmp_folder=tmp_folder, target=target,
                               max_jobs=max_jobs)
     else:
         table_folder = None
 
-    # add the segmentation to the image dict
-    metadata.add_source_to_dataset(dataset_folder, "segmentation",
-                                   segmentation_name, image_metadata_path,
-                                   table_folder=table_folder, view=view,
-                                   description=description)
+    # add the segmentation to the dataset metadata
+    mobie.metadata.add_source_to_dataset(dataset_folder, "segmentation",
+                                         segmentation_name, image_metadata_path,
+                                         table_folder=table_folder, view=view,
+                                         description=description)
 
 
 def main():
     description = "Add segmentation source to MoBIE dataset."
-    parser = utils.get_base_parser(description)
+    parser = mobie.utils.get_base_parser(description)
     parser.add_argument("--node_label_path", type=str, default=None,
                         help="path to the node_labels for the segmentation")
     parser.add_argument("--node_label_key", type=str, default=None,
@@ -129,8 +133,8 @@ def main():
                         help="whether to add the default table")
     args = parser.parse_args()
 
-    resolution, scale_factors, chunks, transformation = utils.parse_spatial_args(args)
-    view = utils.parse_view(args)
+    resolution, scale_factors, chunks, transformation = mobie.utils.parse_spatial_args(args)
+    view = mobie.utils.parse_view(args)
 
     if transformation is not None:
         raise NotImplementedError("Transformation is currently not supported")

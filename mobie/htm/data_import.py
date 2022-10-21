@@ -43,7 +43,7 @@ def _copy_image_data(files, key, root,
 
 
 def _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d):
-    ds_exists = utils.require_dataset(root, dataset_name, file_format)
+    ds_exists = utils.require_dataset(root, dataset_name)
     dataset_folder = os.path.join(root, dataset_name)
     if not ds_exists:
         metadata.create_dataset_structure(root, dataset_name, [file_format])

@@ -236,6 +236,18 @@ class TestImageData(unittest.TestCase):
         self.check_data(dataset_folder, im_name)
 
     #
+    # test with numpy data
+    #
+    def test_numpy(self):
+        im_name = "test-data"
+        scales = [[2, 2, 2]]
+        add_image(self.data, None, self.root, self.dataset_name, im_name,
+                  resolution=(1, 1, 1), scale_factors=scales,
+                  chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                  target="local", max_jobs=self.max_jobs)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+    #
     # data validation
     #
 

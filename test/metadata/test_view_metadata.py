@@ -30,7 +30,7 @@ class TestViewMetadata(unittest.TestCase):
             {"contrastLimits": [-10., 20000000.]},
             {"showImagesIn3d": True},
             {"showImagesIn3d": True, "resolution3dView": [10., 10., 12.]},
-            {"blendingMode": "sumOccluding"},
+            {"blendingMode": "alpha"},
         ]
         for kwargs in custom_kwargs:
             view = get_default_view("image", "my-image", **kwargs)
@@ -83,7 +83,7 @@ class TestViewMetadata(unittest.TestCase):
         custom_kwargs = [
             {"opacity": 0.5, "lut": "glasbey"},
             {"opacity": 0.9, "lut": "viridis",
-             "colorByColumn": "colname", "showSelectedSegmentsIn3d": True, "tables": ["a.csv", "b.tsv"],
+             "colorByColumn": "colname", "showSelectedSegmentsIn3d": True, "additionalTables": ["a.csv", "b.tsv"],
              "valueLimits": [0, 2500]},
             {"selectedSegmentIds": ["my-seg;0;1", "my-seg;0;2", "my-seg;1;10"]},
             {"showAsBoundaries": True, "boundaryThickness": 12}
@@ -135,6 +135,53 @@ class TestViewMetadata(unittest.TestCase):
         ]
         for trafo in invalid_trafos:
             view = get_default_view("image", "my-image", source_transform=trafo)
+            with self.assertRaises(ValidationError):
+                validate_with_schema(view, "view")
+
+    def test_spots_view(self):
+        from mobie.metadata import get_default_view
+
+        # test the default view
+        view = get_default_view("spots", "my-spots")
+        validate_with_schema(view, "view")
+
+        # test custom segmentation settings
+        custom_kwargs = [
+            {"opacity": 0.5, "lut": "glasbey"},
+            {"opacity": 0.9, "lut": "viridis",
+             "colorByColumn": "colname", "additionalTables": ["a.csv", "b.tsv"], "valueLimits": [0, 2500]},
+            {"selectedSpotIds": ["my-spots;0;1", "my-spots;0;2", "my-spots;1;10"]},
+            {"showAsBoundaries": True, "boundaryThickness": 12},
+            {"spotRadius": 12.3}
+        ]
+        for kwargs in custom_kwargs:
+            view = get_default_view("spots", "my-spots", **kwargs)
+            validate_with_schema(view, "view")
+
+        # test missing fields
+        view = get_default_view("spots", "my-spots")
+        view["sourceDisplays"][0]["spotDisplay"].pop("opacity")
+        with self.assertRaises(ValidationError):
+            validate_with_schema(view, "view")
+
+        # test invalid fields
+        view = get_default_view("spots", "my-spots")
+        view["sourceDisplays"][0]["spotDisplay"]["foo"] = "bar"
+        with self.assertRaises(ValidationError):
+            validate_with_schema(view, "view")
+
+        # test invalid values
+        invalid_kwargs = [
+            {"opacity": 10},
+            {"lut": "red"},
+            {"lut": "foobar"},
+            {"spotRadius": "42a"},
+            {"selectedSpotIds": ["my-spots,0,2"]},
+            {"selectedSpotIds": ["my-spots/abc;0;2"]},
+            {"selectedSpotIds": ["my-spotsc;abba;2"]}
+        ]
+        for kwargs in invalid_kwargs:
+            view = get_default_view("spots", "my-spots", **kwargs)
             with self.assertRaises(ValidationError):
                 validate_with_schema(view, "view")
 

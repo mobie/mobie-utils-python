@@ -1,6 +1,7 @@
 import argparse
 from .migrate_v1.migrate import migrate_to_mobie as migrate_project_v1
 from .migrate_v2 import migrate_project as migrate_project_v2
+from .migrate_v3 import migrate_project as migrate_project_v3
 
 
 def main():
@@ -8,8 +9,9 @@ def main():
     parser.add_argument("root", type=str)
     msg = """Migration script version: choose one of
         1) migrate from platybrowser spec to MoBIE spec 0.1
-        2) migrate spec 0.1 to 0.2"""
-    parser.add_argument("--version", "-v", type=int, default=2, help=msg)
+        2) migrate spec 0.1 to 0.2
+        3) migrate spec 0.2 to 0.3"""
+    parser.add_argument("--version", "-v", type=int, default=3, help=msg)
     parser.add_argument("--pattern", "-p", type=str, default="*")
     parser.add_argument("--anon", "-a", type=int, default=1)
     parser.add_argument("--update_view_spec", "-u", default=0, type=int)
@@ -29,6 +31,8 @@ def main():
                            update_table_spec=bool(args.update_table_spec),
                            update_grid_spec=bool(args.update_grid_spec),
                            update_name_spec=bool(args.update_name_spec))
+    elif version == 3:
+        migrate_project_v3(args.root)
     else:
         raise ValueError(f"Invalid version {version}")
 

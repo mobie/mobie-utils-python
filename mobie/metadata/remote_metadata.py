@@ -7,7 +7,7 @@ from warnings import warn
 from pybdv.metadata import get_data_path
 
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
-from .project_metadata import get_datasets, read_project_metadata, project_exists, write_project_metadata
+from .project_metadata import get_datasets, project_exists
 from ..xml_utils import copy_xml_as_n5_s3, read_path_in_bucket
 
 
@@ -27,21 +27,10 @@ def add_remote_project_metadata(
     """
     assert project_exists(root), f"Cannot find MoBIE project at {root}"
     datasets = get_datasets(root)
-    new_file_formats = None
     for dataset_name in datasets:
-        this_new_file_formats = add_remote_dataset_metadata(root, dataset_name, bucket_name,
-                                                            service_endpoint=service_endpoint,
-                                                            region=region)
-        if new_file_formats is None:
-            new_file_formats = this_new_file_formats
-        else:
-            assert len(set(new_file_formats) - set(this_new_file_formats)) == 0
-
-    metadata = read_project_metadata(root)
-    file_formats = metadata["imageDataFormats"]
-    file_formats = list(set(file_formats).union(set(new_file_formats)))
-    metadata["imageDataFormats"] = file_formats
-    write_project_metadata(root, metadata)
+        add_remote_dataset_metadata(
+            root, dataset_name, bucket_name, service_endpoint=service_endpoint, region=region
+        )
 
 
 def _to_bdv_s3(file_format,
@@ -93,27 +82,29 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
     return "ome.zarr.s3", s3_storage
 
 
-def add_remote_source_metadata(metadata, new_file_formats,
-                               dataset_folder, dataset_name,
+def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
                                service_endpoint, bucket_name, region=""):
     new_metadata = deepcopy(metadata)
-    source_type = list(metadata.keys())[0]
+    source_type, source_data = next(iter(metadata.items()))
 
-    for file_format, storage in metadata[source_type]["imageData"].items():
+    image_data = source_data.get("imageData", None)
+    if image_data is None:
+        assert source_type not in ("image", "segmentation")
+        return new_metadata
+
+    for file_format, storage in image_data.items():
         if file_format == "bdv.n5":
             new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
                                                 service_endpoint, bucket_name, region)
             new_metadata[source_type]["imageData"][new_format] = s3_storage
-            new_file_formats.add(new_format)
         elif file_format == "ome.zarr":
             new_format, s3_storage = _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
                                                      service_endpoint, bucket_name, region)
             new_metadata[source_type]["imageData"][new_format] = s3_storage
-            new_file_formats.add(new_format)
         else:
             warn(f"Data in the {file_format} format cannot be uploaded to s3.")
 
-    return new_metadata, new_file_formats
+    return new_metadata
 
 
 def add_remote_dataset_metadata(
@@ -138,18 +129,14 @@ def add_remote_dataset_metadata(
     sources = ds_metadata["sources"]
     new_sources = deepcopy(sources)
 
-    new_file_formats = set()
-
     for name, metadata in sources.items():
-        new_metadata, new_file_formats = add_remote_source_metadata(metadata, new_file_formats,
-                                                                    dataset_folder, dataset_name,
-                                                                    service_endpoint, bucket_name, region)
+        new_metadata = add_remote_source_metadata(
+            metadata, dataset_folder, dataset_name, service_endpoint, bucket_name, region
+        )
         new_sources[name] = new_metadata
 
     ds_metadata["sources"] = new_sources
     write_dataset_metadata(dataset_folder, ds_metadata)
-
-    return list(new_file_formats)
 
 
 def upload_source(dataset_folder, metadata, data_format, bucket_name, s3_prefix="embl", client="minio"):

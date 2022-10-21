@@ -8,6 +8,7 @@ from pybdv import metadata as bdv_metadata
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .utils import get_table_metadata
 from .view_metadata import get_default_view
+from ..tables import read_table
 from ..validation import validate_source_metadata, validate_view_metadata
 from ..validation.utils import load_json_from_s3
 
@@ -123,6 +124,25 @@ def get_resolution(source_metadata, dataset_folder):
     return resolution
 
 
+def get_unit(source_metadata, dataset_folder):
+    data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
+    if data_format.startswith("bdv"):
+        unit = bdv_metadata.get_unit(image_metadata, setup_id=0)
+    elif data_format.startswith("ome.zarr"):
+        axes = image_metadata["datasets"][0]["axes"]
+        unit = None
+        for ax in axes:
+            ax_unit = ax.get("unit", None)
+            if ax_unit is not None and ax["type"] == "space":
+                if unit is None:
+                    unit = ax_unit
+                elif unit != ax_unit:
+                    raise RuntimeError(f"Incosistent units: {unit} and {ax_unit}")
+    else:
+        raise ValueError(f"Unsupported data format {data_format}")
+    return unit
+
+
 #
 # functionality for creating source metadata and adding it to datasets
 #
@@ -184,6 +204,27 @@ def get_segmentation_metadata(dataset_folder, metadata_path,
     return source_metadata
 
 
+def get_spot_metadata(dataset_folder, table_folder,
+                      bounding_box_min,
+                      bounding_box_max,
+                      unit,
+                      description=None):
+    relative_table_location = os.path.relpath(table_folder, dataset_folder)
+    table_data = get_table_metadata(relative_table_location)
+
+    source_metadata = {
+        "spots": {
+            "boundingBoxMin": bounding_box_min,
+            "boundingBoxMax": bounding_box_max,
+            "tableData": table_data,
+            "unit": unit,
+        }
+    }
+    if description is not None:
+        source_metadata["spots"]["description"] = description
+    return source_metadata
+
+
 def add_source_to_dataset(
     dataset_folder,
     source_type,
@@ -195,6 +236,7 @@ def add_source_to_dataset(
     overwrite=True,
     description=None,
     channel=None,
+    **kwargs,
 ):
     """ Add source metadata to a MoBIE dataset.
 
@@ -208,19 +250,16 @@ def add_source_to_dataset(
             and it only needs to be passed here if autodetection fails (default: None)
         view [dict] - view for this source. If None, will create a default view.
             If empty dict, will not add a view (default: None)
-        table_folder [str] - table folder for segmentations. (default: None)
+        table_folder [str] - table folder for segmentations and spots. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
         description [str] - description for this source (default: None)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        kwargs - additional keyword arguments for spot source
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
     view_metadata = dataset_metadata["views"]
-
-    # validate the arguments
-    if source_type not in ("image", "segmentation"):
-        raise ValueError(f"Expect source_type to be 'image' or 'segmentation', got {source_type}")
 
     if source_name in sources_metadata or source_name in view_metadata:
         msg = f"A source with name {source_name} already exists for the dataset {dataset_folder}"
@@ -234,14 +273,23 @@ def add_source_to_dataset(
                                              file_format=file_format,
                                              channel=channel,
                                              description=description)
-    else:
+    elif source_type == "segmentation":
         source_metadata = get_segmentation_metadata(dataset_folder,
                                                     image_metadata_path,
                                                     table_folder,
                                                     file_format=file_format,
                                                     channel=channel,
                                                     description=description)
-    validate_source_metadata(source_name, source_metadata, dataset_folder)
+    elif source_type == "spots":
+        source_metadata = get_spot_metadata(dataset_folder,
+                                            table_folder,
+                                            description=description,
+                                            **kwargs)
+    else:
+        raise ValueError(f"Invalid source type: {source_type}, expect one of 'image', 'segmentation' or 'spots'")
+
+    is_2d = dataset_metadata.get("is2D", False)
+    validate_source_metadata(source_name, source_metadata, dataset_folder, is_2d=is_2d)
     sources_metadata[source_name] = source_metadata
     dataset_metadata["sources"] = sources_metadata
 
@@ -251,5 +299,34 @@ def add_source_to_dataset(
         validate_view_metadata(view)
         view_metadata[source_name] = view
         dataset_metadata["views"] = view_metadata
+
+    write_dataset_metadata(dataset_folder, dataset_metadata)
+
+
+def add_regions_to_dataset(dataset_folder, source_name, default_table, table_folder=None, additional_tables=None):
+    dataset_metadata = read_dataset_metadata(dataset_folder)
+    sources_metadata = dataset_metadata["sources"]
+
+    if table_folder is None:
+        table_folder = os.path.join(dataset_folder, "tables", source_name)
+    default_table = read_table(default_table)
+    os.makedirs(table_folder, exist_ok=True)
+    default_table.to_csv(os.path.join(table_folder, "default.tsv"),
+                         sep="\t", index=False, na_rep="nan")
+
+    if additional_tables is not None:
+        assert isinstance(additional_tables, dict)
+        for name, table in additional_tables.items():
+            table_path = os.path.join(table_folder, name if name.endswith(".tsv") else f"{name}.tsv")
+            default_table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
+
+    relative_table_location = os.path.relpath(table_folder, dataset_folder)
+    table_data = get_table_metadata(relative_table_location)
+    source_metadata = {"regions": {"tableData": table_data}}
+
+    is_2d = dataset_metadata.get("is2D", False)
+    validate_source_metadata(source_name, source_metadata, dataset_folder, is_2d=is_2d)
+    sources_metadata[source_name] = source_metadata
+    dataset_metadata["sources"] = sources_metadata
 
     write_dataset_metadata(dataset_folder, dataset_metadata)

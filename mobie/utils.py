@@ -4,8 +4,10 @@ import multiprocessing
 import os
 from copy import deepcopy
 
+import h5py
 import elf.transformation as trafo_helper
 import mobie.metadata as metadata
+
 from cluster_tools.cluster_tasks import BaseClusterTask
 from elf.io import open_file
 from mobie.validation import validate_view_metadata
@@ -57,15 +59,13 @@ def get_internal_paths(dataset_folder, file_format, name):
     raise ValueError(f"Data creation for the file format {file_format} is not supported.")
 
 
-def require_dataset(root, dataset_name, file_format):
+def require_dataset(root, dataset_name):
     # check if we have the project and dataset already
     proj_exists = metadata.project_exists(root)
     if proj_exists:
-        if not metadata.has_file_format(root, file_format):
-            raise ValueError("")
         ds_exists = metadata.dataset_exists(root, dataset_name)
     else:
-        metadata.create_project_metadata(root, [file_format])
+        metadata.create_project_metadata(root)
         ds_exists = False
     return ds_exists
 
@@ -73,12 +73,14 @@ def require_dataset(root, dataset_name, file_format):
 def require_dataset_and_view(root, dataset_name, file_format,
                              source_type, source_name, menu_name,
                              view, is_default_dataset, contrast_limits=None):
-    ds_exists = require_dataset(root, dataset_name, file_format)
+    ds_exists = require_dataset(root, dataset_name)
 
     dataset_folder = os.path.join(root, dataset_name)
     if view is None:
         kwargs = {"contrastLimits": contrast_limits} if source_type == "image" else {}
         view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, **kwargs)
+    elif view == {}:
+        pass
     else:
         update_view = {}
         if menu_name is not None:
@@ -87,9 +89,11 @@ def require_dataset_and_view(root, dataset_name, file_format,
             update_view["contrastLimits"] = contrast_limits
         if update_view:
             view.update(update_view)
-    validate_view_metadata(view, sources=[source_name])
+    if view != {}:
+        validate_view_metadata(view, sources=[source_name])
 
     if not ds_exists:
+        assert file_format is not None
         metadata.create_dataset_structure(root, dataset_name, [file_format])
         default_view = deepcopy(view)
         default_view.update({"uiSelectionGroup": "bookmark"})
@@ -202,7 +206,7 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
     if copy_misc is not None and not callable(copy_misc):
         raise ValueError("copy_misc must be callable")
 
-    file_formats = metadata.get_file_formats(root)
+    file_formats = metadata.dataset_metadata.get_file_formats(os.path.join(root, src_dataset))
     dst_folder = metadata.create_dataset_structure(root, dst_dataset, file_formats)
     src_folder = os.path.join(root, src_dataset)
     metadata.copy_dataset_folder(src_folder, dst_folder, copy_misc=copy_misc)
@@ -261,3 +265,17 @@ def transformation_to_xyz(transform, invert=False):
     trafo = trafo_helper.parameters_to_matrix(transform)
     trafo = trafo_helper.native_to_bdv(trafo, invert=invert)
     return trafo
+
+
+def save_temp_input(data, tmp_folder, name):
+    os.makedirs(tmp_folder, exist_ok=True)
+
+    save_path = os.path.join(tmp_folder, f"{name}.h5")
+    save_key = "data"
+
+    with h5py.File(save_path, "a") as f:
+        if save_key in f:
+            return save_path, save_key
+        f.create_dataset(save_key, data=data, compression="gzip")
+
+    return save_path, save_key

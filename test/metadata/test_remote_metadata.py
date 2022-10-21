@@ -4,11 +4,11 @@ from shutil import rmtree
 from subprocess import run
 from sys import platform
 
+import mobie
 import numpy as np
+import pandas as pd
 
 from elf.io import open_file
-from mobie import add_image
-from mobie.metadata import read_dataset_metadata, read_project_metadata
 from mobie.xml_utils import parse_s3_xml
 from mobie.validation.utils import validate_with_schema
 
@@ -29,9 +29,18 @@ class TestRemoteMetadata(unittest.TestCase):
 
         raw_name = "test-raw"
         scales = [[2, 2, 2]]
-        add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
-                  resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
-                  tmp_folder=tmp_folder, file_format=file_format)
+        mobie.add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
+                        resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=scales,
+                        tmp_folder=tmp_folder, file_format=file_format)
+
+        # add a region source (which does not have imageData)
+        # to make sure it is properly handled when adding the remote metadata
+        dummy_table = pd.DataFrame.from_dict({
+            "region_id": list(range(10)),
+            "dummy": np.random.rand(10),
+        })
+        mobie.metadata.add_regions_to_dataset(os.path.join(self.root, self.dataset_name), "my-regions",
+                                              default_table=dummy_table)
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
@@ -44,15 +53,17 @@ class TestRemoteMetadata(unittest.TestCase):
 
     def _check_remote_metadata(self, file_format, service_endpoint, bucket_name):
         dataset_folder = os.path.join(self.root, self.dataset_name)
-        dataset_metadata = read_dataset_metadata(dataset_folder)
+        dataset_metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
         validate_with_schema(dataset_metadata, "dataset")
 
         new_file_format = file_format + ".s3"
 
         sources = dataset_metadata["sources"]
         for name, source in sources.items():
-            source_type = list(source.keys())[0]
-            storage = source[source_type]["imageData"]
+            source_type, source_data = next(iter(source.items()))
+            storage = source_data.get("imageData")
+            if storage is None:
+                continue
             self.assertIn(new_file_format, storage)
             if new_file_format.startswith("bdv"):
                 xml = storage[new_file_format]["relativePath"]
@@ -65,11 +76,8 @@ class TestRemoteMetadata(unittest.TestCase):
                 address = storage[new_file_format]["s3Address"]
                 self.assertTrue(address.startswith(service_endpoint))
 
-        proj_metadata = read_project_metadata(self.root)
+        proj_metadata = mobie.metadata.read_project_metadata(self.root)
         validate_with_schema(proj_metadata, "project")
-        file_formats = proj_metadata["imageDataFormats"]
-        self.assertIn(file_format, file_formats)
-        self.assertIn(new_file_format, file_formats)
 
     def _test_remote_metadata(self, file_format):
         from mobie.metadata import add_remote_project_metadata

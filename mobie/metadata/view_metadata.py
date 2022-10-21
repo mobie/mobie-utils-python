@@ -3,7 +3,7 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from .dataset_metadata import read_dataset_metadata
+from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
 from .utils import get_table_metadata
 from ..tables import check_region_table, compute_region_table
 
@@ -11,6 +11,13 @@ from ..tables import check_region_table, compute_region_table
 #
 # display settigs
 #
+
+
+def _validate_lut(lut, kwargs):
+    numeric_luts = ("viridis", "blueWhiteRed")
+    if lut in numeric_luts and "valueLimits" not in kwargs:
+        msg = f"You have specified a numeric lut: {lut}. In this case you also need to pass the 'valueLimits' argument."
+        raise ValueError(msg)
 
 
 def get_image_display(name, sources, **kwargs):
@@ -36,11 +43,33 @@ def get_image_display(name, sources, **kwargs):
     return {"imageDisplay": image_display}
 
 
-def _validate_lut(lut, kwargs):
-    numeric_luts = ("viridis", "blueWhiteRed")
-    if lut in numeric_luts and "valueLimits" not in kwargs:
-        msg = f"You have specified a numeric lut: {lut}. In this case you also need to pass the 'valueLimits' argument."
-        raise ValueError(msg)
+def get_region_display(name, sources, table_source, **kwargs):
+    opacity = kwargs.pop("opacity", 0.5)
+    lut = kwargs.pop("lut", "glasbey")
+    _validate_lut(lut, kwargs)
+    annotation_display = {
+        "opacity": opacity,
+        "lut": lut,
+        "name": name,
+        "sources": sources,
+        "tableSource": table_source,
+    }
+    additional_annotation_kwargs = ["additionalTables"
+                                    "boundaryThickness",
+                                    "colorByColumn",
+                                    "randomColorSeed",
+                                    "selectedRegionIds",
+                                    "showAsBoundaries",
+                                    "showTable",
+                                    "valueLimits",
+                                    "visible"]
+    for kwarg_name in additional_annotation_kwargs:
+        kwarg_val = kwargs.pop(kwarg_name, None)
+        if kwarg_val is not None:
+            annotation_display[kwarg_name] = kwarg_val
+    if kwargs:
+        raise ValueError(f"Invalid keyword arguments for source annotation display: {list(kwargs.keys())}")
+    return {"regionDisplay": annotation_display}
 
 
 def get_segmentation_display(name, sources, **kwargs):
@@ -59,7 +88,7 @@ def get_segmentation_display(name, sources, **kwargs):
                              "randomColorSeed", "resolution3dView",
                              "selectedSegmentIds", "showAsBoundaries",
                              "showSelectedSegmentsIn3d", "showTable",
-                             "tables", "valueLimits", "visible"]
+                             "additionalTables", "valueLimits", "visible"]
     for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -69,33 +98,30 @@ def get_segmentation_display(name, sources, **kwargs):
     return {"segmentationDisplay": segmentation_display}
 
 
-def get_region_display(name, sources, table_data, tables, **kwargs):
+def get_spot_display(name, sources, **kwargs):
+    if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
+        raise ValueError(f"Invalid sources: {sources}")
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     _validate_lut(lut, kwargs)
-    annotation_display = {
+    spot_display = {
         "opacity": opacity,
         "lut": lut,
         "name": name,
-        "sources": sources,
-        "tableData": table_data,
-        "tables": tables
+        "sources": sources
     }
-    additional_annotation_kwargs = ["boundaryThickness",
-                                    "colorByColumn",
-                                    "randomColorSeed",
-                                    "selectedRegionIds",
-                                    "showAsBoundaries",
-                                    "showTable",
-                                    "valueLimits",
-                                    "visible"]
-    for kwarg_name in additional_annotation_kwargs:
+    additional_seg_kwargs = ["additionalTables",
+                             "boundaryThickness", "colorByColumn",
+                             "randomColorSeed", "spotRadius",
+                             "selectedSpotIds", "showAsBoundaries",
+                             "showTable", "valueLimits", "visible"]
+    for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
-            annotation_display[kwarg_name] = kwarg_val
+            spot_display[kwarg_name] = kwarg_val
     if kwargs:
-        raise ValueError(f"Invalid keyword arguments for source annotation display: {list(kwargs.keys())}")
-    return {"regionDisplay": annotation_display}
+        raise ValueError(f"Invalid keyword arguments for region display: {list(kwargs.keys())}")
+    return {"spotDisplay": spot_display}
 
 
 #
@@ -188,7 +214,7 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
 def get_merged_grid_source_transform(sources, merged_source_name,
                                      positions=None, timepoints=None,
                                      name=None, center_at_origin=None,
-                                     encode_source=None):
+                                     metadata_source=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -198,14 +224,12 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
     if timepoints is not None:
         grid_transform["timepoints"] = timepoints
-    if name is not None:
-        grid_transform["name"] = name
-    if encode_source is not None:
-        assert isinstance(encode_source, bool)
-        grid_transform["encodeSource"] = encode_source
 
     if center_at_origin is not None:
         warnings.warn("Passing centerAtOrigin does not have any effect for the mergedGrid")
+
+    if metadata_source is not None:
+        grid_transform["metadataSource"] = metadata_source
 
     return {"mergedGrid": grid_transform}
 
@@ -318,17 +342,31 @@ def get_view(names, source_types, sources, display_settings,
             else:
                 display = get_segmentation_display(name, source_list, **display_setting)
 
+        elif source_type == "spots":
+            # display settings can either be passed as arguments or return values of get_spot_display
+            if "spotDisplay" in display_settings:
+                assert len(display_setting) == 1
+                assert display_setting["spotDisplay"]["name"] == name,\
+                    f"{display_setting['spotDisplay']['name']}, {name}"
+                _sources = display_setting["spotDisplay"]["sources"]
+                invalid_sources = set(_sources) - set(source_list)
+                assert len(invalid_sources) == 0,\
+                    f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
+                display = display_setting
+            else:
+                display = get_spot_display(name, source_list, **display_setting)
+
         else:
-            raise ValueError(f"Invalid source_type {source_type}, expect one of 'image' or 'segmentation'")
+            raise ValueError(f"Invalid source_type {source_type}, expect one of 'image', 'segmentation' or 'spots'")
 
         source_displays.append(display)
 
     if region_displays is not None:
         for name, settings in region_displays.items():
             source_map = settings.pop("sources")
-            table_data = settings.pop("tableData")
+            table_source = settings.pop("tableSource")
             assert isinstance(source_map, dict)
-            display = get_region_display(name, source_map, table_data, **settings)
+            display = get_region_display(name, source_map, table_source, **settings)
             source_displays.append(display)
 
     view["sourceDisplays"] = source_displays
@@ -358,7 +396,7 @@ def get_default_view(source_type, source_name, menu_name=None,
     """ Create default view metadata for a single source.
 
     Arguments:
-        source_type [str] - type of the source, either "image" or "segmentation"
+        source_type [str] - type of the source, either "image", "segmentation" or "spots"
         source_name [str] - name of the source.
         menu_name [str] - menu name for this view (default: None)
         source_transform [dict] - dict with affine source transform.
@@ -366,7 +404,8 @@ def get_default_view(source_type, source_name, menu_name=None,
         viewer_transform [dict] - dict with viewer transform (default: None)
         **kwargs - additional settings for this view
     """
-    menu_name = f"{source_type}s" if menu_name is None else menu_name
+    if menu_name is None:
+        menu_name = source_type if source_type.endswith("s") else f"{source_type}s"
     if source_transform is None:
         source_transforms = None
     else:
@@ -387,7 +426,7 @@ def _to_transformed_grid(sources, positions, center_at_origin):
     return [grid_trafo]
 
 
-def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
+def _to_merged_grid(sources, name, positions, center_at_origin):
     assert isinstance(sources, (dict, list))
     grid_sources = sources if isinstance(sources, list) else list(sources.values())
     sources_per_pos = len(grid_sources[0])
@@ -396,13 +435,39 @@ def _to_merged_grid(sources, name, positions, center_at_origin, encode_source):
         get_merged_grid_source_transform(
            [source[ii] for source in grid_sources], f"{name}-{ii}",
            positions=positions, center_at_origin=center_at_origin,
-           encode_source=encode_source
         ) for ii in range(sources_per_pos)
     ]
     return source_transforms
 
 
-def create_region_display(name, sources, dataset_folder, table_folder=None, region_ids=None, **kwargs):
+def require_region_table(dataset_folder, table_source, table_folder, this_sources):
+    ds_metadata = read_dataset_metadata(dataset_folder)
+    sources = ds_metadata["sources"]
+
+    if table_source in sources:
+        table_folder_path = os.path.join(
+            dataset_folder, sources[table_source]["regions"]["tableData"]["tsv"]["relativePath"]
+        )
+        default_table_path = os.path.join(table_folder_path, "default.tsv")
+        check_region_table(this_sources, default_table_path)
+    else:
+        # create and write the default region table
+        table_folder_path = os.path.join(dataset_folder, table_folder)
+        os.makedirs(table_folder_path, exist_ok=True)
+        default_table_path = os.path.join(table_folder_path, "default.tsv")
+        compute_region_table(this_sources, default_table_path)
+        check_region_table(this_sources, default_table_path)
+
+        # create the table source
+        table_data = get_table_metadata(table_folder)
+        # this should eventually be wrapped in a function,
+        # in case we get more properties for the region table source
+        sources[table_source] = {"regions": table_data}
+        ds_metadata["sources"] = sources
+        write_dataset_metadata(dataset_folder, ds_metadata)
+
+
+def create_region_display(name, sources, dataset_folder, table_source, table_folder=None, region_ids=None, **kwargs):
     """Get a region display and create the corresponding table.
     """
     if isinstance(sources, list) and region_ids is None:
@@ -413,22 +478,10 @@ def create_region_display(name, sources, dataset_folder, table_folder=None, regi
     assert isinstance(sources, dict)
     assert all(isinstance(source_list, list) for source_list in sources.values())
 
-    # process the table folder
-    if table_folder is None:
-        table_folder = os.path.join("tables", name)
-    table_folder_path = os.path.join(dataset_folder, table_folder)
-    os.makedirs(table_folder_path, exist_ok=True)
-    default_table_path = os.path.join(table_folder_path, "default.tsv")
-    if not os.path.exists(default_table_path):
-        compute_region_table(sources, default_table_path)
-    check_region_table(sources, default_table_path)
-
-    region_display = get_region_display(
-        name, sources,
-        table_data=get_table_metadata(table_folder),
-        tables=["default.tsv"],
-        **kwargs
-    )["regionDisplay"]
+    require_region_table(dataset_folder, table_source,
+                         table_folder=os.path.join("tables", name) if table_folder is None else table_folder,
+                         this_sources=sources)
+    region_display = get_region_display(name, sources, table_source, **kwargs)["regionDisplay"]
     region_display.pop("name")
 
     return {name: region_display}
@@ -439,12 +492,11 @@ def create_region_display(name, sources, dataset_folder, table_folder=None, regi
 # (i.e. names after transform). dict needs to match from the grid id
 # to list of source names
 def get_grid_view(dataset_folder, name, sources, menu_name,
-                  table_folder=None, display_groups=None,
+                  table_source=None, table_folder=None, display_groups=None,
                   display_group_settings=None, positions=None,
                   grid_sources=None, center_at_origin=None,
                   additional_source_transforms=None,
-                  use_transformed_grid=True, region_ids=None,
-                  encode_source=None):
+                  use_transformed_grid=True, region_ids=None):
     """ Create a view that places multiple sources in a grid.
 
     Arguments:
@@ -453,6 +505,9 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         sources [list[list[str]]] - nested list of source names,
             each inner lists contains the source(s) for one grid position
         menu_name [str] - menu name for this view
+        table_source [str] - name of the table source for the region display that is created
+            for this grid view. If the source is not present yet it will be created.
+            If the table source is None than no region table and display will be created for this view (default: None)
         table_folder [str] - table folder to store the annotation table(s) for this grid.
             By default "tables/{name}" will be used (default: None)
         display_groups [dict[str, str]] - dictionary from source name to their display group.
@@ -471,7 +526,6 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
         use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
             into a single source in the MoBIE viewer (default: True)
         region_ids [list[str]] - Custom keys for the regionDisplay source map (default: None)
-        encode_source [bool] - (default: None)
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
 
@@ -523,8 +577,7 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
                 if display_group_settings is None:
                     # if not, we just take the first source"s display settings here
                     display_setting = deepcopy(views[source_name])
-                    setting_key = "imageDisplay" if source_type == "image" else "segmentationDisplay"
-                    display_setting = display_setting["sourceDisplays"][0][setting_key]
+                    display_setting = next(iter(display_setting["sourceDisplays"][0].values()))
                     display_setting.pop("name")
                     display_setting.pop("sources")
                 else:
@@ -535,15 +588,18 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
     if use_transformed_grid:
         source_transforms = _to_transformed_grid(grid_sources, positions, center_at_origin)
     else:
-        source_transforms = _to_merged_grid(grid_sources, name, positions, center_at_origin, encode_source)
+        source_transforms = _to_merged_grid(grid_sources, name, positions, center_at_origin)
 
     if additional_source_transforms is not None:
         assert isinstance(additional_source_transforms, list)
         source_transforms = additional_source_transforms + source_transforms
 
-    # create the source annotation display for this grid view, this will show the table for this grid view!
-    region_displays = create_region_display(name, grid_sources, dataset_folder, table_folder, region_ids=region_ids)
-
+    if table_source is None:
+        region_displays = None
+    else:
+        region_displays = create_region_display(name, grid_sources, dataset_folder,
+                                                table_source=table_source, table_folder=table_folder,
+                                                region_ids=region_ids)
     view = get_view(names=display_names,
                     source_types=source_types,
                     sources=display_sources,

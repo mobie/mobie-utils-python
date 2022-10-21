@@ -16,6 +16,7 @@ setup(
             "mobie.add_registered_source = mobie.registration:main",
             "mobie.add_remote_metadata = mobie.metadata.remote_metadata:main",
             "mobie.add_segmentation = mobie.segmentation:main",
+            "mobie.add_spots = mobie.spots:main",
             "mobie.add_traces = mobie.traces:main",
             "mobie.add_open_organelle_dataset = mobie.open_organelle:main",
             "mobie.merge_view_file = mobie.view_utils:main",

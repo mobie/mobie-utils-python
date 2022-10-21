@@ -1,3 +1,4 @@
+import json
 import os
 import unittest
 from shutil import rmtree
@@ -98,8 +99,13 @@ class TestDataImport(unittest.TestCase):
             data_path = os.path.join(ds_folder, data_path)
             self.assertTrue(os.path.exists(data_path))
 
+            attrs_path = os.path.join(data_path, "s0", ".zarray")
+            with open(attrs_path, "r") as ff:
+                dimension_separator = json.load(ff).get("dimension_separator", ".")
+            self.assertEqual(dimension_separator, "/")
             with open_file(data_path, "r") as f:
                 data = f["s0"][:]
+
             expected = expected_sources[im_id]
             self.assertTrue(np.allclose(expected, data))
             if is_seg:

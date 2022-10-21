@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 
+from .utils import read_table
+
 
 def compute_region_table(sources, table_path, **additional_columns):
     first_col_name = "region_id"
@@ -25,7 +27,7 @@ def compute_region_table(sources, table_path, **additional_columns):
 
 def check_region_table(sources, table_path):
     first_col_name = "region_id"
-    table = pd.read_csv(table_path, sep="\t")
+    table = read_table(table_path)
 
     if first_col_name not in table.columns:
         raise ValueError(f"Expect grid view table to have a '{first_col_name}' column")

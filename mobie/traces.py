@@ -9,6 +9,7 @@ from mobie.import_data import import_traces
 from mobie.tables import compute_trace_default_table
 
 
+# TODO use a spot source underlying the traces instead of a segmentation source
 # TODO make cluster tools task so this can be safely run on login nodes
 def add_traces(input_folder, root, dataset_name, traces_name,
                reference_name, reference_scale,

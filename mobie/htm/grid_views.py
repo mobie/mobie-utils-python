@@ -1,8 +1,9 @@
 import os
 
-import numpy as np
 import mobie
-from ..tables import compute_region_table
+import numpy as np
+
+from ..tables import compute_region_table, read_table
 
 
 def _get_display(name, source_type, sources, settings):
@@ -108,11 +109,10 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
         assert site_table is not None
         site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
-            table_data={"tsv": {"relativePath": site_table}},
-            tables=["default.tsv"],
+            table_source=site_table,
             lut="glasbey",
             opacity=0.5,
-            visible=sites_visible
+            visible=sites_visible,
         )
         source_displays.append(site_display)
 
@@ -129,11 +129,10 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
         assert well_table is not None
         well_display = mobie.metadata.get_region_display(
             "wells", plate_sources,
-            table_data={"tsv": {"relativePath": well_table}},
-            tables=["default.tsv"],
+            table_source=well_table,
             lut="glasbey",
             opacity=0.5,
-            visible=wells_visible
+            visible=wells_visible,
         )
         source_displays.append(well_display)
 
@@ -167,11 +166,13 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
     source_transforms = []
     all_site_sources = {site_name: [] for site_name in site_names}
     for prefix in source_prefixes:
-
         prefix_sources = this_sources[prefix]
+
+        # add all the sources with this prefix to the site source list
         for source in prefix_sources:
             all_site_sources[source_name_to_site_name(source, prefix)].append(source)
 
+        metadata_source = None
         for well in well_names:
             trafo_name = f"{well}_{prefix}"
             well_sources = [
@@ -179,13 +180,15 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
                 site_name_to_well_name(source_name_to_site_name(source, prefix)) == well
             ]
             source_type = list(metadata["sources"][prefix_sources[0]].keys())[0]
-            encode_source = True if source_type == "segmentation" else None
+            if metadata_source is None:
+                metadata_source = well_sources[0]
             trafo = mobie.metadata.get_merged_grid_source_transform(
-                well_sources, trafo_name, encode_source=encode_source, center_at_origin=True
+                well_sources, trafo_name, center_at_origin=True,
+                metadata_source=metadata_source,
             )
             source_transforms.append(trafo)
 
-    # create the grid transforms for arranging wells to the plate
+    # create the grid transforms for arranging wells on the plate
     if well_to_position is None:
         positions = None
     else:
@@ -195,7 +198,7 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         trafo_name = f"plate_{prefix}"
         plate_sources = [f"{well}_{prefix}" for well in well_names]
         trafo = mobie.metadata.get_merged_grid_source_transform(
-            plate_sources, trafo_name, positions=positions, center_at_origin=False
+            plate_sources, trafo_name, positions=positions, center_at_origin=False, metadata_source=plate_sources[0]
         )
         source_transforms.append(trafo)
 
@@ -205,29 +208,24 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
         display = _get_display(prefix, source_type, [f"plate_{prefix}"], settings)
         source_displays.append(display)
 
-    # add the source annotation displays if configured
     if add_region_displays:
-
-        # create the annotation display for the sites
         assert site_table is not None
         site_display = mobie.metadata.get_region_display(
             "sites", all_site_sources,
-            table_data={"tsv": {"relativePath": site_table}},
-            tables=["default.tsv"],
+            table_source=site_table,
             lut="glasbey",
             opacity=0.5,
             visible=sites_visible
         )
         source_displays.append(site_display)
 
-        # create the annotation display for wells to plate
-        all_plate_sources = {well: [f"{well}_{prefix}" for prefix in source_prefixes]
-                             for well in well_names}
         assert well_table is not None
+        all_plate_sources = {
+            well: [f"{well}_{prefix}" for prefix in source_prefixes] for well in well_names
+        }
         well_display = mobie.metadata.get_region_display(
             "wells", all_plate_sources,
-            table_data={"tsv": {"relativePath": well_table}},
-            tables=["default.tsv"],
+            table_source=well_table,
             lut="glasbey",
             opacity=0.5,
             visible=wells_visible
@@ -247,34 +245,72 @@ def _get_default_site_table(ds_folder, metadata, source_prefixes,
                             source_name_to_site_name,
                             site_name_to_well_name,
                             name_filter):
+    table_source_name = "sites"
+    all_sources = metadata["sources"]
+    if table_source_name not in all_sources:
+        rel_table_folder = "tables/sites"
+        table_path = os.path.join(ds_folder, rel_table_folder, "default.tsv")
 
-    rel_table_folder = "tables/sites"
-    table_path = os.path.join(ds_folder, rel_table_folder, "default.tsv")
+        this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
+                                                               source_name_to_site_name, name_filter)
+        wells = [site_name_to_well_name(name) for name in site_names]
+        sources = {name: source_prefixes for name in site_names}
 
-    this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
-                                                           source_name_to_site_name, name_filter)
-    wells = [site_name_to_well_name(name) for name in site_names]
-    sources = {name: source_prefixes for name in site_names}
+        compute_region_table(sources, table_path, wells=wells)
+        all_sources[table_source_name] = {
+            "regions": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
+        }
+        metadata["sources"] = all_sources
 
-    compute_region_table(sources, table_path, wells=wells)
-    return rel_table_folder
+    return metadata, table_source_name
 
 
 def _get_default_well_table(ds_folder, metadata, source_prefixes,
                             source_name_to_site_name,
                             site_name_to_well_name,
                             name_filter):
+    table_source_name = "wells"
+    all_sources = metadata["sources"]
+    if table_source_name not in all_sources:
+        rel_table_folder = "tables/wells"
+        table_path = os.path.join(ds_folder, rel_table_folder, "default.tsv")
 
-    rel_table_folder = "tables/wells"
-    table_path = os.path.join(ds_folder, rel_table_folder, "default.tsv")
+        this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
+                                                               source_name_to_site_name, name_filter)
+        wells = list(set([site_name_to_well_name(name) for name in site_names]))
+        sources = {well: source_prefixes for well in wells}
 
-    this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
-                                                           source_name_to_site_name, name_filter)
-    wells = list(set([site_name_to_well_name(name) for name in site_names]))
-    sources = {well: source_prefixes for well in wells}
+        compute_region_table(sources, table_path)
+        all_sources[table_source_name] = {
+            "regions": {"tableData": mobie.metadata.utils.get_table_metadata(rel_table_folder)}
+        }
+        metadata["sources"] = all_sources
 
-    compute_region_table(sources, table_path)
-    return rel_table_folder
+    return metadata, table_source_name
+
+
+def _require_table_source(ds_folder, metadata, table, name):
+    all_sources = metadata["sources"]
+    if name in all_sources:
+        return metadata, name
+
+    table = read_table(table)
+    if "region_id" not in table:
+        raise ValueError("Invalid region table")
+
+    # write the table
+    table_folder = os.path.join(ds_folder, "tables", name)
+    os.makedirs(table_folder, exist_ok=True)
+    default_table = os.path.join(table_folder, "default.tsv")
+    table.to_csv(default_table, sep="\t", index=False, na_rep="nan")
+
+    # add the region table source
+    all_sources[name] = {
+        "regions": {"tableData": mobie.metadata.utils.get_table_metadata(f"tables/{name}")}
+    }
+    metadata["sources"] = all_sources
+
+    return metadata, name
 
 
 def add_plate_grid_view(ds_folder, view_name, menu_name,
@@ -289,15 +325,20 @@ def add_plate_grid_view(ds_folder, view_name, menu_name,
     metadata = mobie.metadata.read_dataset_metadata(ds_folder)
 
     if site_table is None and add_region_displays:
-        site_table = _get_default_site_table(ds_folder, metadata, source_prefixes,
-                                             source_name_to_site_name,
-                                             site_name_to_well_name,
-                                             name_filter)
+        metadata, site_table = _get_default_site_table(ds_folder, metadata, source_prefixes,
+                                                       source_name_to_site_name,
+                                                       site_name_to_well_name,
+                                                       name_filter)
+    elif site_table is not None:
+        metadata, site_table = _require_table_source(ds_folder, metadata, site_table, "sites")
+
     if well_table is None and add_region_displays:
-        well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
-                                             source_name_to_site_name,
-                                             site_name_to_well_name,
-                                             name_filter)
+        metadata, well_table = _get_default_well_table(ds_folder, metadata, source_prefixes,
+                                                       source_name_to_site_name,
+                                                       site_name_to_well_name,
+                                                       name_filter)
+    elif well_table is not None:
+        metadata, well_table = _require_table_source(ds_folder, metadata, well_table, "wells")
 
     if use_transformed_grid:
         view = get_transformed_plate_grid_view(metadata, source_prefixes, source_types,
