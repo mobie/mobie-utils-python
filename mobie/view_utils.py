@@ -14,8 +14,8 @@ from .validation import validate_view_metadata, validate_views, validate_with_sc
 def _create_view(
     sources, all_sources, display_settings,
     source_transforms, viewer_transform,
-    display_group_names, menu_name,
-    is_exclusive=True
+    display_group_names, region_displays,
+    menu_name, is_exclusive=True
 ):
     all_source_names = set(all_sources.keys())
     source_types = []
@@ -52,7 +52,8 @@ def _create_view(
         is_exclusive=is_exclusive,
         menu_name=menu_name,
         source_transforms=source_transforms,
-        viewer_transform=viewer_transform
+        viewer_transform=viewer_transform,
+        region_displays=region_displays,
     )
     return view
 
@@ -91,6 +92,7 @@ def create_view(
     source_transforms=None,
     viewer_transform=None,
     display_group_names=None,
+    region_displays=None,
     menu_name="bookmark",
     is_exclusive=True,
     overwrite=False,
@@ -110,6 +112,8 @@ def create_view(
         source_transforms [list[dict]] - List of source transformations. (default: None)
         viewer_transform [dict] - the viewer transformation. (default:None)
         display_group_names [list[str]] - the names for the source displays (default: None)
+        region_displays dict[str, dict] - dictionary from region display name
+            to the region display settings for additional region displays for this view (default: None)
         menu_name [str] - name for the menu where this view will be saved (default: bookmark)
         is_exclusive [bool] - whether the view is exclusive (default: True)
         overwrite [bool] - whether to overwrite existing views (default: False)
@@ -122,8 +126,8 @@ def create_view(
     all_sources = dataset_metadata["sources"]
     view = _create_view(sources, all_sources, display_settings,
                         source_transforms, viewer_transform,
-                        display_group_names, menu_name=menu_name,
-                        is_exclusive=is_exclusive)
+                        display_group_names, region_displays=region_displays,
+                        menu_name=menu_name, is_exclusive=is_exclusive)
     validate_with_schema(view, "view")
     return _write_view(dataset_folder, view_file, view_name, view,
                        overwrite=overwrite, return_view=return_view)

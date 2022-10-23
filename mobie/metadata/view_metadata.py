@@ -302,7 +302,8 @@ def get_view(names, source_types, sources, display_settings,
         menu_name [str] - menu name for this view
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
-        region_displays [list[dict]] - (default: None)
+        region_displays dict[str, dict] - dictionary from region display name
+            to the region display settings (default: None)
     """
 
     if len(names) != len(source_types) != len(sources) != len(display_settings):
