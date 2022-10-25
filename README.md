@@ -84,6 +84,8 @@ mobie.migrate_project data
 
 The most recent update is from version `0.2.1` to `0.3.0`. Previous version updates can be performed by passing the `-v` flag to the `migrate_project` command.
 
+As most likely the specs for the project metadata files change during an update, you need to purge the cached specs files by deleting them in the `.mobie` folder in your `$HOME` directory. 
+
 ## Citation
 
 If you use the MoBIE framework in your research, please cite [the MoBIE bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2022.05.27.493763v1).
