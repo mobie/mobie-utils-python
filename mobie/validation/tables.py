@@ -90,7 +90,8 @@ def check_spot_tables(table_folder, is_2d, assert_true=_assert_true):
 
 
 def check_tables_in_view(
-    sources, table_source, dataset_folder, additional_tables=None, expected_columns=None, assert_true=_assert_true
+    sources, table_source, dataset_folder, merge_columns,
+    additional_tables=None, expected_columns=None, assert_true=_assert_true
 ):
     assert_true(table_source in sources, f"The table source {table_source} is not present in the source metadata.")
 
@@ -106,14 +107,25 @@ def check_tables_in_view(
                 f"Could not find additional table {table} in {dataset_folder}"
             )
 
+    # read all the tables in the view
+    tables = [_read_table(os.path.join(table_folder, "default.tsv"))]
+    if additional_tables is not None:
+        for table in additional_tables:
+            tables.append(_read_table(os.path.join(table_folder, table)))
+
+    # check that all of the column names except the merge column are unique
+    column_names = list(set(tables[0].columns) - set(merge_columns))
+    for table in tables[1:]:
+        this_columns = list(set(table) - set(merge_columns))
+        duplicate_columns = set(column_names).intersection(set(this_columns))
+        assert_true(
+            len(duplicate_columns) == 0,
+            f"Found duplicate table columns {duplicate_columns} in tables: {additional_tables}"
+        )
+        column_names.extend(this_columns)
+
     # check that expected columns are in the loaded tables
     if expected_columns is not None:
-
-        tables = [_read_table(os.path.join(table_folder, "default.tsv"))]
-        if additional_tables is not None:
-            for table in additional_tables:
-                tables.append(_read_table(os.path.join(table_folder, table)))
-
         for col in expected_columns:
             have_expected_col = False
             for table in tables:

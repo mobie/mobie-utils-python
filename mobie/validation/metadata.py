@@ -178,7 +178,9 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
             additional_tables = display_metadata.get("additionalTables", None)
             color_by_col = display_metadata.get("colorByColumn", None)
             check_tables_in_view(
-                all_sources, table_source, dataset_folder, additional_tables=additional_tables,
+                all_sources, table_source, dataset_folder,
+                merge_columns=["region_id", "timepoint"],
+                additional_tables=additional_tables,
                 expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
             )
 
@@ -188,7 +190,9 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
             color_by_col = display_metadata.get("colorByColumn", None)
             for source in display_sources:
                 check_tables_in_view(
-                    all_sources, source, dataset_folder, additional_tables=additional_tables,
+                    all_sources, source, dataset_folder,
+                    merge_columns=["spot_id", "timepoint"],
+                    additional_tables=additional_tables,
                     expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
                 )
 
@@ -204,7 +208,9 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
                 display_sources = display_metadata["sources"]
                 for source in display_sources:
                     check_tables_in_view(
-                        all_sources, source, dataset_folder, additional_tables=additional_tables,
+                        all_sources, source, dataset_folder,
+                        merge_columns=["label_id", "timepoint"],
+                        additional_tables=additional_tables,
                         expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
                     )
 
