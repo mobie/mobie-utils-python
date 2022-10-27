@@ -107,16 +107,16 @@ class TestSpots(unittest.TestCase):
     def test_add_spots_with_extra_tables(self):
         from mobie import add_spots
 
-        def get_extra_table():
+        def get_extra_table(col_name):
             n_spots = np.random.randint(10, self.n_spots)
             spot_ids = np.random.choice(np.arange(1, self.n_spots + 1), replace=False, size=n_spots).astype("uint64")
             new_gene_names = ["fu", "bar", "baz"]
-            table = {"spot_id": spot_ids, "new_genes": np.random.choice(new_gene_names, size=n_spots, replace=True)}
+            table = {"spot_id": spot_ids, col_name: np.random.choice(new_gene_names, size=n_spots, replace=True)}
             return pd.DataFrame.from_dict(table)
 
         tab_names = ["extra-tab1.tsv", "extra-tab2.tsv", "extra-tab3.tsv"]
         extra_tables = {
-            name: get_extra_table() for name in tab_names
+            name: get_extra_table(f"col_name{i}") for i, name in enumerate(tab_names)
         }
 
         dataset_folder = os.path.join(self.root, self.dataset_name)
