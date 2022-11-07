@@ -161,7 +161,7 @@ def _dynamic_view_source_validation(view, sources, displays, assert_true):
             if isinstance(display_sources, dict):
                 display_sources = [source for this_sources in display_sources.values() for source in this_sources]
             wrong_sources = list(set(display_sources) - valid_sources)
-            msg = f"Found wrong sources {wrong_sources} in sourceDisplay"
+            msg = f"Found wrong sources {wrong_sources} in sourceDisplay: {display_metadata['name']}"
             assert_true(len(wrong_sources) == 0, msg)
 
 

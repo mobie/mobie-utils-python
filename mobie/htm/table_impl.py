@@ -125,9 +125,9 @@ def compute_table(input_file, table_path, key, resolution):
     props = regionprops(seg)
     tab = np.array([
         [p.label]
-        + [ce / res for ce, res in zip(centers[p.label], resolution)]
-        + [float(bb) / res for bb, res in zip(p.bbox[:ndim], resolution)]
-        + [float(bb) / res for bb, res in zip(p.bbox[ndim:], resolution)]
+        + [ce * res for ce, res in zip(centers[p.label], resolution)]
+        + [float(bb) * res for bb, res in zip(p.bbox[:ndim], resolution)]
+        + [float(bb) * res for bb, res in zip(p.bbox[ndim:], resolution)]
         + [p.area]
         for p in props
     ])
