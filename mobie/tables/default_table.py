@@ -32,6 +32,7 @@ def _compute_table_2d(seg_path, seg_key, resolution):
     ndim = 2
     with open_file(seg_path, "r") as f:
         seg = f[seg_key][:]
+    assert len(resolution) == seg.ndim == ndim
 
     centers = vigra.filters.eccentricityCenters(seg.astype("uint32"))
     props = regionprops(seg)
