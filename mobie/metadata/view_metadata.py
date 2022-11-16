@@ -62,7 +62,9 @@ def get_region_display(name, sources, table_source, **kwargs):
                                     "showAsBoundaries",
                                     "showTable",
                                     "valueLimits",
-                                    "visible"]
+                                    "visible",
+                                    "opacityNotSelected",
+                                    "selectionColor"]
     for kwarg_name in additional_annotation_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -88,7 +90,8 @@ def get_segmentation_display(name, sources, **kwargs):
                              "randomColorSeed", "resolution3dView",
                              "selectedSegmentIds", "showAsBoundaries",
                              "showSelectedSegmentsIn3d", "showTable",
-                             "additionalTables", "valueLimits", "visible"]
+                             "additionalTables", "valueLimits", "visible",
+                             "opacityNotSelected", "selectionColor"]
     for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
@@ -114,7 +117,8 @@ def get_spot_display(name, sources, **kwargs):
                              "boundaryThickness", "colorByColumn",
                              "randomColorSeed", "spotRadius",
                              "selectedSpotIds", "showAsBoundaries",
-                             "showTable", "valueLimits", "visible"]
+                             "showTable", "valueLimits", "visible",
+                             "opacityNotSelected", "selectionColor"]
     for kwarg_name in additional_seg_kwargs:
         kwarg_val = kwargs.pop(kwarg_name, None)
         if kwarg_val is not None:
