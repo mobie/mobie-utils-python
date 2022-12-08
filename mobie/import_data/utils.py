@@ -48,7 +48,7 @@ def compute_node_labels(seg_path, seg_key,
 
 
 def check_input_data(in_path, in_key, resolution, require3d, channel):
-    # TODO to support data with channel, we need to support dowscaling with channels
+    # TODO to support data with channel, we need to support downscaling with channels
     if channel is not None:
         raise NotImplementedError
     with open_file(in_path, "r") as f:
