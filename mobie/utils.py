@@ -85,7 +85,7 @@ def require_dataset_and_view(root, dataset_name, file_format,
         update_view = {}
         if menu_name is not None:
             update_view["uiSelectionGroup"] = menu_name
-        if source_type == "image" and contrast_limits is None:
+        if source_type == "image" and contrast_limits is not None:
             update_view["contrastLimits"] = contrast_limits
         if update_view:
             view.update(update_view)

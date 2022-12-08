@@ -210,7 +210,7 @@ def add_image(input_path, input_key,
 
     # set default contrast_limits if we don't have a view
     # or if the passed view doesn't hav contrast limits
-    if view is None or "contrastLimits" not in view:
+    if view is None or "contrastLimits" not in view["sourceDisplays"][0]["imageDisplay"]:
         contrast_limits = _get_default_contrast_limits(input_path, input_key, int_to_uint)
     else:
         contrast_limits = None
