@@ -7,15 +7,13 @@ from shutil import rmtree
 from sys import platform
 
 import imageio
+import mobie
 import numpy as np
 import h5py
 
 from elf.io import open_file
 from pybdv.metadata import get_data_path
 from pybdv.util import get_key
-from mobie import add_image
-from mobie.validation import validate_project, validate_source_metadata
-from mobie.metadata import read_dataset_metadata
 
 
 class TestImageData(unittest.TestCase):
@@ -59,10 +57,10 @@ class TestImageData(unittest.TestCase):
         dataset_name = "test"
         raw_name = "test-raw"
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
-        add_image(im_folder, "*.tif", self.root, dataset_name, raw_name,
-                  resolution=(0.25, 1, 1), chunks=(16, 64, 64),
-                  scale_factors=scales, tmp_folder=self.tmp_folder,
-                  target="local", max_jobs=self.max_jobs)
+        mobie.add_image(im_folder, "*.tif", self.root, dataset_name, raw_name,
+                        resolution=(0.25, 1, 1), chunks=(16, 64, 64),
+                        scale_factors=scales, tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs)
 
         self.check_dataset(os.path.join(self.root, dataset_name), shape, raw_name)
 
@@ -84,13 +82,13 @@ class TestImageData(unittest.TestCase):
 
         n_jobs = 1 if file_format == "bdv.hdf5" else self.max_jobs
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        add_image(data_path, data_key, self.root, dataset_name, raw_name,
-                  resolution=(1, 1, 1), chunks=(32, 32, 32),
-                  scale_factors=scales,
-                  tmp_folder=self.tmp_folder,
-                  file_format=file_format,
-                  target="local", max_jobs=n_jobs,
-                  int_to_uint=int_to_uint)
+        mobie.add_image(data_path, data_key, self.root, dataset_name, raw_name,
+                        resolution=(1, 1, 1), chunks=(32, 32, 32),
+                        scale_factors=scales,
+                        tmp_folder=self.tmp_folder,
+                        file_format=file_format,
+                        target="local", max_jobs=n_jobs,
+                        int_to_uint=int_to_uint)
 
     def test_init_from_hdf5(self, func=None, int_to_uint=False):
         dataset_name = "test"
@@ -110,7 +108,7 @@ class TestImageData(unittest.TestCase):
 
         self.test_init_from_hdf5(float_data)
         ds_folder = os.path.join(self.root, self.dataset_name)
-        mdata = read_dataset_metadata(ds_folder)
+        mdata = mobie.metadata.read_dataset_metadata(ds_folder)
         clims = mdata["views"]["test-raw"]["sourceDisplays"][0]["imageDisplay"]["contrastLimits"]
         c0, c1 = clims
         self.assertEqual(c0, 0.0)
@@ -140,7 +138,7 @@ class TestImageData(unittest.TestCase):
 
         self.test_init_from_hdf5(int_data, int_to_uint=int_to_uint)
         ds_folder = os.path.join(self.root, self.dataset_name)
-        mdata = read_dataset_metadata(ds_folder)
+        mdata = mobie.metadata.read_dataset_metadata(ds_folder)
         clims = mdata["views"]["test-raw"]["sourceDisplays"][0]["imageDisplay"]["contrastLimits"]
         c0, c1 = clims
         self.assertEqual(c0, np.iinfo(dtype).min)
@@ -191,9 +189,9 @@ class TestImageData(unittest.TestCase):
 
         raw_name = "test-raw"
         scales = [[2, 2, 2]]
-        add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
-                  resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                  tmp_folder=tmp_folder, target="local", max_jobs=self.max_jobs)
+        mobie.add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
+                        resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
+                        tmp_folder=tmp_folder, target="local", max_jobs=self.max_jobs)
 
     def test_add_image_with_dataset(self):
         self.init_dataset()
@@ -203,11 +201,11 @@ class TestImageData(unittest.TestCase):
         tmp_folder = os.path.join(self.test_folder, "tmp-im")
 
         scales = [[2, 2, 2]]
-        add_image(self.im_path, self.im_key,
-                  self.root, self.dataset_name, im_name,
-                  resolution=(1, 1, 1), scale_factors=scales,
-                  chunks=(64, 64, 64), tmp_folder=tmp_folder,
-                  target="local", max_jobs=self.max_jobs)
+        mobie.add_image(self.im_path, self.im_key,
+                        self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=tmp_folder,
+                        target="local", max_jobs=self.max_jobs)
         self.check_data(dataset_folder, im_name)
 
     @unittest.skipIf(platform == "win32", "CLI does not work on windows")
@@ -238,14 +236,32 @@ class TestImageData(unittest.TestCase):
     #
     # test with numpy data
     #
+
     def test_numpy(self):
         im_name = "test-data"
         scales = [[2, 2, 2]]
-        add_image(self.data, None, self.root, self.dataset_name, im_name,
-                  resolution=(1, 1, 1), scale_factors=scales,
-                  chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
-                  target="local", max_jobs=self.max_jobs)
+        mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs)
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+    def test_with_view(self):
+        im_name = "test-data"
+        scales = [[2, 2, 2]]
+
+        clims = [0.1, 0.9]
+        view = mobie.metadata.get_default_view("image", im_name, contrastLimits=clims)
+
+        mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs, view=view)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+        mdata = mobie.metadata.read_dataset_metadata(os.path.join(self.root, self.dataset_name))
+        clims_read = mdata["views"][im_name]["sourceDisplays"][0]["imageDisplay"]["contrastLimits"]
+        self.assertEqual(clims, clims_read)
 
     #
     # data validation
@@ -253,7 +269,7 @@ class TestImageData(unittest.TestCase):
 
     def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="bdv.n5"):
         # validate the full project
-        validate_project(
+        mobie.validation.validate_project(
             self.root, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
         )
 
@@ -279,10 +295,10 @@ class TestImageData(unittest.TestCase):
         exp_data = self.data
 
         # check the image metadata
-        metadata = read_dataset_metadata(dataset_folder)
+        metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
         sources = metadata["sources"]
         self.assertIn(name, sources)
-        validate_source_metadata(name, sources[name], dataset_folder)
+        mobie.validation.validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
         im_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
