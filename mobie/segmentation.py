@@ -21,7 +21,7 @@ def add_segmentation(input_path, input_key,
                      node_label_path=None, node_label_key=None,
                      tmp_folder=None, target="local",
                      max_jobs=multiprocessing.cpu_count(),
-                     add_default_table=True, init_table=None, view=None,
+                     add_default_table=True, view=None,
                      postprocess_config=None, unit="micrometer",
                      is_default_dataset=False, description=None):
     """ Add segmentation source to MoBIE dataset.
