@@ -134,6 +134,11 @@ def _compute_table_3d(seg_path, seg_key, resolution, correct_anchors, tmp_folder
     return _n5_to_pandas(tmp_path, tmp_key, resolution, anchors)
 
 
+def _remove_empty_columns(table):
+    table = table[table.n_pixels != 0]
+    return table
+
+
 def compute_default_table(seg_path, seg_key, table_path,
                           resolution, tmp_folder, target, max_jobs,
                           correct_anchors=False):
@@ -159,6 +164,8 @@ def compute_default_table(seg_path, seg_key, table_path,
         table = _compute_table_2d(seg_path, seg_key, resolution)
     else:
         table = _compute_table_3d(seg_path, seg_key, resolution, correct_anchors, tmp_folder, target, max_jobs)
+
+    table = _remove_empty_columns(table)
 
     # write output to csv
     table_folder = os.path.split(table_path)[0]
