@@ -176,15 +176,16 @@ def _dynamic_view_table_validation(displays, dataset_folder, dataset_metadata, a
         display_type, display_metadata = next(iter(display.items()))
 
         if display_type == "regionDisplay":
-            table_source = display_metadata["tableSource"]
-            additional_tables = display_metadata.get("additionalTables", None)
-            color_by_col = display_metadata.get("colorByColumn", None)
-            check_tables_in_view(
-                all_sources, table_source, dataset_folder,
-                merge_columns=["region_id", "timepoint"],
-                additional_tables=additional_tables,
-                expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
-            )
+            table_source = display_metadata.get("tableSource")
+            if table_source is not None:
+                additional_tables = display_metadata.get("additionalTables", None)
+                color_by_col = display_metadata.get("colorByColumn", None)
+                check_tables_in_view(
+                    all_sources, table_source, dataset_folder,
+                    merge_columns=["region_id", "timepoint"],
+                    additional_tables=additional_tables,
+                    expected_columns=None if color_by_col is None else [color_by_col], assert_true=assert_true,
+                )
 
         elif display_type == "spotDisplay":
             display_sources = display_metadata["sources"]
