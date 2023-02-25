@@ -8,13 +8,13 @@ on:
 
 jobs:
   build:
+    name: Test ${{ matrix.os }} - ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
-        matrix:
-            os: [ubuntu-latest, windows-latest, macos-latest]
-            python-version: [3.9]
-
-    name: Test ${{ matrix.os }} - ${{ matrix.python-version }}
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -23,6 +23,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: mobie
+          mamba-version: "*"
           auto-update-conda: true
           environment-file: environment.yaml
           python-version: ${{ matrix.python-version }}
