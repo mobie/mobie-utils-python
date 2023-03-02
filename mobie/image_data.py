@@ -174,7 +174,8 @@ def add_image(input_path, input_key,
     Will create the dataset if it does not exist.
 
     Arguments:
-        input_path [str] - path to the data that should be added.
+        input_path [str, np.ndarray] - path to the data that should be added.
+            This can also be a numpy array in order to save in memory data.
         input_key [str] - key to the data that should be added.
         root [str] - data root folder.
         dataset_name [str] - name of the dataset the image data should be added to.
@@ -205,6 +206,7 @@ def add_image(input_path, input_key,
     if channel is not None and file_format != "ome.zarr":
         raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
 
+    tmp_folder = f"tmp_{dataset_name}_{image_name}" if tmp_folder is None else tmp_folder
     if isinstance(input_path, np.ndarray):
         input_path, input_key = utils.save_temp_input(input_path, tmp_folder, image_name)
 
@@ -221,7 +223,6 @@ def add_image(input_path, input_key,
                                           contrast_limits=contrast_limits)
 
     dataset_folder = os.path.join(root, dataset_name)
-    tmp_folder = f"tmp_{dataset_name}_{image_name}" if tmp_folder is None else tmp_folder
 
     # import the image data and add the metadata
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, image_name)
