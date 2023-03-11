@@ -113,7 +113,7 @@ def read_path_in_bucket(xml):
     return el.text
 
 
-def update_transformation_parameter(xml_path, parameter):
+def update_xml_transformation_parameter(xml_path, parameter):
     if isinstance(parameter, (list, np.ndarray)):
         if len(parameter) != 12:
             raise ValueError(f"Expected affine transformation with 12 parameters, got {len(parameter)}")

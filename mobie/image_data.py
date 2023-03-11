@@ -9,7 +9,6 @@ import numpy as np
 import pybdv.metadata as bdv_metadata
 from elf.io import open_file
 from mobie.import_data import import_image_data
-from mobie.xml_utils import update_transformation_parameter
 from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
 
 
@@ -248,7 +247,7 @@ def add_image(input_path, input_key,
                                    view=view, description=description, channel=channel)
 
     if transformation is not None:
-        update_transformation_parameter(image_metadata_path, transformation)
+        utils.update_transformation_parameter(image_metadata_path, transformation, file_format)
 
 
 def main():

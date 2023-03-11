@@ -11,6 +11,7 @@ import mobie.metadata as metadata
 from cluster_tools.cluster_tasks import BaseClusterTask
 from elf.io import open_file
 from mobie.validation import validate_view_metadata
+from mobie.xml_utils import update_xml_transformation_parameter
 from pybdv.util import get_key
 
 FILE_FORMATS = [
@@ -279,3 +280,20 @@ def save_temp_input(data, tmp_folder, name):
         f.create_dataset(save_key, data=data, compression="gzip")
 
     return save_path, save_key
+
+
+# TODO
+def update_ome_zarr_transformation_parameter(metadata_path, parameter):
+    raise NotImplementedError
+
+
+def update_transformation_parameter(metadata_path, parameter, file_format):
+    if file_format.startswith("bdv"):
+        assert os.path.splitext(metadata_path)[1] == ".xml"
+        update_xml_transformation_parameter(metadata_path, parameter)
+    elif file_format.startswith("ome.zarr"):
+        update_ome_zarr_transformation_parameter(metadata_path, parameter)
+    else:
+        raise NotImplementedError(
+            f"Setting parameters in the image metadata is not supported for the {file_format} format"
+        )
