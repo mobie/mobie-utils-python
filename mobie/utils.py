@@ -282,9 +282,12 @@ def save_temp_input(data, tmp_folder, name):
     return save_path, save_key
 
 
-# TODO
+# TODO implement this once ome.zarr v0.5 is released
 def update_ome_zarr_transformation_parameter(metadata_path, parameter):
-    raise NotImplementedError
+    raise NotImplementedError(
+        "Transformations in the image metadata are currently not supported for the ome.zarr file format."
+        "You can use the bdv.n5 format instead."
+    )
 
 
 def update_transformation_parameter(metadata_path, parameter, file_format):
