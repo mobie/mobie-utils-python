@@ -56,6 +56,7 @@ def get_region_display(name, sources, table_source, **kwargs):
     }
     additional_annotation_kwargs = ["additionalTables"
                                     "boundaryThickness",
+                                    "boundaryThicknessIsRelative",
                                     "colorByColumn",
                                     "randomColorSeed",
                                     "selectedRegionIds",

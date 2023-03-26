@@ -263,6 +263,27 @@ class TestImageData(unittest.TestCase):
         clims_read = mdata["views"][im_name]["sourceDisplays"][0]["imageDisplay"]["contrastLimits"]
         self.assertEqual(clims, clims_read)
 
+    def _test_with_trafo(self, file_format, transformation):
+        im_name = "test-data"
+        scales = [[2, 2, 2]]
+        mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs,
+                        transformation=transformation, file_format=file_format)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+    # TODO implement the test once ome.zarr v0.5 is released
+    def test_with_trafo_ome_zarr(self):
+        pass
+
+    def test_with_trafo_bdv_n5(self):
+        trafo = np.random.rand(12).tolist()
+        self._test_with_trafo(file_format="bdv.n5", transformation=trafo)
+        # TODO check that the transformation is added correctly
+        # dataset_folder = os.path.join(self.root, self.dataset_name)
+        # xml_path = os.path.join(self.dataset_folder, "images", "bdv-n5", f"{name}.xml")
+
     #
     # data validation
     #
