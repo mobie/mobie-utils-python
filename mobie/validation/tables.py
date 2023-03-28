@@ -1,4 +1,5 @@
 import os
+import warnings
 from glob import glob
 
 import pandas as pd
@@ -18,7 +19,7 @@ def _read_table(table):
         raise ValueError(f"Invalid table format, expected either filepath or pandas DataFrame, got {type(table)}.")
 
 
-def _check_tables(table_folder, default_table_columns, merge_columns, assert_true):
+def _check_tables(table_folder, required_columns, merge_columns, assert_true, recommended_columns=[]):
     # check that table folder and default table exist
     assert_true(os.path.isdir(table_folder), f"Table root folder {table_folder} does not exist.")
     default_table_path = os.path.join(table_folder, "default.tsv")
@@ -27,11 +28,14 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
     # check that the default table contains all the expected columns
     default_table = _read_table(default_table_path)
     assert_true(default_table.shape[1] > 1, f"Default table {default_table_path} contains only a single column")
-    for col in default_table_columns:
+    for col in required_columns:
         assert_true(
             col in default_table.columns,
-            f"Expected column {col} is not present in the default table @ {default_table_path}."
+            f"Required column {col} is not present in the default table @ {default_table_path}."
         )
+    for col in recommended_columns:
+        if col not in default_table.columns:
+            warnings.warn(f"Recommended column {col} is not present in the default table @ {default_table_path}.")
 
     # get all expected merge columns and their values
     expected_merge_columns = {}
@@ -65,28 +69,29 @@ def _check_tables(table_folder, default_table_columns, merge_columns, assert_tru
 
 
 def check_region_tables(table_folder, assert_true=_assert_true):
-    default_columns = ["region_id"]
+    required_columns = ["region_id"]
     merge_columns = ["region_id", "timepoint"]
-    _check_tables(table_folder, default_columns, merge_columns, assert_true=assert_true)
+    _check_tables(table_folder, required_columns, merge_columns, assert_true=assert_true)
 
 
 def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true):
-    default_columns = [
-        "label_id",  "anchor_x", "anchor_y",
-        "bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"
-    ]
+    required_columns = ["label_id",  "anchor_x", "anchor_y"]
+    recommended_columns = ["bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"]
     if not is_2d:
-        default_columns.extend(["anchor_z", "bb_min_z", "bb_max_z"])
+        required_columns.extend(["anchor_z"])
+        recommended_columns.extend(["bb_min_z", "bb_max_z"])
     merge_columns = ["label_id", "timepoint"]
-    _check_tables(table_folder, default_columns, merge_columns, assert_true=assert_true)
+    _check_tables(
+        table_folder, required_columns, merge_columns, assert_true=assert_true, recommended_columns=recommended_columns
+    )
 
 
 def check_spot_tables(table_folder, is_2d, assert_true=_assert_true):
-    default_columns = ["spot_id", "x", "y"]
+    required_columns = ["spot_id", "x", "y"]
     if not is_2d:
-        default_columns.append("z")
+        required_columns.append("z")
     merge_columns = ["spot_id", "timepoint"]
-    _check_tables(table_folder, default_columns, merge_columns, assert_true=assert_true)
+    _check_tables(table_folder, required_columns, merge_columns, assert_true=assert_true)
 
 
 def check_tables_in_view(
