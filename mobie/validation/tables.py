@@ -19,7 +19,8 @@ def _read_table(table):
         raise ValueError(f"Invalid table format, expected either filepath or pandas DataFrame, got {type(table)}.")
 
 
-def _check_tables(table_folder, required_columns, merge_columns, assert_true, recommended_columns=[]):
+def _check_tables(table_folder, required_columns, merge_columns, assert_true,
+                  recommended_columns=[], suppress_warnings=False):
     # check that table folder and default table exist
     assert_true(os.path.isdir(table_folder), f"Table root folder {table_folder} does not exist.")
     default_table_path = os.path.join(table_folder, "default.tsv")
@@ -34,7 +35,7 @@ def _check_tables(table_folder, required_columns, merge_columns, assert_true, re
             f"Required column {col} is not present in the default table @ {default_table_path}."
         )
     for col in recommended_columns:
-        if col not in default_table.columns:
+        if col not in default_table.columns and not suppress_warnings:
             warnings.warn(f"Recommended column {col} is not present in the default table @ {default_table_path}.")
 
     # get all expected merge columns and their values
@@ -74,15 +75,41 @@ def check_region_tables(table_folder, assert_true=_assert_true):
     _check_tables(table_folder, required_columns, merge_columns, assert_true=assert_true)
 
 
-def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true):
-    required_columns = ["label_id",  "anchor_x", "anchor_y"]
-    recommended_columns = ["bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"]
-    if not is_2d:
-        required_columns.extend(["anchor_z"])
-        recommended_columns.extend(["bb_min_z", "bb_max_z"])
-    merge_columns = ["label_id", "timepoint"]
+def get_columns_for_table_format(tab, is_2d):
+    if tab.columns[0] == "label_id":  # the default MoBIE segmentation table format
+        required_column_names = {"label_id", "anchor_x", "anchor_y"}
+        recommended_column_names = {"bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"}
+        if not is_2d:
+            required_column_names = required_column_names.union({"anchor_z"})
+            recommended_column_names = recommended_column_names.union({"bb_min_z", "bb_max_z"})
+        merge_column_names = {"label_id", "timepoint"}
+    elif tab.columns[0] == "label":  # the skimage.regionprops format
+        required_column_names = {"label", "centroid-0", "centroid-1"}
+        if is_2d:
+            recommended_column_names = {f"bbox-{i}" for i in range(4)}
+        else:
+            required_column_names = required_column_names.union({"centroid-2"})
+            recommended_column_names = {f"bbox-{i}" for i in range(6)}
+        merge_column_names = {"label", "frame"}
+    else:
+        raise ValueError(f"The segmentation table with columns {tab.columns} did not match any known table format.")
+    return required_column_names, recommended_column_names, merge_column_names
+
+
+def _parse_segmentation_table(table_folder, is_2d, assert_true):
+    default_table_path = os.path.join(table_folder, "default.tsv")
+    assert_true(os.path.exists(default_table_path), f"Default table {default_table_path} does not exist.")
+    tab = _read_table(default_table_path)
+    required_columns, recommended_columns, merge_columns = get_columns_for_table_format(tab, is_2d)
+    return list(required_columns), list(recommended_columns), list(merge_columns)
+
+
+def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true, suppress_warnings=False):
+    required_columns, recommended_columns, merge_columns = _parse_segmentation_table(table_folder, is_2d, assert_true)
     _check_tables(
-        table_folder, required_columns, merge_columns, assert_true=assert_true, recommended_columns=recommended_columns
+        table_folder, required_columns, merge_columns,
+        assert_true=assert_true, recommended_columns=recommended_columns,
+        suppress_warnings=suppress_warnings,
     )
 
 
