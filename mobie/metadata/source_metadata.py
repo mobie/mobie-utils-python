@@ -64,7 +64,7 @@ def get_shape(source_metadata, dataset_folder):
     elif data_format == "ome.zarr":
         dataset_path = image_metadata["datasets"][0]["path"]
         array_path = os.path.join(
-            dataset_folder, source_metadata["storage"][data_format]["relativePath"], dataset_path, ".zarray"
+            dataset_folder, source_metadata["image"][data_format]["relativePath"], dataset_path, ".zarray"
         )
         array_metadata = _load_json_from_file(array_path)
         shape = array_metadata["shape"]
@@ -122,6 +122,21 @@ def get_resolution(source_metadata, dataset_folder):
     else:
         raise ValueError(f"Unsupported data format {data_format}")
     return resolution
+
+
+def get_timepoints(source_metadata, dataset_folder):
+    data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
+    if data_format.startswith("bdv"):
+        timepoints = bdv_metadata.get_timeponts(image_metadata, setup_id=0)
+
+    elif data_format.startswith("ome.zarr"):
+
+        return image_metadata
+        pass
+
+    else:
+        raise ValueError(f"Unsupported data format {data_format}")
+
 
 
 def get_unit(source_metadata, dataset_folder):
