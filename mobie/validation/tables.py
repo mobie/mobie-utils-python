@@ -19,7 +19,8 @@ def _read_table(table):
         raise ValueError(f"Invalid table format, expected either filepath or pandas DataFrame, got {type(table)}.")
 
 
-def _check_tables(table_folder, required_columns, merge_columns, assert_true, recommended_columns=[]):
+def _check_tables(table_folder, required_columns, merge_columns, assert_true,
+                  recommended_columns=[], suppress_warnings=False):
     # check that table folder and default table exist
     assert_true(os.path.isdir(table_folder), f"Table root folder {table_folder} does not exist.")
     default_table_path = os.path.join(table_folder, "default.tsv")
@@ -34,7 +35,7 @@ def _check_tables(table_folder, required_columns, merge_columns, assert_true, re
             f"Required column {col} is not present in the default table @ {default_table_path}."
         )
     for col in recommended_columns:
-        if col not in default_table.columns:
+        if col not in default_table.columns and not suppress_warnings:
             warnings.warn(f"Recommended column {col} is not present in the default table @ {default_table_path}.")
 
     # get all expected merge columns and their values
@@ -74,7 +75,7 @@ def check_region_tables(table_folder, assert_true=_assert_true):
     _check_tables(table_folder, required_columns, merge_columns, assert_true=assert_true)
 
 
-def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true):
+def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true, suppress_warnings=False):
     required_columns = ["label_id",  "anchor_x", "anchor_y"]
     recommended_columns = ["bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"]
     if not is_2d:
@@ -82,7 +83,9 @@ def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true):
         recommended_columns.extend(["bb_min_z", "bb_max_z"])
     merge_columns = ["label_id", "timepoint"]
     _check_tables(
-        table_folder, required_columns, merge_columns, assert_true=assert_true, recommended_columns=recommended_columns
+        table_folder, required_columns, merge_columns,
+        assert_true=assert_true, recommended_columns=recommended_columns,
+        suppress_warnings=suppress_warnings,
     )
 
 

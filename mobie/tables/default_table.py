@@ -13,7 +13,7 @@ from .utils import remove_background_label_row, read_table
 from ..utils import write_global_config
 
 
-def check_and_copy_default_table(input_path, output_path, is_2d):
+def check_and_copy_default_table(input_path, output_path, is_2d, suppress_warnings=False):
     tab = read_table(input_path)
     required_column_names = {"label_id", "anchor_x", "anchor_y"}
     recommended_column_names = {"bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"}
@@ -24,7 +24,7 @@ def check_and_copy_default_table(input_path, output_path, is_2d):
     if missing_columns:
         raise ValueError(f"The table at {input_path} is missing the following required columns: {missing_columns}")
     missing_columns = list(recommended_column_names - set(tab.columns))
-    if missing_columns:
+    if missing_columns and not suppress_warnings:
         warnings.warn(f"The table at {input_path} is missing the following recommended columns: {missing_columns}")
     tab.to_csv(output_path, sep="\t", index=False, na_rep="nan")
 
