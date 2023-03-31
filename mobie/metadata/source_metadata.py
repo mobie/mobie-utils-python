@@ -64,7 +64,7 @@ def get_shape(source_metadata, dataset_folder):
     elif data_format == "ome.zarr":
         dataset_path = image_metadata["datasets"][0]["path"]
         array_path = os.path.join(
-            dataset_folder, source_metadata["image"][data_format]["relativePath"], dataset_path, ".zarray"
+            dataset_folder, source_metadata[data_format]["relativePath"], dataset_path, ".zarray"
         )
         array_metadata = _load_json_from_file(array_path)
         shape = array_metadata["shape"]
@@ -130,14 +130,24 @@ def get_timepoints(source_metadata, dataset_folder):
         timepoints = bdv_metadata.get_timeponts(image_metadata, setup_id=0)
 
     elif data_format.startswith("ome.zarr"):
+        axistypes = [axis['type'] for axis in image_metadata['axes']]
 
-        return image_metadata
-        pass
+        if 'time' not in axistypes:
+            timepoints = [0]
+        else:
+            shape = get_shape(source_metadata, dataset_folder)
+            timeidx = [idx for idx, axis in enumerate(axistypes) if axis == 'time']
+
+            if len(timeidx) > 1:
+                raise ValueError('Multiple time axes not supported!')
+
+            else:
+                timepoints = list(range(0, shape[timeidx[0]]))
 
     else:
         raise ValueError(f"Unsupported data format {data_format}")
 
-
+    return timepoints
 
 def get_unit(source_metadata, dataset_folder):
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
