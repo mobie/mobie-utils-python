@@ -64,7 +64,7 @@ def get_shape(source_metadata, dataset_folder):
     elif data_format == "ome.zarr":
         dataset_path = image_metadata["datasets"][0]["path"]
         array_path = os.path.join(
-            dataset_folder, source_metadata["storage"][data_format]["relativePath"], dataset_path, ".zarray"
+            dataset_folder, source_metadata[data_format]["relativePath"], dataset_path, ".zarray"
         )
         array_metadata = _load_json_from_file(array_path)
         shape = array_metadata["shape"]
