@@ -127,7 +127,7 @@ def get_resolution(source_metadata, dataset_folder):
 def get_timepoints(source_metadata, dataset_folder):
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
     if data_format.startswith("bdv"):
-        timepoints = bdv_metadata.get_timeponts(image_metadata, setup_id=0)
+        timepoints = bdv_metadata.get_timepoints(image_metadata, setup_id=0)
 
     elif data_format.startswith("ome.zarr"):
         axistypes = [axis['type'] for axis in image_metadata['axes']]
