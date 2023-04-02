@@ -91,6 +91,15 @@ def get_columns_for_table_format(tab, is_2d):
             required_column_names = required_column_names.union({"centroid-2"})
             recommended_column_names = {f"bbox-{i}" for i in range(6)}
         merge_column_names = {"label", "frame"}
+    elif tab.columns[0] == "Label":
+        required_column_names = {"Label", "Centroid.X", "Centroid.Y"}
+        recommended_column_names = {"Box.X.Min", "Box.Y.Min", "Box.X.Max", "Box.Y.Max"}
+        if not is_2d:
+            required_column_names = required_column_names.union({"Centroid.Z"})
+            recommended_column_names = recommended_column_names.union({
+                "Box.Z.Min", "Box.Z.Max"
+            })
+        merge_column_names = {"Label", "Timepoint"}
     else:
         raise ValueError(f"The segmentation table with columns {tab.columns} did not match any known table format.")
     return required_column_names, recommended_column_names, merge_column_names
