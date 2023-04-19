@@ -186,7 +186,7 @@ def get_crop_source_transform(sources, min, max,
 
 
 def get_transformed_grid_source_transform(sources, positions=None, source_names_after_transform=None,
-                                          timepoints=None, name=None, center_at_origin=None):
+                                          timepoints=None, name=None, center_at_origin=None, margin=None):
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
     assert isinstance(sources, list)
     assert all(isinstance(source_pos, list) for source_pos in sources)
@@ -213,13 +213,16 @@ def get_transformed_grid_source_transform(sources, positions=None, source_names_
     if center_at_origin is not None:
         grid_transform["centerAtOrigin"] = center_at_origin
 
+    if margin is not None:
+        grid_transform["margin"] = margin
+
     return {"transformedGrid": grid_transform}
 
 
 def get_merged_grid_source_transform(sources, merged_source_name,
                                      positions=None, timepoints=None,
                                      name=None, center_at_origin=None,
-                                     metadata_source=None):
+                                     metadata_source=None, margin=None):
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -235,6 +238,9 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
     if metadata_source is not None:
         grid_transform["metadataSource"] = metadata_source
+
+    if margin is not None:
+        grid_transform["margin"] = margin
 
     return {"mergedGrid": grid_transform}
 
