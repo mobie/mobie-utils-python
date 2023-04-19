@@ -4,3 +4,6 @@ __pycache__/
 tmp*/
 *.n5
 *.h5
+.idea/
+build/
+test-folder/

@@ -201,7 +201,8 @@ def add_image(input_path, input_key,
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
     """
-    # TODO add 'setup_id' to the json schema fro bdv formats to also support it there
+    # TODO add 'setup_id' to the json schema from bdv formats to also support it there
+
     if channel is not None and file_format != "ome.zarr":
         raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
 
@@ -228,7 +229,7 @@ def add_image(input_path, input_key,
 
     if move_only:
         if int_to_uint:
-            raise ValueError("Conversio of integer to unsigned integer is not possible with move_only")
+            raise ValueError("Conversion of integer to unsigned integer is not possible with move_only")
         shutil.move(input_path, data_path)
         if "bdv." in file_format:
             shutil.move(os.path.splitext(input_path)[0]+".xml", image_metadata_path)
