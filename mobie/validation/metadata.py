@@ -78,7 +78,7 @@ def validate_source_metadata(name, metadata,
                              dataset_folder=None, is_2d=None,
                              require_local_data=True, require_remote_data=False,
                              assert_true=_assert_true, assert_equal=_assert_equal,
-                             assert_in=_assert_in):
+                             assert_in=_assert_in, suppress_warnings=False):
     # static validation with json schema
     try:
         validate_with_schema(metadata, "source")
@@ -99,7 +99,8 @@ def validate_source_metadata(name, metadata,
             table_folder = os.path.join(dataset_folder, source_metadata["tableData"]["tsv"]["relativePath"])
             if source_type == "segmentation":
                 assert is_2d is not None
-                check_segmentation_tables(table_folder, is_2d, assert_true=assert_true)
+                check_segmentation_tables(table_folder, is_2d, assert_true=assert_true,
+                                          suppress_warnings=suppress_warnings)
             elif source_type == "regions":
                 check_region_tables(table_folder, assert_true=assert_true)
             elif source_type == "spots":

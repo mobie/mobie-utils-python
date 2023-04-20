@@ -261,6 +261,7 @@ def add_source_to_dataset(
     overwrite=True,
     description=None,
     channel=None,
+    suppress_warnings=False,
     **kwargs,
 ):
     """ Add source metadata to a MoBIE dataset.
@@ -280,6 +281,7 @@ def add_source_to_dataset(
         description [str] - description for this source (default: None)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        suppress_warnings [bool] - a flag to suppress warnings raised by the metadata validation (default: False)
         kwargs - additional keyword arguments for spot source
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
