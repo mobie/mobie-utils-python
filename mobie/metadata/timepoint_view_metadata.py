@@ -1,6 +1,6 @@
 from .dataset_metadata import read_dataset_metadata
 from .source_metadata import get_timepoints
-from .view_metadata import get_image_display, get_region_display, get_segmentation_display
+from .view_metadata import get_image_display, get_region_display, get_segmentation_display, get_view
 
 
 def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, targetidx=None, keep=False, name=None):
@@ -54,8 +54,9 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
 
     return {"timepoints":transform}
 
-def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
-                  start_idx=-5, start_opacity=0.2, end_opacity=1):
+def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
+                       start_idx=-5, start_opacity=0.2, end_opacity=1,
+                       menu_name=None):
     """
     Creates a set of ghost view displays that display earlier timepoints of one source mapped to later timepoints
     of a target source
@@ -69,6 +70,7 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
         start_idx [int] - starting index for extraction (if sourceidx not provided)
         start_opacity [float] - starting opacity for the ghost images
         end_opacity [float] - opacity for the last ghost image
+        menu_name [str] - menu name
     Returns:
         list[list[int]]: the timepoint transformation
 
@@ -78,6 +80,9 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
 
     imageData = ds['sources'][source]['image']['imageData']
     timepts = get_timepoints(imageData, dataset_folder)
+
+    if not menu_name:
+        menu_name = 'ghosts'
 
     if not sourceidx:
         sourceidx = list(range(len(timepts)))[start_idx:]
@@ -92,13 +97,17 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
         # last frame only
         targetidx = [len(target_times) - 1]
 
-    s_displays = list()
+    source_displays = list()
+    region_displays = list()
+    #TODO propagate existing source transforms
     t_trafos = list()
+    names = list()
 
     for s_idx,step in enumerate(sourceidx):
         for targetframe in targetidx:
             thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step], targetidx=targetidx)
             thistrafo["sourceNamesAfterTransform"] = source + "_tp_" + str(step) + "-to-" + str(targetframe)
+            names.append(thistrafo["sourceNamesAfterTransform"])
             t_trafos.append(thistrafo)
 
             opacity = s_idx/(len(sourceidx)-1) * (end_opacity-start_opacity) + start_opacity
@@ -121,13 +130,13 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
                     if 'opacity' in s_disp['imageDisplay'].keys():
                         opacity *= s_disp['imageDisplay']['opacity']
 
-                    s_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
-                                                        [thistrafo["sourceNamesAfterTransform"]],
-                                                        opacity=f'{opacity:.4f}',
-                                                        color=s_disp['imageDisplay']['color'],
-                                                        contrastLimits=s_disp['imageDisplay']['contrastLimits'],
-                                                        **kwargs
-                                                        ))
+                    source_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
+                                                             [thistrafo["sourceNamesAfterTransform"]],
+                                                             opacity=f'{opacity:.4f}',
+                                                             color=s_disp['imageDisplay']['color'],
+                                                             contrastLimits=s_disp['imageDisplay']['contrastLimits'],
+                                                             **kwargs
+                                                             ))
                 elif 'regionDisplay' in s_disp.keys():
                     regdisp = dict(s_disp['regionDisplay'])
                     kwargs = dict()
@@ -151,13 +160,13 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
                     if 'opacity' in s_disp['regionDisplay'].keys():
                         opacity *= s_disp['regionDisplay']['opacity']
 
-                    s_displays.append(get_region_display(thistrafo["sourceNamesAfterTransform"],
-                                                         [thistrafo["sourceNamesAfterTransform"]],
-                                                         opacity=f'{opacity:.4f}',
-                                                         lut=s_disp['regionDisplay']["lut"],
-                                                         table_source=s_disp['regionDisplay']["tableSource"],
-                                                         **kwargs
-                                                         ))
+                    region_displays.append(get_region_display(thistrafo["sourceNamesAfterTransform"],
+                                                              [thistrafo["sourceNamesAfterTransform"]],
+                                                              opacity=f'{opacity:.4f}',
+                                                              lut=s_disp['regionDisplay']["lut"],
+                                                              table_source=s_disp['regionDisplay']["tableSource"],
+                                                              **kwargs
+                                                              ))
                 elif 'segmentationDisplay' in s_disp.keys():
                     segdisp = dict(s_disp['regionDisplay'])
                     kwargs = dict()
@@ -175,18 +184,26 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
                     if 'opacity' in s_disp['segmentationDisplay'].keys():
                         opacity *= s_disp['segmentationDisplay']['opacity']
 
-                    s_displays.append(get_segmentation_display(thistrafo["sourceNamesAfterTransform"],
-                                                               [thistrafo["sourceNamesAfterTransform"]],
-                                                               opacity=f'{opacity:.4f}',
-                                                               lut=s_disp['regionDisplay']["lut"],
-                                                               table_source=s_disp['regionDisplay']["tableSource"],
-                                                               **kwargs
-                                                               ))
+                    source_displays.append(get_segmentation_display(thistrafo["sourceNamesAfterTransform"],
+                                                                    [thistrafo["sourceNamesAfterTransform"]],
+                                                                    opacity=f'{opacity:.4f}',
+                                                                    lut=s_disp['regionDisplay']["lut"],
+                                                                    table_source=s_disp['regionDisplay']["tableSource"],
+                                                                    **kwargs
+                                                                    ))
 
 
             else:
-                s_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
-                                                        [thistrafo["sourceNamesAfterTransform"]],
-                                                        opacity=f'{opacity:.4f}'))
+                region_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
+                                                         [thistrafo["sourceNamesAfterTransform"]],
+                                                         opacity=f'{opacity:.4f}'))
+
+
+#TODO does not work yet due to source name matching issue (#104)
+    view = get_view(names, [list(ds['sources'][source].keys())[0]], [source],
+                    source_displays, False, menu_name,
+                    source_transforms=t_trafos,
+                    region_displays=region_displays)
+
 
     return s_displays, t_trafos
