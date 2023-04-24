@@ -54,9 +54,10 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
 
     return {"timepoints":transform}
 
-def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx=None, start_idx=-5, start_opacity=0.2):
+def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
+                  start_idx=-5, start_opacity=0.2, end_opacity=1):
     """
-    Creates a set of ghost view displays that display mapped earlier timepoints of one source to later timepoints
+    Creates a set of ghost view displays that display earlier timepoints of one source mapped to later timepoints
     of a target source
 
     Arguments:
@@ -67,7 +68,7 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
         targetidx [list[int]] - subset of target indeces
         start_idx [int] - starting index for extraction (if sourceidx not provided)
         start_opacity [float] - starting opacity for the ghost images
-
+        end_opacity [float] - opacity for the last ghost image
     Returns:
         list[list[int]]: the timepoint transformation
 
@@ -94,13 +95,13 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
     s_displays = list()
     t_trafos = list()
 
-    for step in sourceidx:
+    for s_idx,step in enumerate(sourceidx):
         for targetframe in targetidx:
             thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step], targetidx=targetidx)
             thistrafo["sourceNamesAfterTransform"] = source + "_tp_" + str(step) + "-to-" + str(targetframe)
             t_trafos.append(thistrafo)
 
-            opacity = step/targetframe * (1-start_opacity) + start_opacity
+            opacity = s_idx/(len(sourceidx)-1) * (end_opacity-start_opacity) + start_opacity
 
             if source in ds['views'].keys():
                 s_disp = ds['views'][source]['sourceDisplays'][0]
