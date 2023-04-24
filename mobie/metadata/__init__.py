@@ -8,7 +8,8 @@ from .remote_metadata import (add_remote_dataset_metadata, add_remote_project_me
                               upload_source)
 from .source_metadata import (add_regions_to_dataset, add_source_to_dataset,
                               get_image_metadata, get_segmentation_metadata,
-                              get_spot_metadata, get_table_metadata)
+                              get_spot_metadata, get_table_metadata,
+                              get_timepoints)
 from .view_metadata import (is_grid_view, create_region_display,
                             get_affine_source_transform, get_crop_source_transform, get_default_view,
                             get_merged_grid_source_transform,
