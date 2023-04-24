@@ -206,4 +206,4 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
                     region_displays=region_displays)
 
 
-    return s_displays, t_trafos
+    return view
