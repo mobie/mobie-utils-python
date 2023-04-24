@@ -1,6 +1,6 @@
 from .dataset_metadata import read_dataset_metadata
 from .source_metadata import get_timepoints
-from .view_metadata import get_image_display, get_region_display
+from .view_metadata import get_image_display, get_region_display, get_segmentation_display
 
 
 def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, targetidx=None, keep=False, name=None):
@@ -118,6 +118,9 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
                         if kwarg_val is not None:
                             kwargs[kwarg_name] = kwarg_val
 
+                    if 'opacity' in s_disp['imageDisplay'].keys():
+                        opacity *= s_disp['imageDisplay']['opacity']
+
                     s_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
                                                         [thistrafo["sourceNamesAfterTransform"]],
                                                         opacity=f'{opacity:.4f}',
@@ -145,12 +148,41 @@ def create_ghosts(source, dataset_folder, target=None, sourceidx=None, targetidx
                         if kwarg_val is not None:
                             kwargs[kwarg_name] = kwarg_val
 
+                    if 'opacity' in s_disp['regionDisplay'].keys():
+                        opacity *= s_disp['regionDisplay']['opacity']
+
                     s_displays.append(get_region_display(thistrafo["sourceNamesAfterTransform"],
                                                          [thistrafo["sourceNamesAfterTransform"]],
                                                          opacity=f'{opacity:.4f}',
+                                                         lut=s_disp['regionDisplay']["lut"],
                                                          table_source=s_disp['regionDisplay']["tableSource"],
                                                          **kwargs
                                                          ))
+                elif 'segmentationDisplay' in s_disp.keys():
+                    segdisp = dict(s_disp['regionDisplay'])
+                    kwargs = dict()
+                    additional_seg_kwargs = ["boundaryThickness", "colorByColumn",
+                                             "randomColorSeed", "resolution3dView",
+                                             "selectedSegmentIds", "showAsBoundaries",
+                                             "showSelectedSegmentsIn3d", "showTable",
+                                             "additionalTables", "valueLimits", "visible",
+                                             "opacityNotSelected", "selectionColor"]
+                    for kwarg_name in additional_seg_kwargs:
+                        kwarg_val = segdisp.pop(kwarg_name, None)
+                        if kwarg_val is not None:
+                            kwargs[kwarg_name] = kwarg_val
+
+                    if 'opacity' in s_disp['segmentationDisplay'].keys():
+                        opacity *= s_disp['segmentationDisplay']['opacity']
+
+                    s_displays.append(get_segmentation_display(thistrafo["sourceNamesAfterTransform"],
+                                                               [thistrafo["sourceNamesAfterTransform"]],
+                                                               opacity=f'{opacity:.4f}',
+                                                               lut=s_disp['regionDisplay']["lut"],
+                                                               table_source=s_disp['regionDisplay']["tableSource"],
+                                                               **kwargs
+                                                               ))
+
 
             else:
                 s_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
