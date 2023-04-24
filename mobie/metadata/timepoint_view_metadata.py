@@ -3,7 +3,7 @@ from .source_metadata import get_timepoints
 from .view_metadata import get_image_display, get_region_display
 
 
-def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, targetidx=None, keep=False):
+def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, targetidx=None, keep=False, name=None):
     """
     Creates a timepoint transformation mapping timepoints from one source to timepoints of a target source
 
@@ -14,6 +14,7 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
         sourceidx [list[int]] - indeces of the source to be mapped
         targetidx [list[int]] - subset of target indeces
         keep [bool] - whether other timepoints of the source are still available
+        name [str] - name of ther transform
     Returns:
         list[list[int]]: the timepoint transformation
 
@@ -33,6 +34,9 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
     if not targetidx:
         targetidx = list(range(len(target_times)))
 
+    if not name:
+        name = source + '_timepoints'
+
     t_trafo = list()
 
     for i, t_idx in enumerate(targetidx):
@@ -45,7 +49,7 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
 
     transform = {"sources":[source]}
     transform['keep'] = keep
-    transform['name'] = source + '_timepoints'
+    transform['name'] = name
     transform['parameters'] = t_trafo
 
     return {"timepoints":transform}
