@@ -186,7 +186,7 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
                     source_displays.append(get_segmentation_display(thistrafo["sourceNamesAfterTransform"],
                                                                     [thistrafo["sourceNamesAfterTransform"]],
-                                                                    opacity=f'{opacity:.4f}',
+                                                                    opacity=round(opacity,4),
                                                                     lut=s_disp['regionDisplay']["lut"],
                                                                     table_source=s_disp['regionDisplay']["tableSource"],
                                                                     **kwargs
