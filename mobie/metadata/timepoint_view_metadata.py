@@ -200,7 +200,7 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
 
 #TODO does not work yet due to source name matching issue (#104)
-    view = get_view(names, [list(ds['sources'][source].keys())[0]], [source],
+    view = get_view(names, [list(ds['sources'][source].keys())[0]]*2, names,
                     source_displays, False, menu_name,
                     source_transforms=t_trafos,
                     region_displays=region_displays)
