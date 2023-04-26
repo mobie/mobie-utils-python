@@ -106,10 +106,8 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
     for s_idx,step in enumerate(sourceidx):
         for targetframe in targetidx:
             thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step], targetidx=targetidx)
-            thistrafo["sourceNamesAfterTransform"] = source + "_tp_" + str(step) + "-to-" + str(targetframe)
-            names.append(thistrafo["sourceNamesAfterTransform"])
-            t_trafos.append(thistrafo)
-
+            thistrafo["timepoints"]["sourceNamesAfterTransform"] = \
+                [source + "_tp_" + str(step) + "-to-" + str(targetframe)]
             opacity = s_idx/(len(sourceidx)-1) * (end_opacity-start_opacity) + start_opacity
 
             if source in ds['views'].keys():
@@ -130,8 +128,8 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
                     if 'opacity' in s_disp['imageDisplay'].keys():
                         opacity *= s_disp['imageDisplay']['opacity']
 
-                    source_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
-                                                             [thistrafo["sourceNamesAfterTransform"]],
+                    source_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
+                                                             thistrafo["timepoints"]["sourceNamesAfterTransform"],
                                                              opacity=round(opacity,4),
                                                              color=s_disp['imageDisplay']['color'],
                                                              contrastLimits=s_disp['imageDisplay']['contrastLimits'],
@@ -160,8 +158,8 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
                     if 'opacity' in s_disp['regionDisplay'].keys():
                         opacity *= s_disp['regionDisplay']['opacity']
 
-                    region_displays.append(get_region_display(thistrafo["sourceNamesAfterTransform"],
-                                                              [thistrafo["sourceNamesAfterTransform"]],
+                    region_displays.append(get_region_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
+                                                              thistrafo["timepoints"]["sourceNamesAfterTransform"],
                                                               opacity=round(opacity,4),
                                                               lut=s_disp['regionDisplay']["lut"],
                                                               table_source=s_disp['regionDisplay']["tableSource"],
@@ -184,18 +182,19 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
                     if 'opacity' in s_disp['segmentationDisplay'].keys():
                         opacity *= s_disp['segmentationDisplay']['opacity']
 
-                    source_displays.append(get_segmentation_display(thistrafo["sourceNamesAfterTransform"],
-                                                                    [thistrafo["sourceNamesAfterTransform"]],
-                                                                    opacity=round(opacity,4),
-                                                                    lut=s_disp['regionDisplay']["lut"],
-                                                                    table_source=s_disp['regionDisplay']["tableSource"],
-                                                                    **kwargs
-                                                                    ))
+                    source_displays.append(get_segmentation_display(
+                        thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
+                        thistrafo["sourceNamesAfterTransform"],
+                        opacity=round(opacity,4),
+                        lut=s_disp['regionDisplay']["lut"],
+                        table_source=s_disp['regionDisplay']["tableSource"],
+                        **kwargs
+                    ))
 
 
             else:
-                region_displays.append(get_image_display(thistrafo["sourceNamesAfterTransform"],
-                                                         [thistrafo["sourceNamesAfterTransform"]],
+                region_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
+                                                         thistrafo["timepoints"]["sourceNamesAfterTransform"],
                                                          opacity=round(opacity,4)
                                                          ))
 
