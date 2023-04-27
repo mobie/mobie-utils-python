@@ -317,7 +317,7 @@ def get_view(names, source_types, sources, display_settings,
             to the region display settings (default: None)
     """
 
-    if len(names) != len(source_types) != len(sources) != len(display_settings):
+    if not len(names) == len(source_types) == len(sources) == len(display_settings):
         lens = f"{len(names)} {len(source_types)}, {len(sources)}, {len(display_settings)}"
         raise ValueError(f"Different length of names, types, sources and settings: {lens}")
     view = {"isExclusive": is_exclusive, "uiSelectionGroup": menu_name}
