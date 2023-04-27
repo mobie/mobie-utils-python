@@ -106,8 +106,11 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
     for s_idx,step in enumerate(sourceidx):
         for targetframe in targetidx:
             thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step], targetidx=targetidx)
-            thistrafo["timepoints"]["sourceNamesAfterTransform"] = \
-                [source + "_tp_" + str(step) + "-to-" + str(targetframe)]
+            thisname = source + "_tp_" + str(step) + "-to-" + str(targetframe)
+            names.append(thisname)
+            thistrafo["timepoints"]["sourceNamesAfterTransform"] = [thisname]
+            t_trafos.append(thistrafo)
+
             opacity = s_idx/(len(sourceidx)-1) * (end_opacity-start_opacity) + start_opacity
 
             if source in ds['views'].keys():
@@ -200,7 +203,7 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
 
 #TODO does not work yet due to source name matching issue (#104)
-    view = get_view(names, [list(ds['sources'][source].keys())[0]]*2, names,
+    view = get_view(names, [list(ds['sources'][source].keys())[0]] * len(names), names,
                     source_displays, False, menu_name,
                     source_transforms=t_trafos,
                     region_displays=region_displays)
