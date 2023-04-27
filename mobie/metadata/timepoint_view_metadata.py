@@ -196,11 +196,13 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
 
             else:
-                region_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
+                source_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
                                                          thistrafo["timepoints"]["sourceNamesAfterTransform"],
                                                          opacity=round(opacity,4)
                                                          ))
 
+    if region_displays == []:
+        region_displays = None
 
 #TODO does not work yet due to source name matching issue (#104)
     view = get_view(names, [list(ds['sources'][source].keys())[0]] * len(names), names,

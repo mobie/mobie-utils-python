@@ -384,7 +384,7 @@ def get_view(names, source_types, sources, display_settings,
     view["sourceDisplays"] = source_displays
 
     if source_transforms is not None:
-        valid_source_transforms = {"affine", "crop", "mergedGrid", "transformedGrid"}
+        valid_source_transforms = {"affine", "crop", "mergedGrid", "transformedGrid", "timepoints"}
         this_source_transforms = set([list(trafo.keys())[0] for trafo in source_transforms])
         invalid_trafos = list(this_source_transforms - valid_source_transforms)
         if invalid_trafos:
