@@ -331,10 +331,10 @@ def get_view(names, source_types, sources, display_settings,
                 assert len(display_setting) == 1
                 assert display_setting["imageDisplay"]["name"] == name,\
                     f"{display_setting['imageDisplay']['name']}, {name}"
-                # _sources = display_setting["imageDisplay"]["sources"]
-                # invalid_sources = set(_sources) - set(source_list)
-                # assert len(invalid_sources) == 0,\
-                #     f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
+                _sources = display_setting["imageDisplay"]["sources"]
+                invalid_sources = set(_sources) - set(source_list)
+                assert len(invalid_sources) == 0,\
+                    f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
                 this_display_sources = display_setting.pop("sources", source_list)
