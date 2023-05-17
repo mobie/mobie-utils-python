@@ -25,14 +25,17 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None,
     ds = read_dataset_metadata(dataset_folder)
     transform = {"sources": [source]}
 
+    source_type = list(ds['sources'][source].keys())[0]
+    target_type = list(ds['sources'][target].keys())[0]
+
     if source_names_after_transform is not None:
         assert len(source_names_after_transform) == 1
         transform["sourceNamesAfterTransform"] = source_names_after_transform
 
-    targetData = ds['sources'][target]['image']['imageData']
+    targetData = ds['sources'][target][target_type]['imageData']
     target_times = get_timepoints(targetData, dataset_folder)
 
-    imageData = ds['sources'][source]['image']['imageData']
+    imageData = ds['sources'][source][source_type]['imageData']
     timepts = get_timepoints(imageData, dataset_folder)
 
     if not sourceidx:
@@ -84,7 +87,9 @@ def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targeti
 
     ds = read_dataset_metadata(dataset_folder)
 
-    imageData = ds['sources'][source]['image']['imageData']
+    source_type = list(ds['sources'][source].keys())[0]
+
+    imageData = ds['sources'][source][source_type]['imageData']
     timepts = get_timepoints(imageData, dataset_folder)
 
     if not menu_name:
@@ -96,7 +101,9 @@ def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targeti
     if not target:
         target = source
 
-    targetData = ds['sources'][target]['image']['imageData']
+    target_type = list(ds['sources'][target].keys())[0]
+
+    targetData = ds['sources'][target][target_type]['imageData']
     target_times = get_timepoints(targetData, dataset_folder)
 
     if not targetidx:
@@ -176,7 +183,7 @@ def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targeti
                                                               **kwargs
                                                               ))
                 elif 'segmentationDisplay' in s_disp.keys():
-                    segdisp = dict(s_disp['regionDisplay'])
+                    segdisp = dict(s_disp['segmentationDisplay'])
                     kwargs = dict()
                     additional_seg_kwargs = ["boundaryThickness", "colorByColumn",
                                              "randomColorSeed", "resolution3dView",
@@ -194,10 +201,9 @@ def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targeti
 
                     source_displays.append(get_segmentation_display(
                         thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
-                        thistrafo["sourceNamesAfterTransform"],
+                        thistrafo["timepoints"]["sourceNamesAfterTransform"],
                         opacity=round(opacity, 4),
-                        lut=s_disp['regionDisplay']["lut"],
-                        table_source=s_disp['regionDisplay']["tableSource"],
+                        lut=s_disp['segmentationDisplay']["lut"],
                         **kwargs
                     ))
 
