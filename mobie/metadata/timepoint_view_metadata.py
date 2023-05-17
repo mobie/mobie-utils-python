@@ -3,7 +3,8 @@ from .source_metadata import get_timepoints
 from .view_metadata import get_image_display, get_region_display, get_segmentation_display, get_view
 
 
-def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, targetidx=None, keep=False, name=None):
+def get_timepoints_transform(source, dataset_folder, target, sourceidx=None,
+                             targetidx=None, keep=False, name=None, source_names_after_transform=None):
     """
     Creates a timepoint transformation mapping timepoints from one source to timepoints of a target source
 
@@ -14,13 +15,19 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
         sourceidx [list[int]] - indeces of the source to be mapped
         targetidx [list[int]] - subset of target indeces
         keep [bool] - whether other timepoints of the source are still available
-        name [str] - name of ther transform
+        name [str] - name of the transform
+        source_names_after_transform [list[str]] - name of sources after transform
     Returns:
         list[list[int]]: the timepoint transformation
 
     """
 
     ds = read_dataset_metadata(dataset_folder)
+    transform = {"sources": [source]}
+
+    if source_names_after_transform is not None:
+        assert len(source_names_after_transform) == 1
+        transform["sourceNamesAfterTransform"] = source_names_after_transform
 
     targetData = ds['sources'][target]['image']['imageData']
     target_times = get_timepoints(targetData, dataset_folder)
@@ -43,20 +50,19 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None, tar
         if t_idx < 0:
             t_idx += len(target_times)
 
-        s_idx = sourceidx[round(i/len(targetidx) * len(sourceidx))]
+        s_idx = sourceidx[round(i / len(targetidx) * len(sourceidx))]
 
         t_trafo.append([t_idx, s_idx])
 
-    transform = {"sources":[source]}
     transform['keep'] = keep
     transform['name'] = name
     transform['parameters'] = t_trafo
 
-    return {"timepoints":transform}
+    return {"timepoints": transform}
+
 
 def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
-                       start_idx=-5, start_opacity=0.2, end_opacity=1,
-                       menu_name=None):
+                       start_idx=-5, start_opacity=0.2, end_opacity=1, menu_name=None):
     """
     Creates a set of ghost view displays that display earlier timepoints of one source mapped to later timepoints
     of a target source
@@ -99,19 +105,20 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
     source_displays = list()
     region_displays = list()
-    #TODO propagate existing source transforms
+    # TODO propagate existing source transforms
     t_trafos = list()
     names = list()
 
-    for s_idx,step in enumerate(sourceidx):
+    for s_idx, step in enumerate(sourceidx):
         for targetframe in targetidx:
-            thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step], targetidx=targetidx)
             thisname = source + "_tp_" + str(step) + "-to-" + str(targetframe)
             names.append(thisname)
-            thistrafo["timepoints"]["sourceNamesAfterTransform"] = [thisname]
+            thistrafo = get_timepoints_transform(source, dataset_folder, target, sourceidx=[step],
+                                                 targetidx=targetidx, source_names_after_transform=[thisname])
+
             t_trafos.append(thistrafo)
 
-            opacity = s_idx/(len(sourceidx)-1) * (end_opacity-start_opacity) + start_opacity
+            opacity = s_idx / (len(sourceidx) - 1) * (end_opacity - start_opacity) + start_opacity
 
             if source in ds['views'].keys():
                 s_disp = ds['views'][source]['sourceDisplays'][0]
@@ -133,7 +140,7 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
                     source_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
                                                              thistrafo["timepoints"]["sourceNamesAfterTransform"],
-                                                             opacity=round(opacity,4),
+                                                             opacity=round(opacity, 4),
                                                              color=s_disp['imageDisplay']['color'],
                                                              contrastLimits=s_disp['imageDisplay']['contrastLimits'],
                                                              **kwargs
@@ -163,7 +170,7 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
 
                     region_displays.append(get_region_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
                                                               thistrafo["timepoints"]["sourceNamesAfterTransform"],
-                                                              opacity=round(opacity,4),
+                                                              opacity=round(opacity, 4),
                                                               lut=s_disp['regionDisplay']["lut"],
                                                               table_source=s_disp['regionDisplay']["tableSource"],
                                                               **kwargs
@@ -188,27 +195,25 @@ def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targ
                     source_displays.append(get_segmentation_display(
                         thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
                         thistrafo["sourceNamesAfterTransform"],
-                        opacity=round(opacity,4),
+                        opacity=round(opacity, 4),
                         lut=s_disp['regionDisplay']["lut"],
                         table_source=s_disp['regionDisplay']["tableSource"],
                         **kwargs
                     ))
 
-
             else:
                 source_displays.append(get_image_display(thistrafo["timepoints"]["sourceNamesAfterTransform"][0],
                                                          thistrafo["timepoints"]["sourceNamesAfterTransform"],
-                                                         opacity=round(opacity,4)
+                                                         opacity=round(opacity, 4)
                                                          ))
 
     if region_displays == []:
         region_displays = None
 
-#TODO does not work yet due to source name matching issue (#104)
+    # TODO does not work yet due to source name matching issue (#104)
     view = get_view(names, [list(ds['sources'][source].keys())[0]] * len(names), names,
                     source_displays, False, menu_name,
                     source_transforms=t_trafos,
                     region_displays=region_displays)
-
 
     return view
