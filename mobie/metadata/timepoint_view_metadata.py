@@ -61,7 +61,7 @@ def get_timepoints_transform(source, dataset_folder, target, sourceidx=None,
     return {"timepoints": transform}
 
 
-def create_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
+def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targetidx=None,
                        start_idx=-5, start_opacity=0.2, end_opacity=1, menu_name=None):
     """
     Creates a set of ghost view displays that display earlier timepoints of one source mapped to later timepoints
