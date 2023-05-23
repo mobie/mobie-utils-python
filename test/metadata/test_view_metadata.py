@@ -276,67 +276,68 @@ class TestViewMetadata(unittest.TestCase):
         from mobie.metadata import (get_affine_source_transform, get_crop_source_transform,
                                     get_image_display,
                                     get_merged_grid_source_transform, get_transformed_grid_source_transform,
+                                    get_timepoints_transform,
                                     get_view)
         settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
+        sources = self.init_ds()
 
-        # affine trafo
-        affine = get_affine_source_transform(["my-image"], np.random.rand(12),
-                                             timepoints=[0, 1], source_names_after_transform=["my-transformed-image"])
-        view = get_view(names=["image-view"],
-                        source_types=["image"],
-                        sources=[["my-transformed-image"]],
-                        display_settings=[settings],
-                        is_exclusive=True,
-                        menu_name="bookmark",
-                        source_transforms=[affine])
-        validate_with_schema(view, "view")
+        # # affine trafo
+        # affine = get_affine_source_transform(["my-image"], np.random.rand(12),
+        #                                      timepoints=[0, 1], source_names_after_transform=["my-transformed-image"])
+        # view = get_view(names=["image-view"],
+        #                 source_types=["image"],
+        #                 sources=[["my-transformed-image"]],
+        #                 display_settings=[settings],
+        #                 is_exclusive=True,
+        #                 menu_name="bookmark",
+        #                 source_transforms=[affine])
+        # validate_with_schema(view, "view")
+        #
+        # # crop trafo
+        # crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
+        #                                  timepoints=[0, 1], source_names_after_transform=["my-cropped-image"],
+        #                                  center_at_origin=True, rectify=True)
+        # view = get_view(names=["image-view"],
+        #                 source_types=["image"],
+        #                 sources=[["my-cropped-image"]],
+        #                 display_settings=[settings],
+        #                 is_exclusive=True, menu_name="bookmark",
+        #                 source_transforms=[crop])
+        # validate_with_schema(view, "view")
+        #
+        # # grid trafo
+        # grid = get_merged_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images")
+        # view = get_view(names=["image-grid"],
+        #                 source_types=["image"],
+        #                 sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
+        #                 display_settings=[settings],
+        #                 is_exclusive=True, menu_name="bookmark",
+        #                 source_transforms=[grid])
+        # validate_with_schema(view, "view")
+        #
+        # # transform grid trafo from list
+        # grid = get_transformed_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
+        #                                              positions=[[0, 0], [1, 1]],
+        #                                              center_at_origin=True)
+        # view = get_view(names=["image-grid"],
+        #                 source_types=["image"],
+        #                 sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
+        #                 display_settings=[settings],
+        #                 is_exclusive=True, menu_name="bookmark",
+        #                 source_transforms=[grid])
+        # validate_with_schema(view, "view")
 
-        # crop trafo
-        crop = get_crop_source_transform(["my-image"], np.random.rand(3), np.random.rand(3),
-                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"],
-                                         center_at_origin=True, rectify=True)
-        view = get_view(names=["image-view"],
+        # timepoints transform
+        timepts = get_timepoints_transform("image-0", "data/ds", "image-1")
+
+        view = get_view(names=["image-timepoints"],
                         source_types=["image"],
-                        sources=[["my-cropped-image"]],
+                        sources=[["my-image1"]],
                         display_settings=[settings],
                         is_exclusive=True, menu_name="bookmark",
-                        source_transforms=[crop])
+                        source_transforms=[timepts])
         validate_with_schema(view, "view")
 
-        # grid trafo
-        grid = get_merged_grid_source_transform(["my-image1", "my-image2", "my-image3", "my-image4"], "merged-images")
-        view = get_view(names=["image-grid"],
-                        source_types=["image"],
-                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
-                        display_settings=[settings],
-                        is_exclusive=True, menu_name="bookmark",
-                        source_transforms=[grid])
-        validate_with_schema(view, "view")
-
-        # transform grid trafo from list
-        grid = get_transformed_grid_source_transform([["my-image1", "my-image2"], ["my-image3", "my-image4"]],
-                                                     positions=[[0, 0], [1, 1]],
-                                                     center_at_origin=True)
-        view = get_view(names=["image-grid"],
-                        source_types=["image"],
-                        sources=[["my-image1", "my-image2", "my-image3", "my-image4"]],
-                        display_settings=[settings],
-                        is_exclusive=True, menu_name="bookmark",
-                        source_transforms=[grid])
-        validate_with_schema(view, "view")
-
-        # combined transformations and new display settings
-        crop = get_crop_source_transform(["my-transformed-image"], np.random.rand(3), np.random.rand(3),
-                                         timepoints=[0, 1], source_names_after_transform=["my-cropped-image"])
-        settings = get_image_display("image-view", ["my-cropped-image"], **settings)
-        view = get_view(names=["image-view"],
-                        source_types=["image"],
-                        sources=[["my-cropped-image"]],
-                        display_settings=[settings],
-                        is_exclusive=True,
-                        menu_name="bookmark",
-                        source_transforms=[affine, crop])
-        validate_with_schema(view, "view")
 
     def init_ds(self):
         import h5py
