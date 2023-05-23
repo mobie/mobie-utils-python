@@ -276,7 +276,7 @@ class TestViewMetadata(unittest.TestCase):
         from mobie.metadata import (get_affine_source_transform, get_crop_source_transform,
                                     get_image_display,
                                     get_merged_grid_source_transform, get_transformed_grid_source_transform,
-                                    get_timepoints_transform,
+                                    get_timepoints_transform, get_ghosts_view,
                                     get_view)
         settings = {"contrastLimits": [0.0, 1.0], "opacity": 1.0}
         sources = self.init_ds()
@@ -338,6 +338,10 @@ class TestViewMetadata(unittest.TestCase):
                         source_transforms=[timepts])
         validate_with_schema(view, "view")
 
+        # ghost view
+        view = get_ghosts_view("image-0", "data/ds")
+
+        validate_with_schema(view, "view")
 
     def init_ds(self):
         import h5py
