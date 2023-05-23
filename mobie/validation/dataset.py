@@ -12,6 +12,7 @@ def validate_dataset(
     dataset_folder,
     require_local_data=True, require_remote_data=False,
     assert_true=_assert_true, assert_in=_assert_in, assert_equal=_assert_equal,
+    suppress_warnings=False,
 ):
 
     # check the source metadata
@@ -39,6 +40,7 @@ def validate_dataset(
             assert_true=assert_true,
             assert_equal=assert_equal,
             assert_in=assert_in,
+            suppress_warnings=suppress_warnings,
         )
 
     # check the views
