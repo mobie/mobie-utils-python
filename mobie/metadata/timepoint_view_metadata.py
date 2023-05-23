@@ -125,7 +125,7 @@ def get_ghosts_view(source, dataset_folder, target=None, sourceidx=None, targeti
 
             t_trafos.append(thistrafo)
 
-            opacity = s_idx / (len(sourceidx) - 1) * (end_opacity - start_opacity) + start_opacity
+            opacity = s_idx / (max(len(sourceidx),2) - 1) * (end_opacity - start_opacity) + start_opacity
 
             if source in ds['views'].keys():
                 s_disp = ds['views'][source]['sourceDisplays'][0]
