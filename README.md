@@ -88,4 +88,4 @@ As most likely the specs for the project metadata files change during an update,
 
 ## Citation
 
-If you use the MoBIE framework in your research, please cite [the MoBIE bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2022.05.27.493763v1).
+If you use the MoBIE framework in your research, please cite [the MoBIE publication](https://www.nature.com/articles/s41592-023-01776-4).
