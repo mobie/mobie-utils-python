@@ -35,8 +35,9 @@ def _check_ome_zarr_s3(address, name, assert_true, assert_equal, channel):
 def _check_data(storage, format_, name, dataset_folder,
                 require_local_data, require_remote_data,
                 assert_true, assert_equal):
-    # checks for bdv format
-    if format_.startswith("bdv"):
+
+    def bdv_check():
+        # get the path to the xml and make sure it exists
         path = os.path.join(dataset_folder, storage["relativePath"])
         assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
 
@@ -44,15 +45,18 @@ def _check_data(storage, format_, name, dataset_folder,
         bdv_name = get_name(path, setup_id=0)
         msg = f"{path}: Source name and name in bdv metadata disagree: {name} != {bdv_name}"
         assert_equal(name, bdv_name, msg)
+        return path
 
-        # check that the remote s3 address exists
-        if format_.endswith(".s3") and require_remote_data:
-            _check_bdv_n5_s3(path, assert_true)
+    # checks for local bdv data (bdv.n5, bdv.hdf5)
+    if format_ in ("bdv.n5", "bdv.hdf5") and require_local_data:
+        path = bdv_check()
+        data_path = get_data_path(path, return_absolute_path=True)
+        assert_true(os.path.exists(data_path), f"Can't find local data @ {data_path}")
 
-        # check that the referenced local file path exists
-        elif require_local_data:
-            data_path = get_data_path(path, return_absolute_path=True)
-            assert_true(os.path.exists(data_path), f"Can't find local data @ {data_path}")
+    # checks for remote bdv data
+    elif format_ == "bdv.n5.s3":
+        path = bdv_check()
+        _check_bdv_n5_s3(path, assert_true)
 
     # local ome.zarr check: source name and name in the ome.zarr metadata agree
     elif format_ == "ome.zarr" and require_local_data:

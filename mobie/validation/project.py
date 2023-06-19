@@ -35,6 +35,11 @@ def validate_project(root,
     msg = f"Cannot find {metadata_path}"
     assert_true(os.path.exists(metadata_path), msg)
 
+    if require_local_data:
+        print("Validating locally stored data.")
+    if require_remote_data:
+        print("Validating remotely stored data. (= data stored on s3)")
+
     with open(metadata_path) as f:
         project_metadata = json.load(f)
 
