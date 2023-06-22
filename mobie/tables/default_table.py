@@ -45,6 +45,12 @@ def _compute_table_2d(seg_path, seg_key, resolution):
 
     col_names = ["label_id", "anchor_y", "anchor_x",
                  "bb_min_y", "bb_min_x", "bb_max_y", "bb_max_x", "n_pixels"]
+
+    # handle empty segmentations
+    if len(tab) == 0:
+        warnings.warn(f"Empty segmentation in {seg_path}")
+        return pd.DataFrame(columns=col_names)
+
     assert tab.shape[1] == len(col_names), f"{tab.shape}, {len(col_names)}"
     return pd.DataFrame(tab, columns=col_names)
 
