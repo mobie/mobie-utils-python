@@ -101,6 +101,8 @@ def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
             new_format, s3_storage = _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
                                                      service_endpoint, bucket_name, region)
             new_metadata[source_type]["imageData"][new_format] = s3_storage
+        elif file_format.endswith("s3"):
+            pass
         else:
             warn(f"Data in the {file_format} format cannot be uploaded to s3.")
 
