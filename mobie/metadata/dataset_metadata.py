@@ -87,16 +87,19 @@ def add_default_location_to_dataset(dataset_folder, location):
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def create_dataset_structure(root, dataset_name, file_formats):
+def create_dataset_structure(root, dataset_name, file_formats=None):
     """ Make the folder structure for a new dataset.
 
     Arguments:
         root [str] - the root data directory
         dataset_name [str] - name of the dataset
+        file_formats [str] - the file formats for which we create sub-folders (default: None)
     """
     dataset_folder = os.path.join(root, dataset_name)
     os.makedirs(os.path.join(dataset_folder, "tables"), exist_ok=True)
     os.makedirs(os.path.join(dataset_folder, "misc", "views"), exist_ok=True)
+    if file_formats is None:
+        return dataset_folder
     for file_format in file_formats:
         os.makedirs(os.path.join(dataset_folder, "images", file_format.replace(".", "-")), exist_ok=True)
     return dataset_folder

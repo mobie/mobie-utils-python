@@ -75,7 +75,7 @@ def _get_fs(server, anon):
     return fs
 
 
-# zarr doesn"t support s3 n5 yet, so we need to hack it...
+# zarr doesn't support s3 n5 yet, so we need to hack it...
 def validate_s3_dataset(bucket_name,
                         path_in_bucket,
                         dataset_name,
