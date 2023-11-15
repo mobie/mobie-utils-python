@@ -64,15 +64,16 @@ def _to_bdv_s3(file_format,
 def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
                     service_endpoint, bucket_name, region):
     rel_path = storage["relativePath"]
-    abs_path = os.path.join(dataset_folder, rel_path)
+    abs_path = os.path.abspath(os.path.join(dataset_folder, rel_path))
     if not os.path.exists(abs_path):
-        warn(f"Could not find dataat {abs_path}")
+        warn(f"Could not find data at {abs_path}")
     # build the s3 address
+    dataset_path = os.path.relpath(abs_path,os.path.join(dataset_folder,'..'))
+
     s3_address = "/".join([
         service_endpoint.rstrip("/"),
         bucket_name,
-        dataset_name,
-        rel_path
+        dataset_path
     ])
     s3_storage = {"s3Address": s3_address}
     if region != "":
