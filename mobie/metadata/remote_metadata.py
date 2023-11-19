@@ -68,7 +68,7 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
     if not os.path.exists(abs_path):
         warn(f"Could not find data at {abs_path}")
     # build the s3 address
-    dataset_path = os.path.relpath(abs_path,os.path.join(dataset_folder,'..'))
+    dataset_path = os.path.relpath(abs_path, os.path.join(dataset_folder, ".."))
 
     s3_address = "/".join([
         service_endpoint.rstrip("/"),
