@@ -18,6 +18,7 @@ class TestRemoteMetadata(unittest.TestCase):
     root = "./test-folder/data"
     shape = (64, 64, 64)
     dataset_name = "test"
+    datasets = [dataset_name, "test_relative"]
 
     def init_dataset(self, file_format):
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -42,6 +43,22 @@ class TestRemoteMetadata(unittest.TestCase):
         mobie.metadata.add_regions_to_dataset(os.path.join(self.root, self.dataset_name), "my-regions",
                                               default_table=dummy_table)
 
+        # add an image source pointing to another dataset to make sure
+        # that its relative path is correctly translated into remote paths
+
+        if not file_format.startswith("bdv"):
+            new_ds = self.datasets[1]
+            new_ds_path = os.path.join(self.root, new_ds)
+
+            mobie.metadata.add_dataset(self.root, new_ds, False)
+            os.makedirs(new_ds_path, exist_ok=True)
+            mobie.metadata.create_dataset_metadata(new_ds_path)
+            data_path, image_metadata_path = mobie.utils.get_internal_paths(os.path.join(self.root, self.dataset_name),
+                                                                            file_format, raw_name)
+            mobie.metadata.add_source_to_dataset(new_ds_path, "image", new_ds, image_metadata_path)
+            rel_view = mobie.metadata.read_dataset_metadata(new_ds_path)["views"][new_ds]
+            mobie.metadata.add_view_to_dataset(new_ds_path, "default", rel_view)
+
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
 
@@ -52,29 +69,36 @@ class TestRemoteMetadata(unittest.TestCase):
             pass
 
     def _check_remote_metadata(self, file_format, service_endpoint, bucket_name):
-        dataset_folder = os.path.join(self.root, self.dataset_name)
-        dataset_metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
-        validate_with_schema(dataset_metadata, "dataset")
-
-        new_file_format = file_format + ".s3"
-
-        sources = dataset_metadata["sources"]
-        for name, source in sources.items():
-            source_type, source_data = next(iter(source.items()))
-            storage = source_data.get("imageData")
-            if storage is None:
+        for idx, dataset_name in enumerate(self.datasets):
+            if file_format.startswith("bdv") and idx > 0:
                 continue
-            self.assertIn(new_file_format, storage)
-            if new_file_format.startswith("bdv"):
-                xml = storage[new_file_format]["relativePath"]
-                xml_path = os.path.join(dataset_folder, xml)
-                self.assertTrue(os.path.exists(xml_path))
-                _, ep, bn, _ = parse_s3_xml(xml_path)
-                self.assertEqual(ep, service_endpoint)
-                self.assertEqual(bn, bucket_name)
-            else:
-                address = storage[new_file_format]["s3Address"]
-                self.assertTrue(address.startswith(service_endpoint))
+
+            dataset_folder = os.path.join(self.root, dataset_name)
+            dataset_metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
+            validate_with_schema(dataset_metadata, "dataset")
+
+            new_file_format = file_format + ".s3"
+
+            sources = dataset_metadata["sources"]
+            for name, source in sources.items():
+                source_type, source_data = next(iter(source.items()))
+                storage = source_data.get("imageData")
+                if storage is None:
+                    continue
+                self.assertIn(new_file_format, storage)
+                if new_file_format.startswith("bdv"):
+                    xml = storage[new_file_format]["relativePath"]
+                    xml_path = os.path.join(dataset_folder, xml)
+                    self.assertTrue(os.path.exists(xml_path))
+                    _, ep, bn, _ = parse_s3_xml(xml_path)
+                    self.assertEqual(ep, service_endpoint)
+                    self.assertEqual(bn, bucket_name)
+                else:
+                    address = storage[new_file_format]["s3Address"]
+                    self.assertTrue(address.startswith(service_endpoint))
+
+                    if "relative" in dataset_name:
+                        self.assertTrue("/" + self.dataset_name + "/" in address)
 
         proj_metadata = mobie.metadata.read_project_metadata(self.root)
         validate_with_schema(proj_metadata, "project")
