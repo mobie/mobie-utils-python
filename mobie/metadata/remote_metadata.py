@@ -73,7 +73,7 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
     s3_address = "/".join([
         service_endpoint.rstrip("/"),
         bucket_name,
-        dataset_path
+        dataset_path.replace("\\", "/")
     ])
     s3_storage = {"s3Address": s3_address}
     if region != "":
