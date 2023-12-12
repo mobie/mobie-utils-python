@@ -100,7 +100,7 @@ def remove_source(dataset_folder, name, remove_data=False):
     if remove_data and source_type in ("segmentation",):
         tab_data = source_metadata.get("tableData")
         if tab_data:
-            rmtree(os.path.join(dataset_folder, tab_data["tsv"]))
+            rmtree(os.path.join(dataset_folder, tab_data["tsv"]["relativePath"]))
 
     dataset_metadata["sources"] = sources
 

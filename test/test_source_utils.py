@@ -106,7 +106,8 @@ class TestSourceUtils(unittest.TestCase):
     def _test_remove(self, name):
         from mobie import remove_source
         ds_folder = os.path.join(self.root, self.dataset_name)
-        remove_source(ds_folder, name)
+
+        remove_source(ds_folder, name, remove_data=True)
 
         ds_meta = mobie.metadata.read_dataset_metadata(ds_folder)
         self.assertNotIn(name, ds_meta["sources"])
