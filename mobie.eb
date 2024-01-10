@@ -1,0 +1,27 @@
+# EasyBuild recipy for MoBIE
+# Author: Martin Schorb
+# EMBL
+
+easyblock = 'Conda'
+install_cmd = 'mamba'
+name = 'MoBIE'
+version = '0.4.5'
+
+homepage = 'https://mobie.github.io'
+description = """A python library to generate projects for MoBIE.
+The MoBIE Fiji viewer is a Fiji plugin allowing easy exploration of big multi-modal images
+ and associated tabular data."""
+
+source_urls = ['https://raw.githubusercontent.com/mobie/mobie-utils-python/eb/']
+sources = ['easybuild_env.yaml']
+
+toolchain = SYSTEM
+
+builddependencies = [('Mamba', '4.14.0-0')]
+
+
+environment_file = 'easybuild_env.yaml'
+
+sanity_check_commands = ['python -c "import mobie; mobie.__version__"']
+
+moduleclass = 'bio'
