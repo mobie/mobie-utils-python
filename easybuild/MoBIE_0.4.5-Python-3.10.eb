@@ -4,7 +4,7 @@
 
 easyblock = 'Conda'
 install_cmd = 'mamba'
-name = 'MoBIE'
+name = 'MoBIE-Python'
 version = '0.4.5'
 
 homepage = 'https://mobie.github.io'
