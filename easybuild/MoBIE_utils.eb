@@ -12,7 +12,7 @@ description = """A python library to generate projects for MoBIE.
 The MoBIE Fiji viewer is a Fiji plugin allowing easy exploration of big multi-modal images
  and associated tabular data."""
 
-source_urls = ['https://raw.githubusercontent.com/mobie/mobie-utils-python/eb/']
+source_urls = ['https://raw.githubusercontent.com/mobie/mobie-utils-python/easybuild/']
 sources = ['easybuild_env.yaml']
 
 toolchain = SYSTEM
