@@ -1,0 +1,16 @@
+name:
+    mobie
+channels:
+    - conda-forge
+dependencies:
+    - mobie_utils
+    - cluster_tools >=0.4.4
+    - python-elf
+    - python=3.10
+    - numba
+    - jsonschema
+    - pandas
+    - pip
+    - requests
+    - pybdv >=0.5
+    - s3fs
