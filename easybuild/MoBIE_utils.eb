@@ -20,7 +20,7 @@ toolchain = SYSTEM
 builddependencies = [('Mamba', '4.14.0-0')]
 
 
-environment_file = 'easybuild_env_%(version)s.yaml'
+environment_file = 'easybuild_env.yaml'
 
 sanity_check_commands = ['python -c "import mobie; mobie.__version__"']
 
