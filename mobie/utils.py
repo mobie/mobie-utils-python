@@ -73,13 +73,14 @@ def require_dataset(root, dataset_name):
 
 def require_dataset_and_view(root, dataset_name, file_format,
                              source_type, source_name, menu_name,
-                             view, is_default_dataset, contrast_limits=None):
+                             view, is_default_dataset,
+                             contrast_limits=None, description=None):
     ds_exists = require_dataset(root, dataset_name)
 
     dataset_folder = os.path.join(root, dataset_name)
     if view is None:
         kwargs = {"contrastLimits": contrast_limits} if source_type == "image" else {}
-        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, **kwargs)
+        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, description=description, **kwargs)
     elif view == {}:
         pass
     else:

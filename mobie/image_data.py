@@ -219,7 +219,8 @@ def add_image(input_path, input_key,
                                           source_type="image", source_name=image_name,
                                           menu_name=menu_name, view=view,
                                           is_default_dataset=is_default_dataset,
-                                          contrast_limits=contrast_limits)
+                                          contrast_limits=contrast_limits,
+                                          description=description)
 
     dataset_folder = os.path.join(root, dataset_name)
 
@@ -244,7 +245,7 @@ def add_image(input_path, input_key,
                           channel=channel)
 
     metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
-                                   view=view, description=description, channel=channel)
+                                   view=view, channel=channel)
 
     if transformation is not None:
         utils.update_transformation_parameter(image_metadata_path, transformation, file_format)
