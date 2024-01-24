@@ -13,8 +13,7 @@ class TestSourceMetadata(unittest.TestCase):
         source = get_image_metadata(ds_folder, xml_path, file_format="bdv.n5")
         validate_with_schema(source, "source")
 
-        source = get_image_metadata(ds_folder, xml_path, file_format="bdv.n5",
-                                    description="My shiny image")
+        source = get_image_metadata(ds_folder, xml_path, file_format="bdv.n5")
         validate_with_schema(source, "source")
 
         source = get_image_metadata(ds_folder, xml_path, file_format="bdv.n5")
@@ -68,8 +67,7 @@ class TestSourceMetadata(unittest.TestCase):
         source = get_segmentation_metadata(ds_folder, xml_path, file_format="bdv.n5")
         validate_with_schema(source, "source")
 
-        source = get_segmentation_metadata(ds_folder, xml_path, file_format="bdv.n5",
-                                           description="My shiny segmentation")
+        source = get_segmentation_metadata(ds_folder, xml_path, file_format="bdv.n5")
         validate_with_schema(source, "source")
 
         source = get_segmentation_metadata(ds_folder, xml_path,
