@@ -243,7 +243,8 @@ class TestImageData(unittest.TestCase):
         mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
                         resolution=(1, 1, 1), scale_factors=scales,
                         chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
-                        target="local", max_jobs=self.max_jobs)
+                        target="local", max_jobs=self.max_jobs,
+                        description=description)
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
 
     def test_with_view(self):
@@ -328,6 +329,11 @@ class TestImageData(unittest.TestCase):
         with open_file(im_path, "r") as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
+
+        # check the vew
+        views = metadata["views"]
+        self.assertIn(name, views)
+        mobie.validation.validate_view_metadata(name, views[name])
 
 
 if __name__ == "__main__":

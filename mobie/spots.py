@@ -79,7 +79,8 @@ def add_spots(input_table, root, dataset_name, spot_name,
                                                 source_type="spots",
                                                 source_name=spot_name,
                                                 menu_name=menu_name, view=view,
-                                                is_default_dataset=False)
+                                                is_default_dataset=False,
+                                                description=description)
     dataset_folder = os.path.join(root, dataset_name)
 
     metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
@@ -98,8 +99,7 @@ def add_spots(input_table, root, dataset_name, spot_name,
     # add the spot source to the dataset metadata
     mobie.metadata.add_source_to_dataset(dataset_folder, "spots", spot_name,
                                          image_metadata_path=None,
-                                         table_folder=table_folder, view=view,
-                                         description=description, unit=unit,
+                                         table_folder=table_folder, view=view, unit=unit,
                                          bounding_box_min=bounding_box_min,
                                          bounding_box_max=bounding_box_max)
 
