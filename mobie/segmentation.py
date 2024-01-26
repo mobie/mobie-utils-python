@@ -61,7 +61,8 @@ def add_segmentation(input_path, input_key,
                                                 source_type="segmentation",
                                                 source_name=segmentation_name,
                                                 menu_name=menu_name, view=view,
-                                                is_default_dataset=is_default_dataset)
+                                                is_default_dataset=is_default_dataset,
+                                                description=description)
 
     dataset_folder = os.path.join(root, dataset_name)
     tmp_folder = f"tmp_{dataset_name}_{segmentation_name}" if tmp_folder is None else tmp_folder
@@ -118,8 +119,7 @@ def add_segmentation(input_path, input_key,
     # add the segmentation to the dataset metadata
     mobie.metadata.add_source_to_dataset(dataset_folder, "segmentation",
                                          segmentation_name, image_metadata_path,
-                                         table_folder=table_folder, view=view,
-                                         description=description)
+                                         table_folder=table_folder, view=view)
 
 
 def main():
