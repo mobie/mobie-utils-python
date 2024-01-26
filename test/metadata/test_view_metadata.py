@@ -25,6 +25,7 @@ class TestViewMetadata(unittest.TestCase):
 
         # test custom image settings
         custom_kwargs = [
+            {"description": "Lorem ipsum"},
             {"contrastLimits": [0., 255.], "color": "white"},
             {"contrastLimits": [0., 2000.], "color": "red"},
             {"contrastLimits": [-10., 20000000.]},

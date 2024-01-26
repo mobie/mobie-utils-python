@@ -48,7 +48,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
                                           source_type="segmentation",
                                           source_name=traces_name,
                                           menu_name=menu_name, view=view,
-                                          is_default_dataset=False)
+                                          is_default_dataset=False,
+                                          description=description)
 
     # get the path to the reference data
     dataset_folder = os.path.join(root, dataset_name)
@@ -85,8 +86,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
     metadata.add_source_to_dataset(dataset_folder, 'segmentation',
                                    traces_name, image_metadata_path,
-                                   view=view, table_folder=table_folder,
-                                   description=description)
+                                   view=view, table_folder=table_folder)
 
 
 def main():

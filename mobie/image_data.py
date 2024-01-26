@@ -224,7 +224,8 @@ def add_image(input_path, input_key,
                                           source_type="image", source_name=image_name,
                                           menu_name=menu_name, view=view,
                                           is_default_dataset=is_default_dataset,
-                                          contrast_limits=contrast_limits)
+                                          contrast_limits=contrast_limits,
+                                          description=description)
 
     dataset_folder = os.path.join(root, dataset_name)
 

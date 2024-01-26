@@ -300,7 +300,7 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, nor
 
 
 def get_view(names, source_types, sources, display_settings,
-             is_exclusive, menu_name,
+             is_exclusive, menu_name, description=None,
              source_transforms=None, viewer_transform=None, region_displays=None):
     """ Create view for a multiple sources and optional transformations.
 
@@ -311,6 +311,7 @@ def get_view(names, source_types, sources, display_settings,
         display_settings [list[dict]] - list of display settings in this view.
         is_exclusive [bool] - is this an exclusive view.
         menu_name [str] - menu name for this view
+        description [str] - description for this view (default: None)
         source_transforms [list[dict]] - (default: None)
         viewer_transform [dict] - (default: None)
         region_displays dict[str, dict] - dictionary from region display name
@@ -321,6 +322,8 @@ def get_view(names, source_types, sources, display_settings,
         lens = f"{len(names)} {len(source_types)}, {len(sources)}, {len(display_settings)}"
         raise ValueError(f"Different length of names, types, sources and settings: {lens}")
     view = {"isExclusive": is_exclusive, "uiSelectionGroup": menu_name}
+    if description is not None:
+        view["description"] = description
 
     source_displays = []
     for name, source_type, source_list, display_setting in zip(names, source_types, sources, display_settings):
@@ -404,7 +407,8 @@ def get_view(names, source_types, sources, display_settings,
 
 
 def get_default_view(source_type, source_name, menu_name=None,
-                     source_transform=None, viewer_transform=None, **kwargs):
+                     source_transform=None, viewer_transform=None,
+                     description=None, **kwargs):
     """ Create default view metadata for a single source.
 
     Arguments:
@@ -414,6 +418,7 @@ def get_default_view(source_type, source_name, menu_name=None,
         source_transform [dict] - dict with affine source transform.
             If given, must contain "parameters" and may contain "timepoints" (default: None).
         viewer_transform [dict] - dict with viewer transform (default: None)
+        description [str] - description for this view (default: None).
         **kwargs - additional settings for this view
     """
     if menu_name is None:
@@ -428,7 +433,7 @@ def get_default_view(source_type, source_name, menu_name=None,
         ]
 
     view = get_view([source_name], [source_type], [[source_name]], [kwargs],
-                    is_exclusive=False, menu_name=menu_name,
+                    is_exclusive=False, menu_name=menu_name, description=description,
                     source_transforms=source_transforms, viewer_transform=viewer_transform)
     return view
 

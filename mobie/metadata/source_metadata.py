@@ -160,7 +160,7 @@ def _get_file_format(path):
     return file_format
 
 
-def _get_image_metadata(dataset_folder, path, type_, file_format, channel, description):
+def _get_image_metadata(dataset_folder, path, type_, file_format, channel):
     file_format = _get_file_format(path) if file_format is None else file_format
 
     if file_format.startswith("bdv"):
@@ -181,23 +181,20 @@ def _get_image_metadata(dataset_folder, path, type_, file_format, channel, descr
         format_["channel"] = channel
 
     source_metadata = {"imageData": {file_format: format_}}
-    if description is not None:
-        assert isinstance(description, str)
-        source_metadata["description"] = description
     return {type_: source_metadata}
 
 
 def get_image_metadata(dataset_folder, metadata_path,
-                       file_format=None, channel=None, description=None):
+                       file_format=None, channel=None):
     return _get_image_metadata(dataset_folder, metadata_path, "image",
-                               file_format=file_format, channel=channel, description=description)
+                               file_format=file_format, channel=channel)
 
 
 def get_segmentation_metadata(dataset_folder, metadata_path,
                               table_location=None, file_format=None,
-                              channel=None, description=None):
+                              channel=None):
     source_metadata = _get_image_metadata(dataset_folder, metadata_path, "segmentation",
-                                          file_format=file_format, channel=channel, description=description)
+                                          file_format=file_format, channel=channel)
     if table_location is not None:
         relative_table_location = os.path.relpath(table_location, dataset_folder)
         source_metadata["segmentation"]["tableData"] = get_table_metadata(relative_table_location)
@@ -207,8 +204,7 @@ def get_segmentation_metadata(dataset_folder, metadata_path,
 def get_spot_metadata(dataset_folder, table_folder,
                       bounding_box_min,
                       bounding_box_max,
-                      unit,
-                      description=None):
+                      unit):
     relative_table_location = os.path.relpath(table_folder, dataset_folder)
     table_data = get_table_metadata(relative_table_location)
 
@@ -220,8 +216,6 @@ def get_spot_metadata(dataset_folder, table_folder,
             "unit": unit,
         }
     }
-    if description is not None:
-        source_metadata["spots"]["description"] = description
     return source_metadata
 
 
@@ -234,7 +228,6 @@ def add_source_to_dataset(
     view=None,
     table_folder=None,
     overwrite=True,
-    description=None,
     channel=None,
     suppress_warnings=False,
     **kwargs,
@@ -253,7 +246,6 @@ def add_source_to_dataset(
             If empty dict, will not add a view (default: None)
         table_folder [str] - table folder for segmentations and spots. (default: None)
         overwrite [bool] - whether to overwrite existing entries (default: True)
-        description [str] - description for this source (default: None)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
         suppress_warnings [bool] - a flag to suppress warnings raised by the metadata validation (default: False)
@@ -273,19 +265,16 @@ def add_source_to_dataset(
     if source_type == "image":
         source_metadata = get_image_metadata(dataset_folder, image_metadata_path,
                                              file_format=file_format,
-                                             channel=channel,
-                                             description=description)
+                                             channel=channel)
     elif source_type == "segmentation":
         source_metadata = get_segmentation_metadata(dataset_folder,
                                                     image_metadata_path,
                                                     table_folder,
                                                     file_format=file_format,
-                                                    channel=channel,
-                                                    description=description)
+                                                    channel=channel)
     elif source_type == "spots":
         source_metadata = get_spot_metadata(dataset_folder,
                                             table_folder,
-                                            description=description,
                                             **kwargs)
     else:
         raise ValueError(f"Invalid source type: {source_type}, expect one of 'image', 'segmentation' or 'spots'")
