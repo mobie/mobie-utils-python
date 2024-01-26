@@ -286,6 +286,35 @@ class TestImageData(unittest.TestCase):
         # xml_path = os.path.join(self.dataset_folder, "images", "bdv-n5", f"{name}.xml")
 
     #
+    # test skipping metadata
+    #
+
+    def test_skip_metadata(self):
+        im_name = "test-skip_metadata"
+        scales = [[2, 2, 2]]
+        mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs,
+                        description="Skipping metadata.",
+                        skip_add_to_dataset=True)
+        with self.assertRaises(AssertionError):
+            self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+        metadata = mobie.metadata.read_dataset_metadata(os.path.join(self.root, self.dataset_name))
+        sources = metadata["sources"]
+        self.assertEqual(sources, {})
+
+        mobie.add_image(self.data, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs,
+                        description="Add skipped metadata.",
+                        skip_add_to_dataset=False)
+
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+
+    #
     # data validation
     #
 

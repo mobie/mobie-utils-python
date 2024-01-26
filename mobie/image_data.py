@@ -167,7 +167,8 @@ def add_image(input_path, input_key,
               description=None,
               move_only=False,
               int_to_uint=False,
-              channel=None):
+              channel=None,
+              skip_add_to_dataset=False):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -200,8 +201,12 @@ def add_image(input_path, input_key,
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        skip_add_to_dataset [bool] - Skip adding the source to the dataset after converting the image data.
+            This should be used when calling `add_image` in parallel in order to avoid
+            writing to dataset.json in parallel, which can cause issues. In this case the source needs to be added later
+            , which can be done by calling this function again. (default: False)
     """
-    # TODO add 'setup_id' to the json schema fro bdv formats to also support it there
+    # TODO add 'setup_id' to the json schema for bdv formats to also support it there
     if channel is not None and file_format != "ome.zarr":
         raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
 
@@ -244,11 +249,13 @@ def add_image(input_path, input_key,
                           int_to_uint=int_to_uint,
                           channel=channel)
 
-    metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
-                                   view=view, channel=channel)
-
     if transformation is not None:
         utils.update_transformation_parameter(image_metadata_path, transformation, file_format)
+
+    if skip_add_to_dataset:
+        return
+    metadata.add_source_to_dataset(dataset_folder, "image", image_name, image_metadata_path,
+                                   view=view, description=description, channel=channel)
 
 
 def main():
