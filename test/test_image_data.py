@@ -73,7 +73,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format=" bdv.n5", func=None, int_to_uint=False
+        self, dataset_name, raw_name, shape, file_format=" bdv-n5", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -313,7 +313,7 @@ class TestImageData(unittest.TestCase):
 
     def test_with_trafo_bdv_n5(self):
         trafo = np.random.rand(12).tolist()
-        self._test_with_trafo(file_format="bdv.n5", transformation=trafo)
+        self._test_with_trafo(file_format="bdv-n5", transformation=trafo)
         # TODO check that the transformation is added correctly
         # dataset_folder = os.path.join(self.root, self.dataset_name)
         # xml_path = os.path.join(self.dataset_folder, "images", "bdv-n5", f"{name}.xml")
