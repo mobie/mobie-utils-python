@@ -73,7 +73,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None, int_to_uint=False
+        self, dataset_name, raw_name, shape, file_format=" bdv.n5", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -351,7 +351,7 @@ class TestImageData(unittest.TestCase):
     # data validation
     #
 
-    def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="bdv.n5"):
+    def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="ome.zarr"):
         # validate the full project
         mobie.validation.validate_project(
             self.root, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
@@ -385,7 +385,7 @@ class TestImageData(unittest.TestCase):
         mobie.validation.validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
-        im_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
+        im_path = os.path.join(dataset_folder, "images", "ome-zarr", f"{name}.ome.zarr")
         self.assertTrue(os.path.exists(im_path))
         key = get_key(False, 0, 0, 0)
         with open_file(im_path, "r") as f:
