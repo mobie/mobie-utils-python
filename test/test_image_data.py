@@ -233,6 +233,39 @@ class TestImageData(unittest.TestCase):
         dataset_folder = os.path.join(self.root, self.dataset_name)
         self.check_data(dataset_folder, im_name)
 
+        # 2D
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
+    def test_cli_2D(self):
+
+        shape = (1, 512, 512)
+
+        im_folder = os.path.join(self.test_folder, "im-stack")
+        self.make_tif_data(im_folder, shape)
+
+        dataset_name = "testCLI2D"
+        im_name = "test-cli-2D"
+
+        resolution = json.dumps([1., 1.])
+        scales = json.dumps([[2, 2], [2, 2], [2, 2]])
+        chunks = json.dumps([64, 64])
+
+        tmp_folder = os.path.join(self.test_folder, "cli-im2D")
+
+        cmd = ["mobie.add_image",
+               "--input_path", os.path.join(im_folder, "z_000.tif"),
+               "--input_key", "",
+               "--root", self.root,
+               "--dataset_name", self.dataset_name,
+               "--name", im_name,
+               "--resolution", resolution,
+               "--scale_factors", scales,
+               "--chunks", chunks,
+               "--tmp_folder", tmp_folder]
+        subprocess.run(cmd)
+
+        dataset_folder = os.path.join(self.root, dataset_name)
+        self.check_data(dataset_folder, im_name)
+
     #
     # test with numpy data
     #

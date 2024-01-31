@@ -234,7 +234,7 @@ def add_image(input_path, input_key,
 
     if move_only:
         if int_to_uint:
-            raise ValueError("Conversio of integer to unsigned integer is not possible with move_only")
+            raise ValueError("Conversion of integer to unsigned integer is not possible with move_only")
         shutil.move(input_path, data_path)
         if "bdv." in file_format:
             shutil.move(os.path.splitext(input_path)[0]+".xml", image_metadata_path)
