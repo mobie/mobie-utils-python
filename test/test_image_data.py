@@ -73,7 +73,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format=" bdv.n5", func=None, int_to_uint=False
+        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -242,17 +242,19 @@ class TestImageData(unittest.TestCase):
         im_folder = os.path.join(self.test_folder, "im-stack")
         self.make_tif_data(im_folder, shape)
 
-        dataset_name = "testCLI2D"
+        dataset_name = "test"
         im_name = "test-cli-2D"
 
         resolution = json.dumps([1., 1.])
-        scales = json.dumps([[2, 2], [2, 2], [2, 2]])
+        scales = json.dumps([[2, 2], [2, 2]])
         chunks = json.dumps([64, 64])
 
         tmp_folder = os.path.join(self.test_folder, "cli-im2D")
 
+        in_path = os.path.join(im_folder, "z_000.tif")
+
         cmd = ["mobie.add_image",
-               "--input_path", os.path.join(im_folder, "z_000.tif"),
+               "--input_path", in_path,
                "--input_key", "",
                "--root", self.root,
                "--dataset_name", self.dataset_name,
@@ -263,8 +265,11 @@ class TestImageData(unittest.TestCase):
                "--tmp_folder", tmp_folder]
         subprocess.run(cmd)
 
+        exp_data = imageio.imread(in_path)
+
+
         dataset_folder = os.path.join(self.root, dataset_name)
-        self.check_data(dataset_folder, im_name)
+        self.check_data(dataset_folder, im_name, exp_data=exp_data)
 
     #
     # test with numpy data
@@ -375,8 +380,9 @@ class TestImageData(unittest.TestCase):
         self.assertEqual(shape, exp_shape)
         self.assertFalse(np.allclose(data, 0.))
 
-    def check_data(self, dataset_folder, name):
-        exp_data = self.data
+    def check_data(self, dataset_folder, name, exp_data=None):
+        if exp_data is None:
+            exp_data = self.data
 
         # check the image metadata
         metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
