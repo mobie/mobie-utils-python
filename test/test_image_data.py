@@ -73,7 +73,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None, int_to_uint=False
+        self, dataset_name, raw_name, shape, file_format="ome.zarr", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -169,11 +169,11 @@ class TestImageData(unittest.TestCase):
         shape = (64, 64, 64)
         self.init_h5_dataset(dataset_name, raw_name, shape, file_format="bdv.hdf5")
 
-    def test_ome_zarr(self):
+    def test_n5(self):
         dataset_name = "test"
         raw_name = "test-raw"
         shape = (64, 64, 64)
-        self.init_h5_dataset(dataset_name, raw_name, shape, file_format="ome.zarr")
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format="bdv.n5")
 
     #
     # tests with existing dataset
@@ -310,7 +310,7 @@ class TestImageData(unittest.TestCase):
                         chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
                         target="local", max_jobs=self.max_jobs,
                         transformation=transformation, file_format=file_format)
-        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, file_format=file_format)
 
     # TODO implement the test once ome.zarr v0.5 is released
     def test_with_trafo_ome_zarr(self):
@@ -380,7 +380,7 @@ class TestImageData(unittest.TestCase):
         self.assertEqual(shape, exp_shape)
         self.assertFalse(np.allclose(data, 0.))
 
-    def check_data(self, dataset_folder, name, exp_data=None):
+    def check_data(self, dataset_folder, name, exp_data=None, file_format="ome.zarr"):
         if exp_data is None:
             exp_data = self.data
 
@@ -391,9 +391,16 @@ class TestImageData(unittest.TestCase):
         mobie.validation.validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
-        im_path = os.path.join(dataset_folder, "images", "ome-zarr", f"{name}.ome.zarr")
+
+        if file_format == "bdv.n5":
+            im_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
+            key = get_key(False, 0, 0, 0)
+        else:
+            im_path = os.path.join(dataset_folder, "images", "ome-zarr", f"{name}.ome.zarr")
+            key = "s0"
+
         self.assertTrue(os.path.exists(im_path))
-        key = "s0"
+
         with open_file(im_path, "r") as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
