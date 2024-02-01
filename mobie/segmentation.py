@@ -17,7 +17,7 @@ from mobie.tables import check_and_copy_default_table, compute_default_table
 def add_segmentation(input_path, input_key,
                      root, dataset_name, segmentation_name,
                      resolution, scale_factors, chunks,
-                     menu_name=None, file_format="bdv.n5",
+                     menu_name=None, file_format="ome.zarr",
                      node_label_path=None, node_label_key=None,
                      tmp_folder=None, target="local",
                      max_jobs=multiprocessing.cpu_count(),
