@@ -6,7 +6,7 @@ def import_image_data(in_path, in_key, out_path,
                       resolution, scale_factors, chunks,
                       tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
                       block_shape=None, unit="micrometer",
-                      source_name=None, file_format="bdv.n5",
+                      source_name=None, file_format="ome.zarr",
                       int_to_uint=False, channel=None):
     """ Import image data to mobie format.
 
@@ -24,7 +24,7 @@ def import_image_data(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
         source_name [str] - name of the source (default: None)
-        file_format [str] - the file format (default: "bdv.n5")
+        file_format [str] - the file format (default: "ome.zarr")
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)

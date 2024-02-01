@@ -185,7 +185,7 @@ def add_image(input_path, input_key,
         chunks [list[int]] - chunks for the data.
         menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: bdv.n5)
+        file_format [str] - the file format used to store the data internally (default: ome.zarr)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
