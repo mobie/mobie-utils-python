@@ -17,7 +17,7 @@ except ImportError as e:
 def add_registered_source(input_path, input_key, transformation,
                           root, dataset_name, source_name,
                           resolution, scale_factors, chunks, method,
-                          menu_name=None, file_format="bdv.n5",
+                          menu_name=None, file_format="ome.zarr",
                           shape=None, source_type='image',
                           view=None, add_default_table=True,
                           fiji_executable=None, elastix_directory=None,
@@ -46,7 +46,7 @@ def add_registered_source(input_path, input_key, transformation,
             'transformix': apply transformation using transformix
         menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: bdv.n5)
+        file_format [str] - the file format used to store the data internally (default: ome.zarr)
         shape [tuple[int]] - shape of the output volume. If None, the shape specified in
             the elastix transformation file will be used. (default: None)
         source_type [str] - type of the data, can be either 'image', 'segmentation' or 'mask'
