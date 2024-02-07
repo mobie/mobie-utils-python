@@ -94,7 +94,9 @@ def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
         return new_metadata
 
     for file_format, storage in image_data.items():
-        if file_format == "bdv.n5":
+        if file_format in ["bdv.n5.s3", "ome.zarr.s3", "openOrganelle.s3"]:
+            pass
+        elif file_format == "bdv.n5":
             new_format, s3_storage = _to_bdv_s3(file_format, dataset_folder, dataset_name, storage,
                                                 service_endpoint, bucket_name, region)
             new_metadata[source_type]["imageData"][new_format] = s3_storage
