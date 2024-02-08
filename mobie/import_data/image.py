@@ -7,7 +7,9 @@ def import_image_data(in_path, in_key, out_path,
                       tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
                       block_shape=None, unit="micrometer",
                       source_name=None, file_format="bdv.n5",
-                      int_to_uint=False, channel=None):
+                      int_to_uint=False, channel=None,
+                      selected_input_channel=None,
+                      roi_begin=None, roi_end=None):
     """ Import image data to mobie format.
 
     Arguments:
@@ -28,13 +30,33 @@ def import_image_data(in_path, in_key, out_path,
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        selected_input_channel [list[int]] - A single channel (idx) to be added. If channel is not axis 0: [idx, dim]
+        roi_begin [list[int]] - Start of ROI to be extracted
+        roi_end [list[int]] - End of ROI to be extracted
     """
+
+
+    if len(selected_input_channel) < 2:
+        # if only one element, we assume relevant image stack dimension is 0 (like channel for multi-channel tifs).
+        selected_input_channel = [0, selected_input_channel[0]]
+    elif len(selected_input_channel) > 2:
+        raise ValueError("Only single channel selection possible.")
+            #
+            # if type(self.input_key) in [tuple, list]:
+            #     newshape = list(shape)
+            #     _unused_ = newshape.pop(self.input_key[1])
+            #     shape = tuple(newshape)
+
+
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
         in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
+
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format, int_to_uint=int_to_uint,
+              metadata_format=file_format,
+              roi_begin=roi_begin, roi_end=roi_end,
+              int_to_uint=int_to_uint,
               channel=channel)
