@@ -1,4 +1,5 @@
 import multiprocessing as mp
+from elf.io import open_file
 from .utils import downscale, ensure_volume
 
 
@@ -35,22 +36,36 @@ def import_image_data(in_path, in_key, out_path,
         roi_end [list[int]] - End of ROI to be extracted
     """
 
-
-    if len(selected_input_channel) < 2:
-        # if only one element, we assume relevant image stack dimension is 0 (like channel for multi-channel tifs).
-        selected_input_channel = [0, selected_input_channel[0]]
-    elif len(selected_input_channel) > 2:
-        raise ValueError("Only single channel selection possible.")
-            #
-            # if type(self.input_key) in [tuple, list]:
-            #     newshape = list(shape)
-            #     _unused_ = newshape.pop(self.input_key[1])
-            #     shape = tuple(newshape)
-
-
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
         in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
+        if not all((selected_input_channel is None, roi_begin is None, roi_end is None)):
+            raise NotImplementedError("Selection of sub-arrays only possible with OME-Zarr output.")
+
+    if selected_input_channel:
+        if len(selected_input_channel) < 2:
+            # if only one element, we assume relevant image stack dimension is 0 (like channel for multi-channel tifs).
+            selected_input_channel = [0, selected_input_channel[0]]
+        elif len(selected_input_channel) > 2:
+            raise ValueError("Only single channel selection possible.")
+
+        with open_file(in_path, mode="r") as f:
+            shape = f[in_key].shape
+            newshape = list(shape)
+            _unused_ = newshape.pop(selected_input_channel[1])
+
+        roi_begin = [0] * len(shape)
+        roi_end = list(shape)
+
+        if selected_input_channel[0] > len(shape) - 1:
+            raise ValueError("Wrong channel dimension.")
+
+        if selected_input_channel[1] > shape[selected_input_channel[0]] - 1:
+            raise ValueError("Channel index exceeds axis length.")
+
+        roi_begin[selected_input_channel[0]] = selected_input_channel[1]
+        roi_end[selected_input_channel[0]] = selected_input_channel[1] + 1
+
 
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
