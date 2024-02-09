@@ -43,7 +43,9 @@ def import_image_data(in_path, in_key, out_path,
             raise NotImplementedError("Selection of sub-arrays only possible with OME-Zarr output.")
 
     if selected_input_channel:
-        if len(selected_input_channel) < 2:
+        if type(selected_input_channel) is int:
+            selected_input_channel = [0, selected_input_channel]
+        elif len(selected_input_channel) < 2:
             # if only one element, we assume relevant image stack dimension is 0 (like channel for multi-channel tifs).
             selected_input_channel = [0, selected_input_channel[0]]
         elif len(selected_input_channel) > 2:
@@ -52,7 +54,7 @@ def import_image_data(in_path, in_key, out_path,
         with open_file(in_path, mode="r") as f:
             shape = f[in_key].shape
             newshape = list(shape)
-            _unused_ = newshape.pop(selected_input_channel[1])
+            _unused_ = newshape.pop(selected_input_channel[0])
 
         roi_begin = [0] * len(shape)
         roi_end = list(shape)

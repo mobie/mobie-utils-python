@@ -314,6 +314,20 @@ class TestImageData(unittest.TestCase):
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
 
 
+    def test_input_channel(self):
+        path1 = os.path.join(self.test_folder, '3ch.h5')
+        key = 'data'
+        self.make_hdf5_data(path1, key, shape=(3,128,128))
+
+        mobie.add_image(path1, key, self.root, self.dataset_name, '3ch_test',
+                        resolution=(1, 1), scale_factors=[[2,2]],
+                        chunks=(64, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        target="local", max_jobs=self.max_jobs, selected_input_channel=1)
+
+
+        pass
+
     #
     # data validation
     #
