@@ -13,6 +13,16 @@ from pybdv.util import get_key
 from tqdm import tqdm
 
 
+def is_ome_zarr(path):
+    return path.endswith("ome.zarr")
+
+
+def get_key_ome_zarr(path):
+    with open_file(path, "r") as f:
+        key = f.attrs["multiscales"][0]["datasets"][0]["path"]
+    return key
+
+
 def coords_to_vol(coords, nid, radius=5):
     bb_min = coords.min(axis=0)
     bb_max = coords.max(axis=0) + 1
@@ -162,14 +172,18 @@ def import_traces(input_folder, out_path,
     traces = parse_traces(input_folder)
 
     # check that we are compatible with bdv (ids need to be smaller than int16 max)
-    max_id = np.iinfo('int16').max
+    max_id = np.iinfo("int16").max
     max_trace_id = max(traces.keys())
     if max_trace_id > max_id:
         raise RuntimeError("Can't export id %i > %i" % (max_trace_id, max_id))
 
-    is_h5 = is_h5py(reference_path)
-    ref_key = get_key(is_h5, timepoint=0, setup_id=0, scale=reference_scale)
-    with open_file(reference_path, 'r') as f:
+    if is_ome_zarr(reference_path):
+        ref_key = get_key_ome_zarr(reference_path)
+    else:
+        is_h5 = is_h5py(reference_path)
+        ref_key = get_key(is_h5, timepoint=0, setup_id=0, scale=reference_scale)
+
+    with open_file(reference_path, "r") as f:
         ds = f[ref_key]
         shape = ds.shape
         if chunks is None:
