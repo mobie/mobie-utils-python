@@ -53,8 +53,6 @@ def import_image_data(in_path, in_key, out_path,
 
         with open_file(in_path, mode="r") as f:
             shape = f[in_key].shape
-            newshape = list(shape)
-            _unused_ = newshape.pop(selected_input_channel[0])
 
         roi_begin = [0] * len(shape)
         roi_end = list(shape)

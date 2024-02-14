@@ -54,10 +54,6 @@ def check_input_data(in_path, in_key, resolution, require3d, channel, roi_begin=
         raise NotImplementedError
     with open_file(in_path, "r") as f:
         ndim = f[in_key].ndim
-        if any((roi_begin, roi_end)):
-            # reduce singleton dimensons
-            if any(np.array(roi_end) - np.array(roi_begin) == 1):
-                ndim = ndim - np.sum(np.array(roi_end) - np.array(roi_begin) == 1)
 
     if require3d and ndim != 3:
         raise ValueError(f"Expect 3d data, got ndim={ndim}")
