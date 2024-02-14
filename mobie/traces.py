@@ -14,7 +14,7 @@ from mobie.tables import compute_trace_default_table
 def add_traces(input_folder, root, dataset_name, traces_name,
                reference_name, reference_scale,
                resolution, scale_factors, chunks,
-               menu_name=None, file_format="ome.zarr", view=None,
+               menu_name=None, file_format="bdv.n5", view=None,
                max_jobs=multiprocessing.cpu_count(),
                add_default_table=True,
                seg_infos={}, unit='micrometer',
