@@ -319,11 +319,14 @@ class TestImageData(unittest.TestCase):
         key = 'data'
         self.make_hdf5_data(path1, key, shape=(3,128,128))
 
+        # check integer channel
         mobie.add_image(path1, key, self.root, self.dataset_name, '3ch_test',
-                        resolution=(1, 1), scale_factors=[[2,2]],
-                        chunks=(64, 64), tmp_folder=self.tmp_folder,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 64, 64), tmp_folder=self.tmp_folder,
                         file_format='ome.zarr',
                         target="local", max_jobs=self.max_jobs, selected_input_channel=1)
+
+
 
 
         pass
