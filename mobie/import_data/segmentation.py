@@ -6,7 +6,7 @@ def import_segmentation(in_path, in_key, out_path,
                         tmp_folder, target, max_jobs,
                         block_shape=None, with_max_id=True,
                         unit="micrometer", source_name=None,
-                        file_format="bdv.n5"):
+                        file_format="ome.zarr"):
     """ Import segmentation data into mobie format.
 
     Arguments:
@@ -24,7 +24,7 @@ def import_segmentation(in_path, in_key, out_path,
         with_max_id [bool] - whether to add the max id attribute
         unit [str] - physical unit of the coordinate system (default: micrometer)
         source_name [str] - name of the source (default: None)
-        file_format [str] - the file format (default: "bdv.n5")
+        file_format [str] - the file format (default: "ome.zarr")
     """
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":

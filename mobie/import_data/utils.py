@@ -65,7 +65,7 @@ def downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="vigra", library_kwargs=None,
-              metadata_format="bdv.n5", out_key="",
+              metadata_format="ome.zarr", out_key="",
               unit="micrometer", source_name=None,
               roi_begin=None, roi_end=None,
               int_to_uint=False, channel=None):

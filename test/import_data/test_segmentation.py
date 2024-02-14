@@ -5,14 +5,13 @@ from shutil import rmtree
 
 import numpy as np
 from elf.io import open_file
-from pybdv.util import get_key
 from pybdv.downsample import sample_shape
 
 
 class TestImportSegmentation(unittest.TestCase):
     test_folder = './test-folder'
     tmp_folder = './test-folder/tmp'
-    out_path = './test-folder/imported-data.n5'
+    out_path = './test-folder/imported-data.ome.zarr'
     n_jobs = multiprocessing.cpu_count()
 
     def setUp(self):
@@ -22,7 +21,7 @@ class TestImportSegmentation(unittest.TestCase):
         rmtree(self.test_folder)
 
     def check_seg(self, exp_data, scales):
-        key = get_key(False, 0, 0, 0)
+        key = "s0"
         with open_file(self.out_path, 'r') as f:
             ds = f[key]
             data = ds[:]
@@ -33,7 +32,7 @@ class TestImportSegmentation(unittest.TestCase):
 
         exp_shape = data.shape
         for scale, scale_facor in enumerate(scales, 1):
-            key = get_key(False, 0, 0, scale)
+            key = f"s{scale}"
             with open_file(self.out_path, 'r') as f:
                 self.assertIn(key, f)
                 this_shape = f[key].shape

@@ -33,7 +33,8 @@ class TestSpots(unittest.TestCase):
         chunks = (8, 32, 32)
         mobie.add_image(data_path, data_key, self.root, self.dataset_name, self.image_source_name,
                         resolution=self.resolution, scale_factors=scale_factors, chunks=chunks,
-                        unit="nanometer", tmp_folder=os.path.join(self.test_folder, "tmp_image"))
+                        unit="nanometer", tmp_folder=os.path.join(self.test_folder, "tmp_image"),
+                        file_format="bdv.n5")
 
         gene_names = ["aaa", "bbb", "ccc", "xyz", "123", "456"]
         table = {

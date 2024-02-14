@@ -87,7 +87,7 @@ def _add_sources(dataset_folder, source_names, paths,
 def add_images(files, root,
                dataset_name, image_names,
                resolution, scale_factors, chunks,
-               key=None, file_format="bdv.n5",
+               key=None, file_format="ome.zarr",
                tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
                unit="micrometer", is_default_dataset=False, is2d=None):
     assert len(files) == len(image_names), f"{len(files)}, {len(image_names)}"
@@ -114,7 +114,7 @@ def add_images(files, root,
 def add_segmentations(files, root,
                       dataset_name, segmentation_names,
                       resolution, scale_factors, chunks,
-                      key=None, file_format="bdv.n5",
+                      key=None, file_format="ome.zarr",
                       tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
                       add_default_tables=True, unit="micrometer",
                       is_default_dataset=False, is2d=None):

@@ -158,7 +158,7 @@ def add_bdv_image(xml_path, root, dataset_name,
 def add_image(input_path, input_key,
               root, dataset_name, image_name,
               resolution, scale_factors, chunks,
-              file_format="bdv.n5", menu_name=None,
+              file_format="ome.zarr", menu_name=None,
               tmp_folder=None, target="local",
               max_jobs=multiprocessing.cpu_count(),
               view=None, transformation=None,
@@ -187,7 +187,7 @@ def add_image(input_path, input_key,
         chunks [list[int]] - chunks for the data.
         menu_name [str] - menu name for this source.
             If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: bdv.n5)
+        file_format [str] - the file format used to store the data internally (default: ome.zarr)
         tmp_folder [str] - folder for temporary files (default: None)
         target [str] - computation target (default: "local")
         max_jobs [int] - number of jobs (default: number of cores)
@@ -239,7 +239,7 @@ def add_image(input_path, input_key,
 
     if move_only:
         if int_to_uint:
-            raise ValueError("Conversio of integer to unsigned integer is not possible with move_only")
+            raise ValueError("Conversion of integer to unsigned integer is not possible with move_only")
         shutil.move(input_path, data_path)
         if "bdv." in file_format:
             shutil.move(os.path.splitext(input_path)[0]+".xml", image_metadata_path)

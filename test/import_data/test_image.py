@@ -19,7 +19,7 @@ except ImportError:
 class TestImportImage(unittest.TestCase):
     test_folder = "./test-folder"
     tmp_folder = "./test-folder/tmp"
-    out_path = "./test-folder/imported-data.n5"
+    out_path = "./test-folder/imported-data.ome.zarr"
     n_jobs = min(4, cpu_count())
 
     def setUp(self):
@@ -51,6 +51,7 @@ class TestImportImage(unittest.TestCase):
         self._check_data(exp_data, scale_data, scales)
 
     def check_data_ome_zarr(self, exp_data, scales, out_path, resolution, scale_factors):
+        out_path = self.out_path if out_path is None else out_path
         scale_data = []
         with open_file(out_path, "r") as f:
 
@@ -96,7 +97,7 @@ class TestImportImage(unittest.TestCase):
         return test_path, key, data
 
     #
-    # test imports from different file formats (to default output format = bdv.n5)
+    # test imports from different file formats (to default output format = ome.zarr)
     #
 
     def test_import_tif(self):
@@ -106,27 +107,31 @@ class TestImportImage(unittest.TestCase):
 
         im_folder = os.path.join(self.test_folder, "im-stack")
         os.makedirs(im_folder, exist_ok=True)
+
+        resolution=(0.25, 1, 1)
+
         for z in range(shape[0]):
             path = os.path.join(im_folder, "z_%03i.tif" % z)
             imageio.imsave(path, data[z])
 
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
         import_image_data(im_folder, "*.tif", self.out_path,
-                          resolution=(0.25, 1, 1), chunks=(16, 64, 64),
+                          resolution=resolution, chunks=(16, 64, 64),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target="local", max_jobs=self.n_jobs)
 
-        self.check_data(data, scales)
+        self.check_data_ome_zarr(data, scales, self.out_path, resolution, scales)
 
     def test_import_hdf5(self):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
+        resolution=(1, 1, 1)
         import_image_data(test_path, key, self.out_path,
-                          resolution=(1, 1, 1), chunks=(32, 32, 32),
+                          resolution=resolution, chunks=(32, 32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target="local", max_jobs=self.n_jobs)
-        self.check_data(data, scales)
+        self.check_data_ome_zarr(data, scales, self.out_path, resolution, scales)
 
     # TODO
     @unittest.skipIf(mrcfile is None, "Need mrcfile")
@@ -147,6 +152,17 @@ class TestImportImage(unittest.TestCase):
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target="local", max_jobs=1, file_format="bdv.hdf5")
         self.check_data(data, scales, is_h5=True, out_path=out_path)
+
+    def test_import_bdv_n5(self):
+        from mobie.import_data import import_image_data
+        test_path, key, data = self.create_h5_input_data()
+        scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
+        out_path = os.path.join(self.test_folder, "imported_data.n5")
+        import_image_data(test_path, key, out_path,
+                          resolution=(1, 1, 1), chunks=(32, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=1, file_format="bdv.n5")
+        self.check_data(data, scales, is_h5=False, out_path=out_path)
 
     def test_import_ome_zarr(self):
         from mobie.import_data import import_image_data
