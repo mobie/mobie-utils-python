@@ -42,6 +42,8 @@ def import_image_data(in_path, in_key, out_path,
         if not all((selected_input_channel is None, roi_begin is None, roi_end is None)):
             raise NotImplementedError("Selection of sub-arrays only possible with OME-Zarr output.")
 
+    fit_to_roi = False
+
     if selected_input_channel:
         if type(selected_input_channel) is int:
             selected_input_channel = [0, selected_input_channel]
@@ -66,6 +68,8 @@ def import_image_data(in_path, in_key, out_path,
         roi_begin[selected_input_channel[0]] = selected_input_channel[1]
         roi_end[selected_input_channel[0]] = selected_input_channel[1] + 1
 
+    if any((roi_begin is not None, roi_end is not None)):
+        fit_to_roi = True
 
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
@@ -73,5 +77,5 @@ def import_image_data(in_path, in_key, out_path,
               library="skimage", unit=unit, source_name=source_name,
               metadata_format=file_format,
               roi_begin=roi_begin, roi_end=roi_end,
-              int_to_uint=int_to_uint,
+              int_to_uint=int_to_uint, fit_to_roi=fit_to_roi,
               channel=channel)

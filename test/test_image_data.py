@@ -234,6 +234,7 @@ class TestImageData(unittest.TestCase):
         self.check_data(dataset_folder, im_name)
 
         # 2D
+
     @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli_2D(self):
 
@@ -266,7 +267,6 @@ class TestImageData(unittest.TestCase):
         subprocess.run(cmd)
 
         exp_data = imageio.imread(in_path)
-
 
         dataset_folder = os.path.join(self.root, dataset_name)
         self.check_data(dataset_folder, im_name, exp_data=exp_data)
@@ -351,23 +351,28 @@ class TestImageData(unittest.TestCase):
 
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
 
-
     def test_input_channel(self):
         path1 = os.path.join(self.test_folder, '3ch.h5')
         key = 'data'
-        self.make_hdf5_data(path1, key, shape=(3,128,128))
+        self.make_hdf5_data(path1, key, shape=(3, 128, 128))
+
+        with open_file(path1, mode="r") as f:
+            im = f[key][:]
+
+        im_name = '3ch_test_int1'
 
         # check integer channel
-        mobie.add_image(path1, key, self.root, self.dataset_name, '3ch_test',
+        mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
                         resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
                         chunks=(1, 64, 64), tmp_folder=self.tmp_folder,
                         file_format='ome.zarr',
                         target="local", max_jobs=self.max_jobs, selected_input_channel=1)
+        test_data = im[1,:,:]
+
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, exp_data=test_data)
 
 
 
-
-        pass
 
     #
     # data validation
