@@ -35,7 +35,7 @@ def add_traces(input_folder, root, dataset_name, traces_name,
         scale_factors [list[list[int]]] - scale factors used for down-sampling.
         menu_name [str] - menu item for this source.
             If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: bdv.n5)
+        file_format [str] - the file format used to store the data internally (default: ome.zarr)
         view [dict] - default view settings for this source (default: None)
         chunks [list[int]] - chunks for the data.
         max_jobs [int] - number of jobs (default: number of cores)

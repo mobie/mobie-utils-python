@@ -37,7 +37,7 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
                                          resolution, scale_factors, chunks,
                                          tmp_folder, target, max_jobs,
                                          block_shape=None, unit="micrometer",
-                                         source_name=None, file_format="bdv.n5"):
+                                         source_name=None, file_format="ome.zarr"):
     """ Import segmentation data into mobie format from a paintera dataset
 
     Arguments:
@@ -56,7 +56,7 @@ def import_segmentation_from_node_labels(in_path, in_key, out_path,
             By default, same as chunks. (default:None)
         unit [str] - physical unit of the coordinate system (default: micrometer)
         source_name [str] - name of the source (default: None)
-        file_format [str] - the file format (default: "bdv.n5")
+        file_format [str] - the file format (default: "ome.zarr")
     """
 
     out_key = get_scale_key(file_format)

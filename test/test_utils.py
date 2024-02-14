@@ -28,7 +28,7 @@ class TestUtil(unittest.TestCase):
         scales = [[2, 2, 2]]
         add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
                   resolution=(1, 1, 1), chunks=(32,)*3, scale_factors=scales,
-                  tmp_folder=tmp_folder)
+                  tmp_folder=tmp_folder, file_format="bdv.n5")
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)

@@ -22,7 +22,7 @@ class TestSegmentation(unittest.TestCase):
 
     def setUp(self):
         os.makedirs(self.test_folder, exist_ok=True)
-        self.seg_path = os.path.join(self.test_folder, "seg.n5")
+        self.seg_path = os.path.join(self.test_folder, "seg.ome.zarr")
         self.seg_key = "seg"
         self.data = np.random.randint(0, 100, size=self.shape)
         with open_file(self.seg_path, "a") as f:

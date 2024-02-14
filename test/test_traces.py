@@ -33,7 +33,7 @@ class TestTraces(unittest.TestCase):
         scales = [[2, 2, 2]]
         mobie.add_image(data_path, data_key, self.root, self.dataset_name, raw_name,
                         resolution=(1, 1, 1), chunks=(64, 64, 64), scale_factors=scales,
-                        tmp_folder=tmp_folder)
+                        tmp_folder=tmp_folder, file_format="bdv.n5")
 
     def generate_trace(self, trace_id):
         path = os.path.join(self.trace_folder, f"trace_{trace_id}.swc")

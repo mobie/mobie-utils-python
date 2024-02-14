@@ -73,7 +73,7 @@ class TestImageData(unittest.TestCase):
             f.create_dataset(key, data=data)
 
     def init_h5_dataset(
-        self, dataset_name, raw_name, shape, file_format="bdv.n5", func=None, int_to_uint=False
+        self, dataset_name, raw_name, shape, file_format="ome.zarr", func=None, int_to_uint=False
     ):
 
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -169,11 +169,11 @@ class TestImageData(unittest.TestCase):
         shape = (64, 64, 64)
         self.init_h5_dataset(dataset_name, raw_name, shape, file_format="bdv.hdf5")
 
-    def test_ome_zarr(self):
+    def test_n5(self):
         dataset_name = "test"
         raw_name = "test-raw"
         shape = (64, 64, 64)
-        self.init_h5_dataset(dataset_name, raw_name, shape, file_format="ome.zarr")
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format="bdv.n5")
 
     #
     # tests with existing dataset
@@ -233,6 +233,44 @@ class TestImageData(unittest.TestCase):
         dataset_folder = os.path.join(self.root, self.dataset_name)
         self.check_data(dataset_folder, im_name)
 
+        # 2D
+    @unittest.skipIf(platform == "win32", "CLI does not work on windows")
+    def test_cli_2D(self):
+
+        shape = (1, 512, 512)
+
+        im_folder = os.path.join(self.test_folder, "im-stack")
+        self.make_tif_data(im_folder, shape)
+
+        dataset_name = "test"
+        im_name = "test-cli-2D"
+
+        resolution = json.dumps([1., 1.])
+        scales = json.dumps([[2, 2], [2, 2]])
+        chunks = json.dumps([64, 64])
+
+        tmp_folder = os.path.join(self.test_folder, "cli-im2D")
+
+        in_path = os.path.join(im_folder, "z_000.tif")
+
+        cmd = ["mobie.add_image",
+               "--input_path", in_path,
+               "--input_key", "",
+               "--root", self.root,
+               "--dataset_name", self.dataset_name,
+               "--name", im_name,
+               "--resolution", resolution,
+               "--scale_factors", scales,
+               "--chunks", chunks,
+               "--tmp_folder", tmp_folder]
+        subprocess.run(cmd)
+
+        exp_data = imageio.imread(in_path)
+
+
+        dataset_folder = os.path.join(self.root, dataset_name)
+        self.check_data(dataset_folder, im_name, exp_data=exp_data)
+
     #
     # test with numpy data
     #
@@ -272,7 +310,7 @@ class TestImageData(unittest.TestCase):
                         chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
                         target="local", max_jobs=self.max_jobs,
                         transformation=transformation, file_format=file_format)
-        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, file_format=file_format)
 
     # TODO implement the test once ome.zarr v0.5 is released
     def test_with_trafo_ome_zarr(self):
@@ -318,7 +356,7 @@ class TestImageData(unittest.TestCase):
     # data validation
     #
 
-    def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="bdv.n5"):
+    def check_dataset(self, dataset_folder, exp_shape, raw_name, file_format="ome.zarr"):
         # validate the full project
         mobie.validation.validate_project(
             self.root, assert_true=self.assertTrue, assert_in=self.assertIn, assert_equal=self.assertEqual
@@ -342,8 +380,9 @@ class TestImageData(unittest.TestCase):
         self.assertEqual(shape, exp_shape)
         self.assertFalse(np.allclose(data, 0.))
 
-    def check_data(self, dataset_folder, name):
-        exp_data = self.data
+    def check_data(self, dataset_folder, name, exp_data=None, file_format="ome.zarr"):
+        if exp_data is None:
+            exp_data = self.data
 
         # check the image metadata
         metadata = mobie.metadata.read_dataset_metadata(dataset_folder)
@@ -352,9 +391,16 @@ class TestImageData(unittest.TestCase):
         mobie.validation.validate_source_metadata(name, sources[name], dataset_folder)
 
         # check the image data
-        im_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
+
+        if file_format == "bdv.n5":
+            im_path = os.path.join(dataset_folder, "images", "bdv-n5", f"{name}.n5")
+            key = get_key(False, 0, 0, 0)
+        else:
+            im_path = os.path.join(dataset_folder, "images", "ome-zarr", f"{name}.ome.zarr")
+            key = "s0"
+
         self.assertTrue(os.path.exists(im_path))
-        key = get_key(False, 0, 0, 0)
+
         with open_file(im_path, "r") as f:
             data = f[key][:]
         self.assertTrue(np.array_equal(data, exp_data))
