@@ -6,3 +6,4 @@ tmp*/
 *.h5
 .idea/
 test/test-folder/
+build/

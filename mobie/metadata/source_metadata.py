@@ -175,6 +175,11 @@ def _get_image_metadata(dataset_folder, path, type_, file_format, channel):
     else:
         raise ValueError(f"Invalid file format {file_format}")
 
+    # sanitize paths generated in Windows
+    for key in ["relativePath", "s3Address"]:
+        if key in format_.keys():
+            format_[key] = format_[key].replace("\\", "/")
+
     if channel is not None:
         if file_format not in ("ome.zarr", "ome.zarr.s3"):
             raise NotImplementedError
