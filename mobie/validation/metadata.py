@@ -1,3 +1,4 @@
+import json
 import os
 
 # from elf.io import open_file
@@ -21,9 +22,11 @@ def _check_bdv_n5_s3(xml, assert_true):
 
 def _check_ome_zarr_s3(address, name, assert_true, assert_equal, channel):
     try:
-        load_json_from_s3(os.path.join(address, ".zattrs"))
+        zattrs = load_json_from_s3(os.path.join(address, ".zattrs"))
     except Exception:
         assert_true(False, f"Can't find ome.zarr..s3file at {address}")
+
+    validate_with_schema(zattrs, "NGFF")
 
     # we disable the name check for the time being since it seems to not be necessary,
     # AND restricting the name in this fashion prevents embedding existing ome.zarr files in mobie projects
@@ -62,6 +65,14 @@ def _check_data(storage, format_, name, dataset_folder,
     elif format_ == "ome.zarr" and require_local_data:
         path = os.path.join(dataset_folder, storage["relativePath"])
         assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
+
+        attr_path = os.path.join(path, ".zattrs")
+        assert_true(os.path.exists(attr_path), f"Could not find metadata for {name} at {path}")
+
+        with open(attr_path) as f:
+            zattrs = json.load(f)
+
+        validate_with_schema(zattrs, "NGFF")
 
         # we disable the name check for the time being since it seems to not be necessary,
         # AND restricting the name in this fashion prevents embedding existing ome.zarr files in mobie projects

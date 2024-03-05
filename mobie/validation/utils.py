@@ -13,6 +13,7 @@ SCHEMA_URLS = {
     "source": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/source.schema.json",
     "view": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/view.schema.json",
     "views": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/views.schema.json",
+    "NGFF": "https://raw.githubusercontent.com/ome/ngff/main/0.4/schemas/image.schema"
 }
 
 
