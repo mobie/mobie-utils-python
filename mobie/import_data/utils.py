@@ -1,5 +1,6 @@
 import json
 import os
+import numpy as np
 
 import luigi
 import nifty.distributed as ndist
@@ -47,12 +48,13 @@ def compute_node_labels(seg_path, seg_key,
     return data
 
 
-def check_input_data(in_path, in_key, resolution, require3d, channel):
+def check_input_data(in_path, in_key, resolution, require3d, channel, roi_begin=None, roi_end=None):
     # TODO to support data with channel, we need to support downscaling with channels
     if channel is not None:
         raise NotImplementedError
     with open_file(in_path, "r") as f:
         ndim = f[in_key].ndim
+
     if require3d and ndim != 3:
         raise ValueError(f"Expect 3d data, got ndim={ndim}")
     if len(resolution) != ndim:
@@ -65,7 +67,7 @@ def downscale(in_path, in_key, out_path,
               library="vigra", library_kwargs=None,
               metadata_format="ome.zarr", out_key="",
               unit="micrometer", source_name=None,
-              roi_begin=None, roi_end=None,
+              roi_begin=None, roi_end=None, fit_to_roi=False,
               int_to_uint=False, channel=None):
     task = DownscalingWorkflow
 
@@ -73,9 +75,9 @@ def downscale(in_path, in_key, out_path,
     config_dir = os.path.join(tmp_folder, "configs")
     # ome.zarr can also be written in 2d, all other formats require 3d
     require3d = metadata_format != "ome.zarr"
-    check_input_data(in_path, in_key, resolution, require3d, channel)
+    check_input_data(in_path, in_key, resolution, require3d, channel, roi_begin=roi_begin, roi_end=roi_end)
     write_global_config(config_dir, block_shape=block_shape, require3d=require3d,
-                        roi_begin=roi_begin, roi_end=roi_end)
+                        roi_begin=roi_begin, roi_end=roi_end, fit_to_roi=fit_to_roi)
 
     configs = DownscalingWorkflow.get_config()
     conf = configs["copy_volume"]

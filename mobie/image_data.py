@@ -168,7 +168,9 @@ def add_image(input_path, input_key,
               move_only=False,
               int_to_uint=False,
               channel=None,
-              skip_add_to_dataset=False):
+              skip_add_to_dataset=False,
+              selected_input_channel=None,
+              roi_begin=None, roi_end=None):
     """ Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -205,6 +207,9 @@ def add_image(input_path, input_key,
             This should be used when calling `add_image` in parallel in order to avoid
             writing to dataset.json in parallel, which can cause issues. In this case the source needs to be added later
             , which can be done by calling this function again. (default: False)
+        selected_input_channel [list[int]] - A single channel (idx) to be added. If channel is not axis 0: [idx, dim]
+        roi_begin [list[int]] - Start of ROI to be extracted
+        roi_end [list[int]] - End of ROI to be extracted
     """
     # TODO add 'setup_id' to the json schema for bdv formats to also support it there
     if channel is not None and file_format != "ome.zarr":
@@ -247,7 +252,10 @@ def add_image(input_path, input_key,
                           source_name=image_name,
                           file_format=file_format,
                           int_to_uint=int_to_uint,
-                          channel=channel)
+                          channel=channel,
+                          selected_input_channel=selected_input_channel,
+                          roi_begin=roi_begin, roi_end=roi_end
+                          )
 
     if transformation is not None:
         utils.update_transformation_parameter(image_metadata_path, transformation, file_format)

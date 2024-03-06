@@ -220,6 +220,7 @@ def write_global_config(config_folder,
                         block_shape=None,
                         roi_begin=None,
                         roi_end=None,
+                        fit_to_roi=False,
                         qos=None,
                         require3d=True):
     os.makedirs(config_folder, exist_ok=True)
@@ -247,6 +248,9 @@ def write_global_config(config_folder,
         if len(roi_end) != 3:
             raise ValueError(f"Invalid roi_end given: {roi_end}")
         global_config["roi_end"] = roi_end
+
+    if fit_to_roi:
+        global_config["fit_to_roi"] = True
 
     if qos is not None:
         global_config["qos"] = qos
