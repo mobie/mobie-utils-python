@@ -23,7 +23,7 @@ def add_segmentation(input_path, input_key,
                      max_jobs=multiprocessing.cpu_count(),
                      add_default_table=True, view=None,
                      postprocess_config=None, unit="micrometer",
-                     is_default_dataset=False, description=None):
+                     is_default_dataset=False, description=None, is_2d=None):
     """ Add segmentation source to MoBIE dataset.
 
     Arguments:
@@ -53,6 +53,7 @@ def add_segmentation(input_path, input_key,
         is_default_dataset [bool] - whether to set new dataset as default dataset.
             Only applies if the dataset is being created. (default: False)
         description [str] - description for this segmentation (default: None)
+        is_2d [bool] - whether this is a 2d segmentation (default: None)
     """
     if isinstance(input_path, np.ndarray):
         input_path, input_key = mobie.utils.save_temp_input(input_path, tmp_folder, segmentation_name)
@@ -96,14 +97,16 @@ def add_segmentation(input_path, input_key,
                             source_name=segmentation_name,
                             file_format=file_format)
 
+    if is_2d is None:
+        is_2d = mobie.metadata.read_dataset_metadata(dataset_folder).get("is2D", False)
     # we initialize with an already computed default table
     if isinstance(add_default_table, (str, pd.DataFrame)):
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
         table_path = os.path.join(table_folder, "default.tsv")
         os.makedirs(table_folder, exist_ok=True)
         input_table = add_default_table
-        is_2d = mobie.metadata.read_dataset_metadata(dataset_folder).get("is2D", False)
         check_and_copy_default_table(input_table, table_path, is_2d)
+
     # compute the default segmentation table
     elif add_default_table:
         table_folder = os.path.join(dataset_folder, "tables", segmentation_name)
@@ -119,7 +122,7 @@ def add_segmentation(input_path, input_key,
     # add the segmentation to the dataset metadata
     mobie.metadata.add_source_to_dataset(dataset_folder, "segmentation",
                                          segmentation_name, image_metadata_path,
-                                         table_folder=table_folder, view=view)
+                                         table_folder=table_folder, view=view, is_2d=is_2d)
 
 
 def main():
