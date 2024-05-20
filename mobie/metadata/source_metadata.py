@@ -235,9 +235,10 @@ def add_source_to_dataset(
     overwrite=True,
     channel=None,
     suppress_warnings=False,
+    is_2d=None,
     **kwargs,
 ):
-    """ Add source metadata to a MoBIE dataset.
+    """Add source metadata to a MoBIE dataset.
 
     Arguments:
         dataset_folder [str] - path to the dataset folder.
@@ -254,6 +255,7 @@ def add_source_to_dataset(
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
         suppress_warnings [bool] - a flag to suppress warnings raised by the metadata validation (default: False)
+        is_2d [bool] - whether this is a 2d source. (default: None)
         kwargs - additional keyword arguments for spot source
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
@@ -284,7 +286,8 @@ def add_source_to_dataset(
     else:
         raise ValueError(f"Invalid source type: {source_type}, expect one of 'image', 'segmentation' or 'spots'")
 
-    is_2d = dataset_metadata.get("is2D", False)
+    if is_2d is None:
+        is_2d = dataset_metadata.get("is2D", False)
     validate_source_metadata(source_name, source_metadata, dataset_folder, is_2d=is_2d)
     sources_metadata[source_name] = source_metadata
     dataset_metadata["sources"] = sources_metadata
