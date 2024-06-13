@@ -1,4 +1,5 @@
 import multiprocessing as mp
+from elf.io import open_file
 from .utils import downscale, ensure_volume
 
 
@@ -7,7 +8,9 @@ def import_image_data(in_path, in_key, out_path,
                       tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
                       block_shape=None, unit="micrometer",
                       source_name=None, file_format="ome.zarr",
-                      int_to_uint=False, channel=None):
+                      int_to_uint=False, channel=None,
+                      selected_input_channel=None,
+                      roi_begin=None, roi_end=None):
     """ Import image data to mobie format.
 
     Arguments:
@@ -28,13 +31,51 @@ def import_image_data(in_path, in_key, out_path,
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        selected_input_channel [list[int]] - A single channel (idx) to be added. If channel is not axis 0: [idx, dim]
+        roi_begin [list[int]] - Start of ROI to be extracted
+        roi_end [list[int]] - End of ROI to be extracted
     """
+
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
         in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
+        if not all((selected_input_channel is None, roi_begin is None, roi_end is None)):
+            raise NotImplementedError("Selection of sub-arrays only possible with OME-Zarr output.")
+
+    fit_to_roi = False
+
+    if selected_input_channel:
+        if type(selected_input_channel) is int:
+            selected_input_channel = [0, selected_input_channel]
+        elif len(selected_input_channel) < 2:
+            # if only one element, we assume relevant image stack dimension is 0 (like channel for multi-channel tifs).
+            selected_input_channel = [0, selected_input_channel[0]]
+        elif len(selected_input_channel) > 2:
+            raise ValueError("Only single channel selection possible.")
+
+        with open_file(in_path, mode="r") as f:
+            shape = f[in_key].shape
+
+        roi_begin = [0] * len(shape)
+        roi_end = list(shape)
+
+        if selected_input_channel[0] > len(shape) - 1:
+            raise ValueError("Wrong channel dimension.")
+
+        if selected_input_channel[1] > shape[selected_input_channel[0]] - 1:
+            raise ValueError("Channel index exceeds axis length.")
+
+        roi_begin[selected_input_channel[0]] = selected_input_channel[1]
+        roi_end[selected_input_channel[0]] = selected_input_channel[1] + 1
+
+    if any((roi_begin is not None, roi_end is not None)):
+        fit_to_roi = True
+
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format, int_to_uint=int_to_uint,
+              metadata_format=file_format,
+              roi_begin=roi_begin, roi_end=roi_end,
+              int_to_uint=int_to_uint, fit_to_roi=fit_to_roi,
               channel=channel)

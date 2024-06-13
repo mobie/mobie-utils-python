@@ -234,6 +234,7 @@ class TestImageData(unittest.TestCase):
         self.check_data(dataset_folder, im_name)
 
         # 2D
+
     @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli_2D(self):
 
@@ -266,7 +267,6 @@ class TestImageData(unittest.TestCase):
         subprocess.run(cmd)
 
         exp_data = imageio.imread(in_path)
-
 
         dataset_folder = os.path.join(self.root, dataset_name)
         self.check_data(dataset_folder, im_name, exp_data=exp_data)
@@ -350,6 +350,91 @@ class TestImageData(unittest.TestCase):
                         skip_add_to_dataset=False)
 
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
+
+    def test_input_channel(self):
+        path1 = os.path.join(self.test_folder, '3ch.h5')
+        key = 'data'
+        self.make_hdf5_data(path1, key, shape=(3, 128, 128))
+
+        with open_file(path1, mode="r") as f:
+            im = f[key][:]
+
+        # test wrong channel input
+        im_name = 'channel_error'
+        for in_channel in ([1, 2, 3], [4, 0], [0, 4]):
+            with self.assertRaises(ValueError):
+                mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 64, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        target="local", max_jobs=self.max_jobs, selected_input_channel=in_channel)
+
+        # check integer channel
+        for chidx, in_channel in enumerate([1,[1]]):
+            im_name = '3ch_test_int_' + str(chidx)
+            mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 64, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        target="local", max_jobs=self.max_jobs, selected_input_channel=in_channel)
+            test_data = im[1, :, :]
+
+            self.check_data(os.path.join(self.root, self.dataset_name), im_name, exp_data=test_data)
+
+        # check channel as list
+        im_name = '3ch_test_list'
+        mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 1, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        target="local", max_jobs=self.max_jobs, selected_input_channel=[1, 14])
+        test_data = im[:, 14, :]
+
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, exp_data=test_data)
+
+    def test_input_roi(self):
+        path1 = os.path.join(self.test_folder, '3ch.h5')
+        key = 'data'
+        inshape=(123, 124, 125)
+
+        self.make_hdf5_data(path1, key, shape=inshape)
+
+        roi_vals = np.floor(np.random.random((2,3))*(np.array(inshape)-1)).astype(int)
+
+        roi_begin = np.min(roi_vals, axis=0)
+        roi_end = np.max(roi_vals, axis=0)
+
+        for idx in range(3):
+            if roi_begin[idx] == roi_end[idx]:
+                roi_end[idx] += 1
+
+        with open_file(path1, mode="r") as f:
+            im = f[key][:]
+
+        # check integer channel
+        im_name = 'roi_test'
+        mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 64, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        roi_begin=roi_begin, roi_end=roi_end,
+                        target="local", max_jobs=self.max_jobs,
+                        )
+        test_data = im[roi_begin[0]:roi_end[0], roi_begin[1]:roi_end[1], roi_begin[2]:roi_end[2]]
+
+
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, exp_data=test_data)
+
+        # check channel as list
+        im_name = '3ch_test_list'
+        mobie.add_image(path1, key, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=[[2, 2, 2]],
+                        chunks=(1, 1, 64), tmp_folder=self.tmp_folder,
+                        file_format='ome.zarr',
+                        target="local", max_jobs=self.max_jobs, selected_input_channel=[1, 14])
+        test_data = im[:, 14, :]
+
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name, exp_data=test_data)
 
 
     #
