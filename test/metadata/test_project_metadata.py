@@ -1,8 +1,10 @@
 import json
 import unittest
+import tempfile
 
 from jsonschema import ValidationError
 from mobie import SPEC_VERSION
+from mobie.metadata import create_project_metadata, read_project_metadata, add_dataset
 from mobie.validation.utils import validate_with_schema
 
 
@@ -59,6 +61,22 @@ class TestProjectMetadata(unittest.TestCase):
         metadata["specVersion"] = invalid_version
         with self.assertRaises(ValidationError):
             validate_with_schema(metadata, "project")
+
+    def test_create_project_metadata(self):
+        description = "Test project"
+        schema = self.get_schema()
+        with tempfile.TemporaryDirectory() as tempdir:
+            create_project_metadata(
+                root=tempdir,
+                description=description,
+            )
+            add_dataset(
+                root=tempdir,
+                dataset_name="alpha",
+                is_default=True,
+            )
+            metadata = read_project_metadata(tempdir)
+            validate_with_schema(metadata, schema)
 
 
 if __name__ == '__main__':

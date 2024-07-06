@@ -18,9 +18,9 @@ def create_project_metadata(root, description=None, references=None):
         "datasets": []
     }
     if description is not None:
-        metadata[description] = description
+        metadata["description"] = description
     if references is not None:
-        metadata[references] = references
+        metadata["references"] = references
     write_project_metadata(root,  metadata)
 
 
