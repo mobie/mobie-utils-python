@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import warnings
 import shutil
+from typing import Optional, Tuple, Union
 
 import mobie.metadata as metadata
 import mobie.utils as utils
@@ -84,11 +85,24 @@ def _view_and_trafo_from_xml(xml_path, setup_id, timepoint, source_name, menu_na
 
 
 # TODO support multiple timepoints
-def add_bdv_image(xml_path, root, dataset_name,
-                  image_name=None, file_format="bdv.n5", menu_name=None, scale_factors=None,
-                  tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-                  is_default_dataset=False, description=None, trafos_for_mobie=None,
-                  move_data=False, int_to_uint=False):
+def add_bdv_image(
+    xml_path: Union[str, os.PathLike],
+    root: str,
+    dataset_name: str,
+    image_name: Optional[Union[str, Tuple[str]]] = None,
+    file_format: str = "bdv.n5",
+    menu_name: Optional[str] = None,
+    setup_ids=None,
+    scale_factors=None,
+    tmp_folder=None,
+    target="local",
+    max_jobs=multiprocessing.cpu_count(),
+    is_default_dataset=False,
+    description=None,
+    trafos_for_mobie=None,
+    move_data=False,
+    int_to_uint=False
+):
     """Add the image(s) specified in an bdv xml file and copy the metadata.
     """
     # find how many timepoints we have
@@ -97,7 +111,12 @@ def add_bdv_image(xml_path, root, dataset_name,
         raise NotImplementedError("Only a single timepoint is currently supported.")
 
     # get the setup ids and check that image_name is compatible
-    setup_ids = bdv_metadata.get_setup_ids(xml_path)
+    if setup_ids is None:
+        setup_ids = bdv_metadata.get_setup_ids(xml_path)
+    else:
+        all_setup_ids = bdv_metadata.get_setup_ids(xml_path)
+        for setup_id in setup_ids:
+            assert setup_id in all_setup_ids
 
     if image_name is None:
         image_name = [None] * len(setup_ids)
@@ -105,7 +124,7 @@ def add_bdv_image(xml_path, root, dataset_name,
         if isinstance(image_name, str):
             image_name = [image_name]
 
-    assert len(image_name) == len(setup_ids)
+    assert len(image_name) == len(setup_ids), f"{image_name}, {setup_ids}"
 
     data_path = bdv_metadata.get_data_path(xml_path, return_absolute_path=True)
 
