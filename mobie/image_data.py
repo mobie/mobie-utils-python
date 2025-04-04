@@ -174,6 +174,7 @@ def add_bdv_image(
 
 
 # TODO support default arguments for scale factors and chunks
+# TODO handle memmap here.
 def add_image(input_path, input_key,
               root, dataset_name, image_name,
               resolution, scale_factors, chunks,
@@ -188,7 +189,7 @@ def add_image(input_path, input_key,
               int_to_uint=False,
               channel=None,
               skip_add_to_dataset=False):
-    """ Add an image source to a MoBIE dataset.
+    """Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
 

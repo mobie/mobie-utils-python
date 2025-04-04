@@ -7,7 +7,8 @@ def import_image_data(in_path, in_key, out_path,
                       tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
                       block_shape=None, unit="micrometer",
                       source_name=None, file_format="ome.zarr",
-                      int_to_uint=False, channel=None):
+                      int_to_uint=False, channel=None,
+                      use_memmap=False):
     """ Import image data to mobie format.
 
     Arguments:
@@ -28,6 +29,7 @@ def import_image_data(in_path, in_key, out_path,
         int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
         channel [int] - the channel to load from the data.
             Currently only supported for the ome.zarr format (default: None)
+        use_memmap [bool] - Whether the input is a tif file that can be memmaped. (default: False)
     """
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
@@ -37,4 +39,4 @@ def import_image_data(in_path, in_key, out_path,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
               metadata_format=file_format, int_to_uint=int_to_uint,
-              channel=channel)
+              channel=channel, use_memmap=use_memmap)
