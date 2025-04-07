@@ -8,14 +8,18 @@ import mobie.metadata as metadata
 import mobie.utils as utils
 import numpy as np
 import pybdv.metadata as bdv_metadata
+import tifffile
 from elf.io import open_file
 from mobie.import_data import import_image_data
 from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
 
 
-def _get_default_contrast_limits(input_path, input_key, int_to_uint):
-    with open_file(input_path, "r") as f:
-        dtype = f[input_key].dtype
+def _get_default_contrast_limits(input_path, input_key, int_to_uint, use_memmap=False):
+    if use_memmap:
+        dtype = tifffile.memmap(input_path).dtype
+    else:
+        with open_file(input_path, "r") as f:
+            dtype = f[input_key].dtype
 
     if np.issubdtype(dtype, np.integer):
         if int_to_uint:
@@ -174,7 +178,6 @@ def add_bdv_image(
 
 
 # TODO support default arguments for scale factors and chunks
-# TODO handle memmap here.
 def add_image(input_path, input_key,
               root, dataset_name, image_name,
               resolution, scale_factors, chunks,
@@ -188,7 +191,8 @@ def add_image(input_path, input_key,
               move_only=False,
               int_to_uint=False,
               channel=None,
-              skip_add_to_dataset=False):
+              skip_add_to_dataset=False,
+              use_memmap=False):
     """Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
@@ -223,8 +227,11 @@ def add_image(input_path, input_key,
             Currently only supported for the ome.zarr format (default: None)
         skip_add_to_dataset [bool] - Skip adding the source to the dataset after converting the image data.
             This should be used when calling `add_image` in parallel in order to avoid
-            writing to dataset.json in parallel, which can cause issues. In this case the source needs to be added later
-            , which can be done by calling this function again. (default: False)
+            writing to dataset.json in parallel, which can cause issues.
+            In this case the source needs to be added later, e.g. by calling this function again. (default: False)
+        use_memmap [bool] - Whether to use memmap for loading the input data.
+            This option is only supported for inputs in tif file format that can be loaded via `tifffile.memmap`.
+            This does not work for images that are compressed or have an otherwise non-standard format. (default: False)
     """
     # TODO add 'setup_id' to the json schema for bdv formats to also support it there
     if channel is not None and file_format != "ome.zarr":
@@ -237,7 +244,7 @@ def add_image(input_path, input_key,
     # set default contrast_limits if we don't have a view
     # or if the passed view doesn't hav contrast limits
     if view is None or "contrastLimits" not in view.get("sourceDisplays", [{}])[0].get("imageDisplay", {}):
-        contrast_limits = _get_default_contrast_limits(input_path, input_key, int_to_uint)
+        contrast_limits = _get_default_contrast_limits(input_path, input_key, int_to_uint, use_memmap=use_memmap)
     else:
         contrast_limits = None
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
@@ -267,7 +274,8 @@ def add_image(input_path, input_key,
                           source_name=image_name,
                           file_format=file_format,
                           int_to_uint=int_to_uint,
-                          channel=channel)
+                          channel=channel,
+                          use_memmap=use_memmap)
 
     if transformation is not None:
         utils.update_transformation_parameter(image_metadata_path, transformation, file_format)

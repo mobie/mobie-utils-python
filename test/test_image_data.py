@@ -6,7 +6,7 @@ import unittest
 from shutil import rmtree
 from sys import platform
 
-import imageio
+import imageio.v3 as imageio
 import mobie
 import numpy as np
 import h5py
@@ -233,7 +233,7 @@ class TestImageData(unittest.TestCase):
         dataset_folder = os.path.join(self.root, self.dataset_name)
         self.check_data(dataset_folder, im_name)
 
-        # 2D
+    # 2D
     @unittest.skipIf(platform == "win32", "CLI does not work on windows")
     def test_cli_2D(self):
 
@@ -266,7 +266,6 @@ class TestImageData(unittest.TestCase):
         subprocess.run(cmd)
 
         exp_data = imageio.imread(in_path)
-
 
         dataset_folder = os.path.join(self.root, dataset_name)
         self.check_data(dataset_folder, im_name, exp_data=exp_data)
@@ -351,6 +350,20 @@ class TestImageData(unittest.TestCase):
 
         self.check_data(os.path.join(self.root, self.dataset_name), im_name)
 
+    #
+    # test for tif input data that is read via memmap
+    #
+    def test_memmap(self):
+        tif_path = os.path.join(self.test_folder, "tif-image.tif")
+        imageio.imwrite(tif_path, self.data)
+        im_name = "test-memmap"
+        scales = [[2, 2, 2]]
+        mobie.add_image(tif_path, None, self.root, self.dataset_name, im_name,
+                        resolution=(1, 1, 1), scale_factors=scales,
+                        chunks=(64, 64, 64), tmp_folder=self.tmp_folder,
+                        target="local", max_jobs=self.max_jobs,
+                        use_memmap=True)
+        self.check_data(os.path.join(self.root, self.dataset_name), im_name)
 
     #
     # data validation
