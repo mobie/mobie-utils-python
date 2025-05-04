@@ -122,7 +122,7 @@ def migrate_views(folder):
 def migrate_dataset(folder):
     """Migrate dataset from spec version 0.2.0 to 0.3.0
 
-    Arguments:
+    Args:
         folder [str] - dataset folder
     """
     migrate_views(folder)

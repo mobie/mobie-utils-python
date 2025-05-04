@@ -1,5 +1,8 @@
+"""Functionality for creating segmentation tables.
+"""
 import os
 import warnings
+from typing import Sequence
 
 import luigi
 import numpy as np
@@ -15,6 +18,8 @@ from ..validation.tables import get_columns_for_table_format
 
 
 def check_and_copy_default_table(input_path, output_path, is_2d, suppress_warnings=False):
+    """@private
+    """
     tab = read_table(input_path)
     required_column_names, recommended_column_names, _ = get_columns_for_table_format(tab, is_2d)
     missing_columns = list(required_column_names - set(tab.columns))
@@ -143,22 +148,28 @@ def _remove_empty_columns(table):
     return table
 
 
-def compute_default_table(seg_path, seg_key, table_path,
-                          resolution, tmp_folder, target, max_jobs,
-                          correct_anchors=False):
-    """ Compute the default table for the input segmentation, consisting of the
-    attributes necessary to enable tables in the mobie-fiji-viewer.
+def compute_default_table(
+    seg_path: str,
+    seg_key: str,
+    table_path: str,
+    resolution: Sequence[float],
+    tmp_folder: str,
+    target: str,
+    max_jobs: int,
+    correct_anchors: bool = False,
+) -> None:
+    """Compute the default table for a segmentation, containing the attributes required to view it in MoBIE.
 
-    Arguments:
-        seg_path [str] - input path to the segmentation
-        seg_key [str] - key to the segmenation
-        table_path [str] - path to the output table
-        resolution [list[float]] - resolution of the data in microns
-        tmp_folder [str] - folder for temporary files
-        target [str] - computation target
-        max_jobs [int] - number of jobs
-        correct_anchors [bool] - whether to move the anchor points into segmentation objects.
-            Anchor points may be outside of objects in case of concave objects. (default: False)
+    Args:
+        seg_path: The input path to the segmentation.
+        seg_key: The key to the segmenation.
+        table_path: The path to the output table.
+        resolution: The resolution of the data in physical units.
+        tmp_folder: The folder for temporary files.
+        target: The computation target.
+        max_jobs: The number of jobs for parallelization.
+        correct_anchors: Whether to move the anchor points into segmentation objects.
+            Anchor points may be outside of objects in case of concave objects.
     """
 
     with open_file(seg_path, "r") as f:

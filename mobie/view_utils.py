@@ -1,7 +1,10 @@
+"""Helper functions for creating and manipulating views.
+"""
 import argparse
 import json
 import os
 import warnings
+from typing import Dict, List, Optional, Sequence
 
 from . import metadata as mobie_metadata
 from .validation import validate_view_metadata, validate_views, validate_with_schema
@@ -87,40 +90,45 @@ def _write_view(dataset_folder, view_file, view_name, view, overwrite, return_vi
 
 
 def create_view(
-    dataset_folder, view_name,
-    sources, display_settings,
-    source_transforms=None,
-    viewer_transform=None,
-    display_group_names=None,
-    region_displays=None,
-    menu_name="bookmark",
-    is_exclusive=True,
-    overwrite=False,
-    view_file=None,
-    return_view=False,
-):
+    dataset_folder: str,
+    view_name: str,
+    sources: List[List[str]],
+    display_settings: List[Dict],
+    source_transforms: Optional[List[Dict]] = None,
+    viewer_transform: Optional[Dict] = None,
+    display_group_names: List[str] = None,
+    region_displays: Dict[str, Dict] = None,
+    menu_name: str = "bookmark",
+    is_exclusive: bool = True,
+    overwrite: bool = False,
+    view_file: Optional[str] = None,
+    return_view: bool = False,
+) -> Optional[Dict]:
     """Add or update a view in dataset.json:views.
 
     Views can reproduce any given viewer state.
 
-    Arguments:
-        dataset_folder [str] - path to the dataset folder
-        view_name [str] - name of the view
-        sources [list[list[str]]] - nested list of sources for this view.
+    Args:
+        dataset_folder: The path to the dataset folder.
+        view_name: The name of the view.
+        sources: The nested list of sources for this view.
             Each inner list contains the sources for one of the source displays.
-        display_settings [list[dict]] - List of display settings for the source displays.
-        source_transforms [list[dict]] - List of source transformations. (default: None)
-        viewer_transform [dict] - the viewer transformation. (default:None)
-        display_group_names [list[str]] - the names for the source displays (default: None)
-        region_displays dict[str, dict] - dictionary from region display name
-            to the region display settings for additional region displays for this view (default: None)
-        menu_name [str] - name for the menu where this view will be saved (default: bookmark)
-        is_exclusive [bool] - whether the view is exclusive (default: True)
-        overwrite [bool] - whether to overwrite existing views (default: False)
-        view_file [str] - name of the view file where this view should be saved.
-            By default it will be saved directly in the dataset metadata (default: None)
-        return_view [bool] - whether to return the created view instead of
-            saving it to the dataset or to an external view file (default: False)
+        display_settings: The list of display settings for the source displays.
+        source_transforms: The ist of source transformations.
+        viewer_transform: The viewer transformation.
+        display_group_names: The names for the source displays.
+        region_displays: An optional dictionary that maps region display names
+            to the region display settings. Use this argument if the view contains region displays.
+        menu_name: The name of the menu where this view will be saved.
+        is_exclusive: Whether the view is exclusive.
+        overwrite: Whether to overwrite existing views.
+        view_file: The name of the view file where this view should be saved.
+            By default it will be saved directly in the dataset metadata.
+        return_view: Whether to return the created view instead of
+            saving it to the dataset or to an external view file.
+
+    Returns:
+        The view data. Only if return_view is set to True.
     """
     dataset_metadata = mobie_metadata.read_dataset_metadata(dataset_folder)
     all_sources = dataset_metadata["sources"]
@@ -129,51 +137,54 @@ def create_view(
                         display_group_names, region_displays=region_displays,
                         menu_name=menu_name, is_exclusive=is_exclusive)
     validate_with_schema(view, "view")
-    return _write_view(dataset_folder, view_file, view_name, view,
-                       overwrite=overwrite, return_view=return_view)
+    return _write_view(dataset_folder, view_file, view_name, view, overwrite=overwrite, return_view=return_view)
 
 
 def create_grid_view(
-    dataset_folder, view_name, sources,
-    table_source=None,
-    table_folder=None,
-    display_groups=None,
-    display_group_settings=None,
-    positions=None,
-    use_transformed_grid=True,
-    menu_name="bookmark",
-    overwrite=False,
-    view_file=None,
-    return_view=False,
-):
-    """ Add or update a grid view.
+    dataset_folder: str,
+    view_name: str,
+    sources: List[List[str]],
+    table_source: Optional[str] = None,
+    table_folder: Optional[str] = None,
+    display_groups: Optional[Dict[str, str]] = None,
+    display_group_settings: Optional[Dict[str, str]] = None,
+    positions: Optional[List[List[int]]] = None,
+    use_transformed_grid: bool = True,
+    menu_name: str = "bookmark",
+    overwrite: bool = False,
+    view_file: Optional[str] = None,
+    return_view: bool = False,
+) -> Optional[Dict]:
+    """Add or update a grid view.
 
-    Arguments:
-        dataset_folder [str] - path to the dataset folder
-        view_name [str] - name of the view
-        sources [list[list[str]]] - sources to be arranged in the grid.
+    Args:
+        dataset_folder: The path to the dataset folder.
+        view_name: The name of the view.
+        sources: The sources to be arranged in the grid.
             The sources need to be passed as a nested list, where each inner list contains the
             sources for one of the grid positions.
-        table_source [str] - name of the region table source for this view.
-            If the source does not exist yet it will be created.
-            If not given then no region table will be created. (default: None)
-        table_folder [str] - path to the table folder, relative to the dataset folder.
-            Will only be used if a new region table source needs to be created. (default: None)
-        display_groups [dict[str, str] - the display groups in this view. Needs to be a map from source name
+        table_source: The name of the region table source for this view.
+            If the source does not exist yet it will be created. If not given then no region table will be created.
+        table_folder: The path to the table folder, relative to the dataset folder.
+            Will only be used if a new region table source needs to be created.
+        display_groups: The display groups in this view. Needs to be a map from source name
             to the name of the display group for this sources. By default all sources will end up in their own
-            display group with the settings for the default view of the source (default: None)
-        display_group_settings [dict[str, dict]] - the settings for the display groups in the view.
-            The keys must be the values of the display_groups parameter (default: None)
-        positions [list[list[int]]] - list of explicit grid positions.
+            display group with the settings for the default view of the source.
+        display_group_settings: The settings for the display groups in the view.
+            The keys must be the values of the display_groups parameter.
+        positions: The list of explicit grid positions.
             If given, must have the same length as sources, the inner lists must contain two values,
-            corresponding to the 2d grid positions (default: None)
-        use_transformed_grid [bool] - whether to use a transformed or merged grid (default: True)
-        menu_name [str] - name of the menu from whil this view can be selected (default: bookmark)
-        overwrite [bool] - whether to overwrite existing view (default: False)
-        view_file [str] - name of the view file where this view should be saved.
-            By default it will be saved directly in the dataset metadata (default: None)
-        return_view [bool] - whether to return the created view instead of
-            saving it to the dataset or to an external view file (default: False)
+            corresponding to the 2d grid positions.
+        use_transformed_grid: Whether to use a transformed or merged grid.
+        menu_name: The name of the menu from which this view can be selected.
+        overwrite: Whether to overwrite existing view.
+        view_file: The name of the view file where this view should be saved.
+            By default it will be saved directly in the dataset metadata.
+        return_view: Whether to return the created view instead of
+            saving it to the dataset or to an external view file.
+
+    Returns:
+        The view data. Only if return_view is set to True.
     """
     assert all(source_list for source_list in sources)
     view = mobie_metadata.get_grid_view(
@@ -183,8 +194,7 @@ def create_grid_view(
         use_transformed_grid=use_transformed_grid,
     )
     validate_with_schema(view, "view")
-    return _write_view(dataset_folder, view_file, view_name, view,
-                       overwrite=overwrite, return_view=return_view)
+    return _write_view(dataset_folder, view_file, view_name, view, overwrite=overwrite, return_view=return_view)
 
 
 #
@@ -192,13 +202,13 @@ def create_grid_view(
 #
 
 
-def merge_view_file(dataset_folder, view_file, overwrite=False):
+def merge_view_file(dataset_folder: str, view_file: str, overwrite: bool = False) -> None:
     """Merge views from a view file into the views of a dataset.
 
-    Arguments:
-        dataset_folder [str] - path to the dataset_folder
-        view_file [str] - path to the view file
-        overwrite [bool] - whether to over existing views in the dataset (default: False)
+    Args:
+        dataset_folder: The path to the dataset_folder.
+        view_file: The path to the view file.
+        overwrite: Whether to overwrite existing views in the dataset.
     """
     validate_views(view_file)
 
@@ -221,15 +231,21 @@ def merge_view_file(dataset_folder, view_file, overwrite=False):
     mobie_metadata.write_dataset_metadata(dataset_folder, metadata)
 
 
-def combine_views(dataset_folder, view_names, new_view_name, menu_name, keep_original_views=True):
+def combine_views(
+    dataset_folder: str,
+    view_names: Sequence[str],
+    new_view_name,
+    menu_name,
+    keep_original_views=True
+) -> None:
     """Combine several views in a dataset.
 
-    Arguments:
-        dataset_folder [str] - path to the dataset folder
-        view_names [list[str] or tuple[str]] - names of the views to be combined
-        new_view_name [str] - name of the combined view
-        menu_name [str] - menu name of the combined view
-        keep_original_views [bool] - whether to keep the original views (default: True)
+    Args:
+        dataset_folder: The path to the dataset folder.
+        view_names: The names of the views to be combined.
+        new_view_name: The name of the combined view.
+        menu_name: The menu name for the combined view.
+        keep_original_views: Whether to keep the original views.
     """
     warnings.warn(
         "combine_views is experimental and will currently only work for relatively simple views."
@@ -272,6 +288,8 @@ def combine_views(dataset_folder, view_names, new_view_name, menu_name, keep_ori
 
 
 def main():
+    """@private
+    """
     parser = argparse.ArgumentParser("Merge views from a view file into the views of a dataset.")
     parser.add_argument("-d", "--dataset", help="Path to the dataset folder", required=True)
     parser.add_argument("-v", "--views", help="Path to the view file", required=True)

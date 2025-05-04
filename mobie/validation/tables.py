@@ -1,6 +1,9 @@
+"""Validation functionality for tables.
+"""
 import os
 import warnings
 from glob import glob
+from typing import Callable, Dict, Optional, Sequence
 
 import pandas as pd
 from .utils import _assert_true
@@ -70,12 +73,16 @@ def _check_tables(table_folder, required_columns, merge_columns, assert_true,
 
 
 def check_region_tables(table_folder, assert_true=_assert_true):
+    """@private
+    """
     required_columns = ["region_id"]
     merge_columns = ["region_id", "timepoint"]
     _check_tables(table_folder, required_columns, merge_columns, assert_true=assert_true)
 
 
 def get_columns_for_table_format(tab, is_2d):
+    """@private
+    """
     if tab.columns[0] == "label_id":  # the default MoBIE segmentation table format
         required_column_names = {"label_id", "anchor_x", "anchor_y"}
         recommended_column_names = {"bb_min_x", "bb_min_y", "bb_max_x", "bb_max_y"}
@@ -114,6 +121,8 @@ def _parse_segmentation_table(table_folder, is_2d, assert_true):
 
 
 def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true, suppress_warnings=False):
+    """@private
+    """
     required_columns, recommended_columns, merge_columns = _parse_segmentation_table(table_folder, is_2d, assert_true)
     _check_tables(
         table_folder, required_columns, merge_columns,
@@ -123,6 +132,8 @@ def check_segmentation_tables(table_folder, is_2d, assert_true=_assert_true, sup
 
 
 def check_spot_tables(table_folder, is_2d, assert_true=_assert_true):
+    """@private
+    """
     required_columns = ["spot_id", "x", "y"]
     if not is_2d:
         required_columns.append("z")
@@ -131,9 +142,25 @@ def check_spot_tables(table_folder, is_2d, assert_true=_assert_true):
 
 
 def check_tables_in_view(
-    sources, table_source, dataset_folder, merge_columns,
-    additional_tables=None, expected_columns=None, assert_true=_assert_true
-):
+    sources: Dict,
+    table_source: str,
+    dataset_folder: str,
+    merge_columns: Sequence[str],
+    additional_tables: Optional[Sequence[str]] = None,
+    expected_columns: Optional[Sequence[str]] = None,
+    assert_true: Callable = _assert_true,
+) -> None:
+    """Check that the tables listed in a view are valid.
+
+    Args:
+        sources: The source metadata of the associated MoBIE dataset.
+        table_source: The name of the source with the table.
+        dataset_folder: The folder of the MoBIE dataset.
+        merge_columns: The required columns for merging tables.
+        additional_tables: The names of additional tables in the view.
+        expected_columns: Additional expected columns.
+        assert_true: Function to over-write the default assert_true check.
+    """
     assert_true(table_source in sources, f"The table source {table_source} is not present in the source metadata.")
 
     source_metadata = next(iter(sources[table_source].values()))

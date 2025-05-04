@@ -1,7 +1,11 @@
+"""Import spot data, representing point coordinates, into a MoBIE project.
+"""
 import argparse
 import os
+from typing import Dict, Optional, Sequence, Union
 
 import mobie
+import pandas as pd
 from mobie.tables import process_spot_table, read_table
 
 
@@ -53,27 +57,38 @@ def _process_spot_metadata(
     return bounding_box_min, bounding_box_max, unit
 
 
-def add_spots(input_table, root, dataset_name, spot_name,
-              additional_tables=None, bounding_box_min=None, bounding_box_max=None,
-              menu_name=None, view=None, unit="micrometer",
-              reference_source=None, description=None):
+def add_spots(
+    input_table: Union[str, pd.DataFrame],
+    root: str,
+    dataset_name: str,
+    spot_name: str,
+    additional_tables: Optional[Dict[str, Union[str, pd.DataFrame]]] = None,
+    bounding_box_min: Optional[Sequence[float]] = None,
+    bounding_box_max: Optional[Sequence[float]] = None,
+    menu_name: Optional[str] = None,
+    view: Optional[Dict] = None,
+    unit: str = "micrometer",
+    reference_source: Optional[str] = None,
+    description: Optional[str] = None,
+) -> None:
     """Add spot source to MoBIE dataset.
 
-    Arguments:
-        input_table [str or pandas.DataFrame] - the main table for the spots data.
-        root [str] - data root folder.
-        dataset_name [str] - name of the dataset the spots should be added to.
-        spot_name [str] - name of the spots.
-        additional_tables [dict[str, str] or dict[str, pandas.DataFrame]] - list of additional tables. (default: None)
-        bounding_box_min [list[float]] - the minimum bounding box coordinates for the spot data (default: None)
-        bounding_box_max [list[float]] - the maximum bounding box coordiants for the spot data (default: None)
-        menu_name [str] - menu name for this source.
-            If none is given will be created based on the image name. (default: None)
-        view [dict] - default view settings for this source (default: None)
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        reference_source [str] - reference source with image data that will be used to determine
-            the bounding box and the unit (default: None)
-        description [str] - description for this spots (default: None)
+    Args:
+        input_table: The main table for the spots data.
+        root: The data root folder.
+        dataset_name: The name of the dataset the spots should be added to.
+        spot_name: The name of the spots.
+        additional_tables: Optional additional tables to add. If given, must be a dictionary mapping
+            table names to table file paths or pandas dataframes.
+        bounding_box_min: The minimum bounding box coordinates for the spot data.
+        bounding_box_max: The maximum bounding box coordiants for the spot data.
+        menu_name: The menu name for this source.
+            If none is given will be created based on the source name.
+        view: The default view settings for this source.
+        unit: The physical unit of the coordinate system.
+        reference_source: The reference source with image data that will be used to determine
+            the bounding box and the unit.
+        description: The description for this spot source.
     """
     view = mobie.utils.require_dataset_and_view(root, dataset_name, file_format=None,
                                                 source_type="spots",
@@ -105,6 +120,8 @@ def add_spots(input_table, root, dataset_name, spot_name,
 
 
 def main():
+    """@private
+    """
     description = "Add spot source to MoBIE dataset."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--input_table", type=str,

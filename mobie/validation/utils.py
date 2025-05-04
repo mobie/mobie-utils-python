@@ -1,6 +1,9 @@
+"""Helper functions for validation.
+"""
 import os
 import json
 import warnings
+from typing import Dict
 
 import jsonschema
 import requests
@@ -15,6 +18,8 @@ SCHEMA_URLS = {
     "views": "https://raw.githubusercontent.com/mobie/mobie.github.io/master/schema/views.schema.json",
     "NGFF": "https://raw.githubusercontent.com/ome/ngff/main/0.4/schemas/image.schema"
 }
+"""@private
+"""
 
 
 def _download_schema():
@@ -39,7 +44,16 @@ def _download_schema():
     return True
 
 
-def validate_with_schema(metadata, schema):
+def validate_with_schema(metadata: Dict, schema: str) -> None:
+    """Validate that a dictionary with MoBIE metadata adheres to the given json schema.
+
+    Raises a JsonSchemaValidation error if the metadata is not spec complient.
+
+    Args:
+        metadata: The dictionary with MoBIE metadata.
+        schema: The name of the schema. One of 'dataset', 'project', 'source', 'view', 'views'.
+
+    """
     assert isinstance(schema, (str, dict))
     if isinstance(schema, str):
         assert schema in SCHEMA_URLS
@@ -53,6 +67,8 @@ def validate_with_schema(metadata, schema):
 
 
 def load_json_from_s3(address):
+    """@private
+    """
     server = "/".join(address.split("/")[:3])
     root_path = "/".join(address.split("/")[3:-1])
     fname = address.split("/")[-1]

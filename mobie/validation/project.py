@@ -1,12 +1,18 @@
+"""Validation functionality for a MoBIE project.
+"""
 import argparse
 import json
 import os
+from typing import Callable
+
 from .dataset import validate_dataset
 from .utils import _assert_true, _assert_in, _assert_equal, validate_with_schema
 from ..__version__ import SPEC_VERSION
 
 
 def check_version(version_a, version_b, assert_equal):
+    """@private
+    """
 
     def parse_version(version):
         version_split = version.split(".")
@@ -25,12 +31,30 @@ def check_version(version_a, version_b, assert_equal):
         assert_equal(minor_a, minor_b, msg)
 
 
-def validate_project(root,
-                     require_local_data=True,
-                     require_remote_data=False,
-                     assert_true=_assert_true,
-                     assert_in=_assert_in,
-                     assert_equal=_assert_equal):
+def validate_project(
+    root: str,
+    require_local_data: bool = True,
+    require_remote_data: bool = False,
+    assert_true: Callable = _assert_true,
+    assert_in: Callable = _assert_in,
+    assert_equal: Callable = _assert_equal,
+) -> None:
+    """Validate that a MoBIE project adheres to the specification.
+
+    Raises a ValueError if the project does not adhere to the spec.
+    The type of error that is thrown can be modified by over-writing
+    the assert_true, assert_in, and assert_equal arguments.
+
+    Args:
+        root: The root directory of the MoBIE project.
+        require_loca_data: Whether to require that local source data,
+            i.e. the corresponding ome.zarr or bdv files, exists.
+        require_remote_data: Whether to require that remote source data,
+            i.e. the corresponding ome.zarr or bdv.n5.s3 file exists.
+        assert_true: Function to over-write the default assert_true check.
+        assert_in: Function to over-write the default assert_in check.
+        assert_equal: Function to over-write the default assert_equal check.
+    """
     metadata_path = os.path.join(root, "project.json")
     msg = f"Cannot find {metadata_path}"
     assert_true(os.path.exists(metadata_path), msg)
@@ -70,6 +94,8 @@ def validate_project(root,
 
 
 def main():
+    """@private
+    """
     parser = argparse.ArgumentParser("Validate MoBIE project metadata")
     parser.add_argument("--input", "-i", type=str, required=True, help="the project location")
     parser.add_argument("--require_local_data", "-r", type=int, default=1, help="check that local data exists")

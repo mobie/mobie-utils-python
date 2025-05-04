@@ -1,4 +1,6 @@
 #! /bin/python
+"""@private
+"""
 
 import os
 import sys

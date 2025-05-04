@@ -1,7 +1,11 @@
+"""Functionality for adding MoBIE source metadata.
+"""
 import json
 import os
 import warnings
+from typing import Dict, Optional
 
+import pandas as pd
 import elf.transformation as trafo_utils
 from pybdv import metadata as bdv_metadata
 
@@ -58,6 +62,8 @@ def _load_image_metadata(source_metadata, dataset_folder):
 
 
 def get_shape(source_metadata, dataset_folder):
+    """@private
+    """
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
     if data_format.startswith("bdv"):
         shape = bdv_metadata.get_size(image_metadata, setup_id=0)
@@ -93,6 +99,8 @@ def _bdv_transform_to_affine_matrix(transforms, resolution):
 
 # load the transformation from the metadata of this source
 def get_transformation(source_metadata, dataset_folder, to_affine_matrix=True, resolution=None):
+    """@private
+    """
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
     if data_format.startswith("bdv"):
         transform = bdv_metadata.get_affine(image_metadata, setup_id=0)
@@ -110,6 +118,8 @@ def get_transformation(source_metadata, dataset_folder, to_affine_matrix=True, r
 
 
 def get_resolution(source_metadata, dataset_folder):
+    """@private
+    """
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
     if data_format.startswith("bdv"):
         resolution = bdv_metadata.get_resolution(image_metadata, setup_id=0)
@@ -125,6 +135,8 @@ def get_resolution(source_metadata, dataset_folder):
 
 
 def get_unit(source_metadata, dataset_folder):
+    """@private
+    """
     data_format, image_metadata = _load_image_metadata(source_metadata, dataset_folder)
     if data_format.startswith("bdv"):
         unit = bdv_metadata.get_unit(image_metadata, setup_id=0)
@@ -189,15 +201,17 @@ def _get_image_metadata(dataset_folder, path, type_, file_format, channel):
     return {type_: source_metadata}
 
 
-def get_image_metadata(dataset_folder, metadata_path,
-                       file_format=None, channel=None):
-    return _get_image_metadata(dataset_folder, metadata_path, "image",
-                               file_format=file_format, channel=channel)
+def get_image_metadata(dataset_folder, metadata_path, file_format=None, channel=None):
+    """@private
+    """
+    return _get_image_metadata(dataset_folder, metadata_path, "image", file_format=file_format, channel=channel)
 
 
 def get_segmentation_metadata(dataset_folder, metadata_path,
                               table_location=None, file_format=None,
                               channel=None):
+    """@private
+    """
     source_metadata = _get_image_metadata(dataset_folder, metadata_path, "segmentation",
                                           file_format=file_format, channel=channel)
     if table_location is not None:
@@ -210,6 +224,8 @@ def get_spot_metadata(dataset_folder, table_folder,
                       bounding_box_min,
                       bounding_box_max,
                       unit):
+    """@private
+    """
     relative_table_location = os.path.relpath(table_folder, dataset_folder)
     table_data = get_table_metadata(relative_table_location)
 
@@ -225,38 +241,35 @@ def get_spot_metadata(dataset_folder, table_folder,
 
 
 def add_source_to_dataset(
-    dataset_folder,
-    source_type,
-    source_name,
-    image_metadata_path,
-    file_format=None,
-    view=None,
-    table_folder=None,
-    overwrite=True,
-    channel=None,
-    suppress_warnings=False,
-    is_2d=None,
+    dataset_folder: str,
+    source_type: str,
+    source_name: str,
+    image_metadata_path: str,
+    file_format: Optional[str] = None,
+    view: Optional[Dict] = None,
+    table_folder: Optional[str] = None,
+    overwrite: bool = True,
+    channel: Optional[int] = None,
+    suppress_warnings: bool = False,
+    is_2d: Optional[bool] = None,
     **kwargs,
 ):
     """Add source metadata to a MoBIE dataset.
 
-    Arguments:
-        dataset_folder [str] - path to the dataset folder.
-        source_type [str] - type of the source, either 'image' or 'segmentation'.
-        source_name [str] - name of the source.
-        image_metadata_path [str] - path to the image metadata (like BDV-XML) corresponding to this source.
-        file_format [str] - the file format.
-            Normally this will be autodetected
-            and it only needs to be passed here if autodetection fails (default: None)
-        view [dict] - view for this source. If None, will create a default view.
-            If empty dict, will not add a view (default: None)
-        table_folder [str] - table folder for segmentations and spots. (default: None)
-        overwrite [bool] - whether to overwrite existing entries (default: True)
-        channel [int] - the channel to load from the data.
-            Currently only supported for the ome.zarr format (default: None)
-        suppress_warnings [bool] - a flag to suppress warnings raised by the metadata validation (default: False)
-        is_2d [bool] - whether this is a 2d source. (default: None)
-        kwargs - additional keyword arguments for spot source
+    Args:
+        dataset_folder: The path to the dataset folder.
+        source_type: The type of the source, either 'image' or 'segmentation'.
+        source_name: The name of the source.
+        image_metadata_path: The path to the image metadata (like BDV-XML) corresponding to this source.
+        file_format: The the file format. Normally this will be autodetected
+            and it only needs to be passed here if autodetection fails.
+        view: The view for this source. If None, will create a default view. If empty dict, will not add a view.
+        table_folder: The table folder for segmentations and spots.
+        overwrite: Whether to overwrite existing entries.
+        channel: The channel to load from the data. Currently only supported for the ome.zarr format.
+        suppress_warnings: A flag to suppress warnings raised by the metadata validation.
+        is_2d: Whether this is a 2d source.
+        kwargs: Additional keyword arguments for spot sources.
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
@@ -302,7 +315,22 @@ def add_source_to_dataset(
     write_dataset_metadata(dataset_folder, dataset_metadata)
 
 
-def add_regions_to_dataset(dataset_folder, source_name, default_table, table_folder=None, additional_tables=None):
+def add_regions_to_dataset(
+    dataset_folder: str,
+    source_name: str,
+    default_table: str,
+    table_folder: Optional[str] = None,
+    additional_tables: Optional[Dict[str, pd.DataFrame]] = None
+) -> None:
+    """Add region source metadata to a MoBIE dataset.
+
+    Args:
+        dataset_foler: The dataset folder.
+        source_name: The name of the region source.
+        default_table: The path to the default table for this region source.
+        table_folder: Optional table folder for this region source. If not given, will be created at a default location.
+        additional_tables: Optional dictionary with additional tables for this region source.
+    """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources_metadata = dataset_metadata["sources"]
 
@@ -310,8 +338,7 @@ def add_regions_to_dataset(dataset_folder, source_name, default_table, table_fol
         table_folder = os.path.join(dataset_folder, "tables", source_name)
     default_table = read_table(default_table)
     os.makedirs(table_folder, exist_ok=True)
-    default_table.to_csv(os.path.join(table_folder, "default.tsv"),
-                         sep="\t", index=False, na_rep="nan")
+    default_table.to_csv(os.path.join(table_folder, "default.tsv"), sep="\t", index=False, na_rep="nan")
 
     if additional_tables is not None:
         assert isinstance(additional_tables, dict)

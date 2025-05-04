@@ -1,27 +1,55 @@
+"""Helper functions to copy and modify BDV xml files.
+"""
+
 import os
 import warnings
 import xml.etree.ElementTree as ET
-import numpy as np
+from typing import Optional
 
+import numpy as np
 from pybdv.metadata import get_data_path, indent_xml, get_bdv_format, get_resolution, write_affine
 
 
-def copy_xml_with_abspath(xml_in, xml_out):
+def copy_xml_with_abspath(xml_in: str, xml_out: str) -> None:
+    """Copy a BDV xml file with an absolute path to the image data.
+
+    Args:
+        xml_in: The input XML file.
+        xml_out: The output XML file.
+    """
     path = get_data_path(xml_in, return_absolute_path=True)
-    copy_xml_with_newpath(xml_in, xml_out, path,
-                          path_type="absolute")
+    copy_xml_with_newpath(xml_in, xml_out, path, path_type="absolute")
 
 
-def copy_xml_with_relpath(xml_in, xml_out):
+def copy_xml_with_relpath(xml_in: str, xml_out: str) -> None:
+    """Copy a BDV xml file with a relative path to the image data.
+
+    Args:
+        xml_in: The input XML file.
+        xml_out: The output XML file.
+    """
     path = get_data_path(xml_in, return_absolute_path=True)
     xml_root = os.path.split(xml_out)[0]
     path = os.path.relpath(path, xml_root)
-    copy_xml_with_newpath(xml_in, xml_out, path,
-                          path_type="relative")
+    copy_xml_with_newpath(xml_in, xml_out, path, path_type="relative")
 
 
-def copy_xml_with_newpath(xml_in, xml_out, data_path,
-                          path_type="relative", data_format=None):
+def copy_xml_with_newpath(
+    xml_in: str,
+    xml_out: str,
+    data_path: str,
+    path_type: str = "relative",
+    data_format: Optional[str] = None,
+) -> None:
+    """Copy a BDV xml file and replace the path to the data.
+
+    Args:
+        xml_in: The input XML file.
+        xml_out: The output XML file.
+        data_path: The path to the new image data.
+        path_type: The type of the data path. Either 'relative' or 'absolute'.
+        data_format: The format of the data. If None it will be read from the XML file.
+    """
     assert path_type in ("absolute", "relative")
 
     if data_format is None:
@@ -46,19 +74,24 @@ def copy_xml_with_newpath(xml_in, xml_out, data_path,
     tree.write(xml_out)
 
 
-def copy_xml_as_n5_s3(in_xml, out_xml,
-                      service_endpoint, bucket_name, path_in_bucket,
-                      region="us-west-2", bdv_type="bdv.n5.s3"):
-    """ Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
-    Arguments:
-        in_xml [str] - path to the input xml
-        out_xml [str] - path to the output xml
-        service_endpoint [str] - url of the s3 service end-point.
-            For EMBL: "https://s3.embl.de".
-        bucket_name [str] - name of the bucket
-        path_in_bucket [str] - file paths inside of the bucket
-        region [str] - the region. Only relevant if aws.s3 is used.
-            Default: "us-west-2"
+def copy_xml_as_n5_s3(
+    in_xml: str,
+    out_xml: str,
+    service_endpoint: str,
+    bucket_name: str,
+    path_in_bucket: str,
+    region: str = "us-west-2",
+    bdv_type: str = "bdv.n5.s3"
+) -> None:
+    """Copy a bdv xml file and replace the image data loader with the bdv.n5.s3 format.
+
+    Args:
+        in_xml: The path to the input XML file.
+        out_xml: The path to the output XML file
+        service_endpoint: The url of the s3 service end-point. E.g., for EMBL: "https://s3.embl.de".
+        bucket_name: The name of the bucket.
+        path_in_bucket: The file path inside of the bucket.
+        region: The region. Only relevant if aws.s3 is used.
     """
     bdv_types = ("bdv.n5.s3",)
     if bdv_type not in bdv_types:
@@ -95,6 +128,8 @@ def copy_xml_as_n5_s3(in_xml, out_xml,
 
 
 def parse_s3_xml(xml):
+    """@private
+    """
     tree = ET.parse(xml)
     root = tree.getroot()
     img = root.find("SequenceDescription").find("ImageLoader")
@@ -106,6 +141,8 @@ def parse_s3_xml(xml):
 
 
 def read_path_in_bucket(xml):
+    """@private
+    """
     root = ET.parse(xml).getroot()
     seqdesc = root.find("SequenceDescription")
     imgload = seqdesc.find("ImageLoader")
@@ -114,6 +151,8 @@ def read_path_in_bucket(xml):
 
 
 def update_xml_transformation_parameter(xml_path, parameter):
+    """@private
+    """
     if isinstance(parameter, (list, np.ndarray)):
         if len(parameter) != 12:
             raise ValueError(f"Expected affine transformation with 12 parameters, got {len(parameter)}")

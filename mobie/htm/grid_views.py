@@ -1,4 +1,7 @@
+"""Functionality to create grid views for high content microscopy data.
+"""
 import os
+from typing import Callable, Dict, Sequence, Optional
 
 import mobie
 import numpy as np
@@ -67,6 +70,8 @@ def get_transformed_plate_grid_view(metadata, source_prefixes,
                                     well_to_position=None, name_filter=None,
                                     sites_visible=True, wells_visible=True,
                                     add_region_displays=True):
+    """@private
+    """
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -152,6 +157,8 @@ def get_merged_plate_grid_view(metadata, source_prefixes, source_types,
                                well_to_position=None, name_filter=None,
                                sites_visible=True, wells_visible=True,
                                add_region_displays=True):
+    """@private
+    """
     assert len(source_prefixes) == len(source_types) == len(source_settings)
     this_sources, site_names = _get_sources_and_site_names(metadata, source_prefixes,
                                                            source_name_to_site_name, name_filter)
@@ -313,15 +320,54 @@ def _require_table_source(ds_folder, metadata, table, name):
     return metadata, name
 
 
-def add_plate_grid_view(ds_folder, view_name, menu_name,
-                        source_prefixes, source_types, source_settings,
-                        source_name_to_site_name,
-                        site_name_to_well_name,
-                        site_table=None, well_table=None,
-                        well_to_position=None, name_filter=None,
-                        sites_visible=True, wells_visible=True,
-                        add_region_displays=True,
-                        use_transformed_grid=False):
+def add_plate_grid_view(
+    ds_folder: str,
+    view_name: str,
+    menu_name: str,
+    source_prefixes: Sequence[str],
+    source_types: Sequence[str],
+    source_settings: Sequence[Dict],
+    source_name_to_site_name: Callable,
+    site_name_to_well_name: Callable,
+    site_table: Optional[str] = None,
+    well_table: Optional[str] = None,
+    well_to_position: Optional[Dict] = None,
+    name_filter: Optional[Callable] = None,
+    sites_visible: bool = True,
+    wells_visible: bool = True,
+    add_region_displays: bool = True,
+    use_transformed_grid: bool = False,
+) -> None:
+    """Add a grid view that describes a plate layout for a high content microscopy experiment.
+
+    MoBIE assumes that high content microscopy data is organized in sites, corresponding to individual
+    image locations, and wells, which may contain multiple sites. For example, a typical plate layout
+    is a 96 well plate, which contains 9 sites (a 3 x 3 grid) per well. For such a plate, the typical
+    site and well names are 'A01' (well name) and 'A01-1' (well and site name). When using this function,
+    you have to pass 'source_name_to_site_name', which extracts the site name (e.g. 'A01-1') from the source name
+    and `site_name_to_well_name`, which extracts the well name from the site name.
+
+    Args:
+        ds_folder: The folder of the MoBIE dataset where this view will be added.
+        view_name: The name of the view.
+        menu_name: The name of the menu where the view will be added.
+        source_prefixes: The prefixes of the sources that will be added to this view.
+            Each prefix will be mapped to a separate group of images in the view.
+        source_types: The respective source types of the prefixes. Must be of the same length as 'source_prefixes'.
+        source_settings: The settings for the source views. Must be of the same length as 'source_prefixes'.
+        source_name_to_site_name: A function that maps each source name to their site name.
+        site_name_to_well_name: A function that maps each site to their well name.
+        site_table: An optional path for a table that contains site-level information.
+        well_table: An optional path for a table that contains well-level information.
+        well_to_position: An optional dictionary that maps each well to a global position.
+            If not given, the wells will be placed on an ordinary grid.
+        name_filter: An optional function to filter out sources that should not be added to the view.
+        sites_visible: Whether the site overlay is visible by default.
+        wells_visible: Whether the well overlay is visible by default.
+        add_region_displays: Whether to add the region displays for sites and wells.
+        use_transformed_grid: Whether to use the transformed grid or merged grid transformation of MoBIE.
+            The transformed gird enables more flexible transformations, but is less efficient than the merged one.
+    """
     metadata = mobie.metadata.read_dataset_metadata(ds_folder)
 
     if site_table is None and add_region_displays:

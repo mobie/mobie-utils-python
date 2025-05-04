@@ -1,35 +1,47 @@
+"""Functionality to convert image data into a MoBIE compatible format.
+"""
 import multiprocessing as mp
+from typing import List, Optional, Sequence, Tuple
 from .utils import downscale, ensure_volume
 
 
-def import_image_data(in_path, in_key, out_path,
-                      resolution, scale_factors, chunks,
-                      tmp_folder=None, target="local", max_jobs=mp.cpu_count(),
-                      block_shape=None, unit="micrometer",
-                      source_name=None, file_format="ome.zarr",
-                      int_to_uint=False, channel=None,
-                      use_memmap=False):
-    """ Import image data to mobie format.
+def import_image_data(
+    in_path,
+    in_key,
+    out_path,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = mp.cpu_count(),
+    block_shape: Optional[Tuple[int, int, int]] = None,
+    unit: str = "micrometer",
+    source_name: Optional[str] = None,
+    file_format: str = "ome.zarr",
+    int_to_uint: bool = False,
+    channel: Optional[int] = None,
+    use_memmap: bool = False,
+) -> None:
+    """Convert image data into a format supported by MoBIE.
 
-    Arguments:
-        in_path [str] - input data to be added.
-        in_key [str] - key of the input data to be added.
-        out_path [str] - where to add the data.
-        resolution [list[float]] - resolution in micrometer
-        scale_factors [list[list[int]]] - scale factors used for down-sampling the data
-        chunks [tuple[int]] - chunks of the data to be added
-        tmp_folder [str] - folder for temporary files (default: None)
-        target [str] - computation target (default: "local")
-        max_jobs [int] - number of jobs (default: number of cores)
-        block_shape [tuple[int]] - block shape used for computation.
-            By default, same as chunks. (default:None)
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        source_name [str] - name of the source (default: None)
-        file_format [str] - the file format (default: "ome.zarr")
-        int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
-        channel [int] - the channel to load from the data.
-            Currently only supported for the ome.zarr format (default: None)
-        use_memmap [bool] - Whether the input is a tif file that can be memmaped. (default: False)
+    Args:
+        in_path: The input data to be added.
+        in_key: The key of the input data to be added.
+        out_path: The output path for the converted data.
+        resolution: The resolution of the data in physical units.
+        scale_factors: The scale factors used for down-sampling the data.
+        chunks: The chunks of the data to be added.
+        tmp_folder: The folder for temporary files.
+        target: The computation target.
+        max_jobs: The number of jobs.
+        block_shape: The block shape to use for computation. By default, same as chunks.
+        unit: The physical unit of the coordinate system.
+        source_name: The name of the source.
+        file_format: The file format the data will be converted into.
+        int_to_uint Whether to convert data stored as signed integer to unsigned integer.
+        channel: The channel to load from the data. Currently only supported for the ome.zarr format.
+        use_memmap: Whether the input is a tif file that can be memmaped.
     """
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":

@@ -1,5 +1,8 @@
+"""Functionality for creating region display tables.
+"""
 import os
 import warnings
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -20,7 +23,22 @@ def _process_additional_spot_table(input_table, table_out_path, spot_ids):
     input_table.to_csv(table_out_path, sep="\t", index=False, na_rep="nan")
 
 
-def process_spot_table(table_folder, input_table, is_2d, additional_tables=None, float_precision="%.4f"):
+def process_spot_table(
+    table_folder: str,
+    input_table: str,
+    is_2d: bool,
+    additional_tables: Optional[Dict[str, str]] = None,
+    float_precision: Optional[str] = "%.4f",
+) -> None:
+    """Process an input table for a spot source and save it in the associated table folder.
+
+    Args:
+        table_folder: The folder for saving the spot tables.
+        input_table: The input table for the spot source.
+        is_2d: Whether this spot data is two dimensional.
+        additional_tables: Optional dictionary with additional tables for the spot data.
+        float_precision: The string for the float precision to use when saving the coordinates in the spot table.
+    """
     os.makedirs(table_folder, exist_ok=True)
 
     # process the input table

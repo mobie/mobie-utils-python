@@ -1,3 +1,5 @@
+"""Functionality for creating metadata for remote MoBIE projects.
+"""
 import argparse
 import os
 import subprocess
@@ -12,18 +14,18 @@ from ..xml_utils import copy_xml_as_n5_s3, read_path_in_bucket
 
 
 def add_remote_project_metadata(
-    root,
-    bucket_name,
-    service_endpoint,
-    region=""
-):
-    """ Add metadata to upload remote version of project.
+    root: str,
+    bucket_name: str,
+    service_endpoint: str,
+    region: str = "",
+) -> None:
+    """Add metadata for uploading project to a S3 bucket.
 
-    Arguments:
-        root [str] - root data folder of the project
-        bucket_name [str] - name of the bucket
-        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
-        region [str] - the signing region. Only relevant if aws.s3 is used. (default: "")
+    Args:
+        root: The root folder of the MoBIE project.
+        bucket_name: The name of the S3 bucket.
+        service_endpoint: The url of the s3 service end-point, e.g. for EMBL: "https://s3.embl.de".
+        region: The signing region. Only relevant if aws.s3 is used.
     """
     assert project_exists(root), f"Cannot find MoBIE project at {root}"
     datasets = get_datasets(root)
@@ -85,6 +87,8 @@ def _to_ome_zarr_s3(dataset_folder, dataset_name, storage,
 
 def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
                                service_endpoint, bucket_name, region=""):
+    """@private
+    """
     new_metadata = deepcopy(metadata)
     source_type, source_data = next(iter(metadata.items()))
 
@@ -113,20 +117,20 @@ def add_remote_source_metadata(metadata, dataset_folder, dataset_name,
 
 
 def add_remote_dataset_metadata(
-    root,
-    dataset_name,
-    bucket_name,
-    service_endpoint,
-    region=""
-):
-    """ Add metadata to upload remote version of dataset.
+    root: str,
+    dataset_name: str,
+    bucket_name: str,
+    service_endpoint: str,
+    region: str = "",
+) -> None:
+    """Add metadata to upload a MoBIE dataset to a S3 bucket.
 
-    Arguments:
-        root [str] - root data folder of the project
-        dataset_name [str] - name of the dataset
-        bucket_name [str] - name of the bucket
-        service_endpoint [str] - url of the s3 service end-point,  e.g. for EMBL: "https://s3.embl.de".
-        region [str] - the signing region. Only relevant if aws.s3 is used. (default: "")
+    Args:
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the dataset.
+        bucket_name: The name of the bucket.
+        service_endpoint: The url of the s3 service end-point, e.g. for EMBL: "https://s3.embl.de".
+        region: The signing region. Only relevant if aws.s3 is used.
     """
 
     dataset_folder = os.path.join(root, dataset_name)
@@ -145,6 +149,8 @@ def add_remote_dataset_metadata(
 
 
 def upload_source(dataset_folder, metadata, data_format, bucket_name, s3_prefix="embl", client="minio"):
+    """@private
+    """
     if data_format.endswith(".s3"):
         base_format = data_format.rstrip(".s3")
         raise ValueError(f"Cannot upload data in format {data_format}, use format {base_format} instead.")
@@ -175,6 +181,8 @@ def upload_source(dataset_folder, metadata, data_format, bucket_name, s3_prefix=
 
 
 def main():
+    """@private
+    """
     parser = argparse.ArgumentParser("Add remote metadata to a MoBIE project so that it can be accessed via S3.")
     parser.add_argument("-i", "--input", help="MoBIE project folder", required=True)
     parser.add_argument("-b", "--bucket_name", required=True,

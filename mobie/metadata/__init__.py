@@ -1,3 +1,5 @@
+"""Functionality for manipulating MoBIE metadata files.
+"""
 from .dataset_metadata import (add_view_to_dataset, copy_dataset_folder,
                                create_dataset_structure, create_dataset_metadata,
                                read_dataset_metadata, set_is2d, write_dataset_metadata)

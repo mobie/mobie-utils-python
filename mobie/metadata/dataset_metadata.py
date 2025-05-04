@@ -1,7 +1,10 @@
+"""Functionality for MoBIE dataset metadata.
+"""
 import os
 import shutil
 import warnings
 from glob import glob
+from typing import Callable, Dict, List, Optional, Sequence
 
 from pybdv.metadata import get_data_path, get_bdv_format
 from .utils import read_metadata, write_metadata
@@ -15,12 +18,26 @@ from ..xml_utils import copy_xml_with_newpath
 #
 
 
-def write_dataset_metadata(dataset_folder, dataset_metadata):
+def write_dataset_metadata(dataset_folder: str, dataset_metadata: Dict):
+    """Write dataset metadata.
+
+    Args:
+        dataset_folder: The folder of the dataset metadata.
+        dataset_metadata: The dataset metadata to write.
+    """
     path = os.path.join(dataset_folder, "dataset.json")
     write_metadata(path, dataset_metadata)
 
 
-def read_dataset_metadata(dataset_folder):
+def read_dataset_metadata(dataset_folder: str) -> Dict:
+    """Read dataset metadata.
+
+    Args:
+        dataset_folder: The folder of the dataset metadata.
+
+    Returns:
+        The dataset metadata.
+    """
     path = os.path.join(dataset_folder, "dataset.json")
     return read_metadata(path)
 
@@ -30,12 +47,24 @@ def read_dataset_metadata(dataset_folder):
 #
 
 
-def create_dataset_metadata(dataset_folder,
-                            description=None,
-                            is2d=False,
-                            views=None,
-                            sources=None,
-                            default_location=None):
+def create_dataset_metadata(
+    dataset_folder: str,
+    description: Optional[str] = None,
+    is2d: bool = False,
+    views: Optional[Dict] = None,
+    sources: Optional[Dict] = None,
+    default_location=None,
+) -> None:
+    """Create the metadata for a new MoBIE dataset.
+
+    Args:
+        dataset_folder: The folder of the MoBIE dataset.
+        description: The description of this dataset.
+        is2d: Whether this is a dataset with 2D data.
+        views: The initial views of this dataset.
+        sources: The initial sources of this dataset.
+        default_location: The default spatial location of this dataset.
+    """
     path = os.path.join(dataset_folder, "dataset.json")
     if os.path.exists(path):
         raise RuntimeError(f"Dataset metadata at {path} already exists")
@@ -53,7 +82,23 @@ def create_dataset_metadata(dataset_folder,
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True, bookmark_file_name=None):
+def add_view_to_dataset(
+    dataset_folder: str,
+    view_name: str,
+    view: Dict,
+    overwrite: bool = True,
+    bookmark_file_name: Optional[str] = None,
+) -> None:
+    """Add a new view to a MoBIE dataset.
+
+    Args:
+        dataset_folder: The folder of the dataset.
+        view_name: The name of the view.
+        view: The view data.
+        overwrite: Whether to overwrite another view with the same name that already exists.
+        bookmark_file_name: Optional file name of a bookmark file where this view will be saved.
+            By default the view is saved directly in the main dataset metadata file.
+    """
     validate_view_metadata(view)
 
     if bookmark_file_name is None:
@@ -80,20 +125,29 @@ def add_view_to_dataset(dataset_folder, view_name, view, overwrite=True, bookmar
         write_metadata(view_file, metadata)
 
 
-def add_default_location_to_dataset(dataset_folder, location):
+def add_default_location_to_dataset(dataset_folder: str, location) -> None:
+    """Add a default location to a MoBIE dataset.
+
+    Args:
+        dataset_folder: The folder of the dataset.
+        location: The default location for this dataset.
+    """
     metadata = read_dataset_metadata(dataset_folder)
     metadata["defaultLocation"] = location
     validate_with_schema(metadata, "dataset")
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def create_dataset_structure(root, dataset_name, file_formats=None):
-    """ Make the folder structure for a new dataset.
+def create_dataset_structure(root: str, dataset_name: str, file_formats: Optional[Sequence[str]] = None) -> str:
+    """Create the folder structure for a new dataset.
 
-    Arguments:
-        root [str] - the root data directory
-        dataset_name [str] - name of the dataset
-        file_formats [str] - the file formats for which we create sub-folders (default: None)
+    Args:
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the dataset.
+        file_formats: The the file formats for which to create sub-folders.
+
+    Returns:
+        The path to the dataset folder.
     """
     dataset_folder = os.path.join(root, dataset_name)
     os.makedirs(os.path.join(dataset_folder, "tables"), exist_ok=True)
@@ -105,14 +159,28 @@ def create_dataset_structure(root, dataset_name, file_formats=None):
     return dataset_folder
 
 
-def set_is2d(dataset_folder, is2d):
+def set_is2d(dataset_folder: str, is2d: bool) -> None:
+    """Set the is2D flag of a MoBIE dataset.
+
+    Args:
+        dataset_folder: The dataset folder.
+        is2d: The value for the is2d flag.
+    """
     assert isinstance(is2d, bool)
     metadata = read_dataset_metadata(dataset_folder)
     metadata["is2D"] = is2d
     write_dataset_metadata(dataset_folder, metadata)
 
 
-def get_file_formats(dataset_folder):
+def get_file_formats(dataset_folder: str) -> List[str]:
+    """Get the file formats that are used in a MoBIE dataset.
+
+    Args:
+        dataset_folder: The dataset folder.
+
+    Returns:
+        The list of data formats.
+    """
     metadata = read_dataset_metadata(dataset_folder)
     sources = metadata["sources"]
     file_formats = []
@@ -129,7 +197,8 @@ def get_file_formats(dataset_folder):
 #
 
 def make_squashed_link(src_file, dst_file, override=False):
-
+    """@private
+    """
     if os.path.exists(dst_file):
         if override and os.path.islink(dst_file):
             os.unlink(dst_file)
@@ -146,6 +215,8 @@ def make_squashed_link(src_file, dst_file, override=False):
 
 
 def link_id_lut(src_folder, dst_folder, name):
+    """@private
+    """
     # for local storage:
     # make link to the previous id look-up-table (if present)
     lut_name = "new_id_lut_%s.json" % name
@@ -159,6 +230,8 @@ def link_id_lut(src_folder, dst_folder, name):
 
 
 def copy_tables(src_folder, dst_folder, table_folder=None):
+    """@private
+    """
     if table_folder is None:
         table_in = src_folder
         table_out = dst_folder
@@ -177,6 +250,8 @@ def copy_tables(src_folder, dst_folder, table_folder=None):
 
 
 def copy_xml_file(xml_in, xml_out, file_format):
+    """@private
+    """
     if file_format in ("bdv.hdf5", "bdv.n5"):
         data_path = get_data_path(xml_in, return_absolute_path=True)
         bdv_format = get_bdv_format(xml_in)
@@ -191,6 +266,8 @@ def copy_xml_file(xml_in, xml_out, file_format):
 
 
 def copy_sources(src_folder, dst_folder, exclude_sources=[]):
+    """@private
+    """
     dataset_metadata = read_dataset_metadata(src_folder)
     sources = dataset_metadata["sources"]
 
@@ -228,6 +305,8 @@ def copy_sources(src_folder, dst_folder, exclude_sources=[]):
 
 
 def copy_misc_data(src_folder, dst_folder, copy_misc=None):
+    """@private
+    """
     misc_src = os.path.join(src_folder, "misc")
     misc_dst = os.path.join(dst_folder, "misc")
 
@@ -249,6 +328,19 @@ def copy_misc_data(src_folder, dst_folder, copy_misc=None):
         copy_misc(src_folder, dst_folder)
 
 
-def copy_dataset_folder(src_folder, dst_folder, exclude_sources=[], copy_misc=None):
+def copy_dataset_folder(
+    src_folder: str,
+    dst_folder: str,
+    exclude_sources: List[str] = [],
+    copy_misc: Optional[Callable] = None,
+) -> None:
+    """Copy a dataset from a source to destination folder.
+
+    Args:
+        src_folder: The source dataset folder.
+        dst_folder: The destination dataset folder.
+        exclude_sources: Optional list of sources to exclude from the copy.
+        copy_misc: Optional function to copy over custom misc data.
+    """
     copy_misc_data(src_folder, dst_folder, copy_misc)
     copy_sources(src_folder, dst_folder, exclude_sources)

@@ -1,5 +1,8 @@
+"""Import traces, representing for exampe neurons, into a MoBIE project.
+"""
 import multiprocessing
 import os
+from typing import Dict, List, Optional, Sequence
 
 from pybdv.metadata import get_data_path
 
@@ -11,38 +14,47 @@ from mobie.tables import compute_trace_default_table
 
 # TODO use a spot source underlying the traces instead of a segmentation source
 # TODO make cluster tools task so this can be safely run on login nodes
-def add_traces(input_folder, root, dataset_name, traces_name,
-               reference_name, reference_scale,
-               resolution, scale_factors, chunks,
-               menu_name=None, file_format="bdv.n5", view=None,
-               max_jobs=multiprocessing.cpu_count(),
-               add_default_table=True,
-               seg_infos={}, unit='micrometer',
-               description=None):
-    """ Add traces to an existing MoBIE dataset.
+def add_traces(
+    input_folder: str,
+    root: str,
+    dataset_name: str,
+    traces_name: str,
+    reference_name: str,
+    reference_scale: int,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    menu_name: Optional[str] = None,
+    file_format: str = "bdv.n5",
+    view: Optional[Dict] = None,
+    max_jobs: int = multiprocessing.cpu_count(),
+    add_default_table: bool = True,
+    seg_infos: Dict = {},
+    unit: str = "micrometer",
+    description: Optional[str] = None,
+) -> None:
+    """Add traces to an existing MoBIE dataset.
 
     Currently supports nmx and swc format.
 
-    Arguments:
-        input_folder [str] - input folder with trace files.
-        root [str] - data root folder.
-        dataset_name [str] - name of the dataset the segmentation should be added to.
-        traces_name [str] - name of the segmentation.
-        reference_name [str] - name of the reference data, from which the shape of the
-            trace volume will be derived
-        reference_scale [int] - scale level of the reference data to use
-        resolution [list[float]] - resolution of the segmentation in micrometer.
-        scale_factors [list[list[int]]] - scale factors used for down-sampling.
-        menu_name [str] - menu item for this source.
-            If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: ome.zarr)
-        view [dict] - default view settings for this source (default: None)
-        chunks [list[int]] - chunks for the data.
-        max_jobs [int] - number of jobs (default: number of cores)
-        add_default_table [bool] - whether to add the default table (default: True)
-        seg_infos [dict] - segmentation information that will be added to the table (default: {})
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        description [str] - description for the traces (default: None)
+    Args:
+        input_folder: The input folder with trace files.
+        root: The data root folder.
+        dataset_name: The name of the dataset the segmentation should be added to.
+        traces_name: The name of the segmentation.
+        reference_name: The name of the reference data, from which the shape of the trace volume will be derived.
+        reference_scale: The scale level of the reference data to use.
+        resolution: The resolution of the traces in physical units.
+        scale_factors: The  scale factors used for down-sampling.
+        chunks: The chunks for the data.
+        menu_name: The menu item for this source. If none is given will be created based on the source name.
+        file_format: The file format used to store the data internally.
+        view: The default view settings for this source.
+        max_jobs: The number of jobs.
+        add_default_table: Whether to add the default table.
+        seg_infos: The segmentation information that will be added to the table.
+        unit: The physical unit of the coordinate system.
+        description: The description for this source.
     """
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type="segmentation",
@@ -90,6 +102,8 @@ def add_traces(input_folder, root, dataset_name, traces_name,
 
 
 def main():
+    """@private
+    """
     parser = utils.get_base_parser("Add traces to MoBIE dataset")
     parser.add_argument('--reference_name', type=str,
                         help="name of the reference data volume",
