@@ -46,7 +46,7 @@ class TestImageData(unittest.TestCase):
         os.makedirs(im_folder, exist_ok=True)
         for z in range(shape[0]):
             path = os.path.join(im_folder, "z_%03i.tif" % z)
-            imageio.imsave(path, np.random.rand(*shape[1:]))
+            imageio.imwrite(path, np.random.rand(*shape[1:]))
 
     def test_init_from_tif(self):
         shape = (32, 128, 128)
