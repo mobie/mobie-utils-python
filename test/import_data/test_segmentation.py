@@ -46,7 +46,7 @@ class TestImportSegmentation(unittest.TestCase):
 
         test_path = os.path.join(self.test_folder, 'data.h5')
         key = 'data'
-        with open_file(test_path) as f:
+        with open_file(test_path, mode="a") as f:
             f.create_dataset(key, data=data)
 
         scales = [[1, 2, 2], [2, 2, 2], [2, 2, 2]]

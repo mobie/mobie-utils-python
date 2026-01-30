@@ -118,7 +118,7 @@ def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
                      radius, n_threads, crop_overhanging=True):
     # write temporary h5 dataset
     # and write coordinates (with some radius) to it
-    with open_file(out_path) as f:
+    with open_file(out_path, mode="a") as f:
         ds = f.require_dataset(key, shape=shape, dtype='int16', compression='gzip',
                                chunks=chunks)
         ds.n_threads = n_threads
