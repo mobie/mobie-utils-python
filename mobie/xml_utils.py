@@ -123,7 +123,7 @@ def update_xml_transformation_parameter(xml_path, parameter):
     else:
         raise ValueError(f"Invalid affine transformation {parameter}")
     resolution = get_resolution(xml_path, setup_id=0)
-    if np.product(resolution) != 1:
+    if np.prod(resolution) != 1:
         warnings.warn(
             f"The xml file at {xml_path} has the resolution {resolution}."
             "The corresponding transformation will be over-written,"

@@ -92,7 +92,7 @@ class TestImportImage(unittest.TestCase):
         data = np.random.rand(*shape)
         test_path = os.path.join(self.test_folder, "data-h5.h5")
         key = "data"
-        with open_file(test_path) as f:
+        with open_file(test_path, mode="a") as f:
             f.create_dataset(key, data=data)
         return test_path, key, data
 
@@ -108,11 +108,11 @@ class TestImportImage(unittest.TestCase):
         im_folder = os.path.join(self.test_folder, "im-stack")
         os.makedirs(im_folder, exist_ok=True)
 
-        resolution=(0.25, 1, 1)
+        resolution = (0.25, 1, 1)
 
         for z in range(shape[0]):
             path = os.path.join(im_folder, "z_%03i.tif" % z)
-            imageio.imsave(path, data[z])
+            imageio.imwrite(path, data[z])
 
         scales = [[1, 2, 2], [1, 2, 2], [2, 2, 2]]
         import_image_data(im_folder, "*.tif", self.out_path,
@@ -126,7 +126,7 @@ class TestImportImage(unittest.TestCase):
         from mobie.import_data import import_image_data
         test_path, key, data = self.create_h5_input_data()
         scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        resolution=(1, 1, 1)
+        resolution = (1, 1, 1)
         import_image_data(test_path, key, self.out_path,
                           resolution=resolution, chunks=(32, 32, 32),
                           scale_factors=scales, tmp_folder=self.tmp_folder,
