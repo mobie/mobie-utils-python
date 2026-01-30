@@ -1,6 +1,9 @@
+"""Functionality for MoBIE view metadata.
+"""
 import os
 import warnings
 from copy import deepcopy
+from typing import Dict, Optional, Sequence
 
 import numpy as np
 from .dataset_metadata import read_dataset_metadata, write_dataset_metadata
@@ -21,6 +24,8 @@ def _validate_lut(lut, kwargs):
 
 
 def get_image_display(name, sources, **kwargs):
+    """@private
+    """
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     color = kwargs.pop("color", "white")
@@ -44,6 +49,8 @@ def get_image_display(name, sources, **kwargs):
 
 
 def get_region_display(name, sources, table_source, **kwargs):
+    """@private
+    """
     opacity = kwargs.pop("opacity", 0.5)
     lut = kwargs.pop("lut", "glasbey")
     _validate_lut(lut, kwargs)
@@ -76,6 +83,8 @@ def get_region_display(name, sources, table_source, **kwargs):
 
 
 def get_segmentation_display(name, sources, **kwargs):
+    """@private
+    """
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     opacity = kwargs.pop("opacity", 0.5)
@@ -103,6 +112,8 @@ def get_segmentation_display(name, sources, **kwargs):
 
 
 def get_spot_display(name, sources, **kwargs):
+    """@private
+    """
     if not isinstance(sources, (list, tuple)) and not all(isinstance(source, str) for source in sources):
         raise ValueError(f"Invalid sources: {sources}")
     opacity = kwargs.pop("opacity", 0.5)
@@ -144,6 +155,8 @@ def _ensure_list(x):
 
 def get_affine_source_transform(sources, parameters,
                                 timepoints=None, name=None, source_names_after_transform=None):
+    """@private
+    """
     assert len(parameters) == 12
     assert all(isinstance(param, float) for param in parameters)
     trafo = {
@@ -163,6 +176,8 @@ def get_affine_source_transform(sources, parameters,
 def get_crop_source_transform(sources, min, max,
                               timepoints=None, name=None, source_names_after_transform=None,
                               center_at_origin=None, box_affine=None, rectify=None):
+    """@private
+    """
     assert len(min) == len(max) == 3
     trafo = {
         "sources": sources,
@@ -187,6 +202,8 @@ def get_crop_source_transform(sources, min, max,
 
 def get_transformed_grid_source_transform(sources, positions=None, source_names_after_transform=None,
                                           timepoints=None, name=None, center_at_origin=None, margin=None):
+    """@private
+    """
     # the sources for the grid trafo need to be dicts. if a list is given, we just use the indices as keys
     assert isinstance(sources, list)
     assert all(isinstance(source_pos, list) for source_pos in sources)
@@ -223,6 +240,8 @@ def get_merged_grid_source_transform(sources, merged_source_name,
                                      positions=None, timepoints=None,
                                      name=None, center_at_origin=None,
                                      metadata_source=None, margin=None):
+    """@private
+    """
     assert isinstance(sources, list)
     grid_transform = {"sources": sources, "mergedGridSourceName": merged_source_name}
 
@@ -251,6 +270,8 @@ def get_merged_grid_source_transform(sources, merged_source_name,
 
 
 def get_viewer_transform(affine=None, normalized_affine=None, position=None, normal_vector=None, timepoint=None):
+    """@private
+    """
     # don't allow empty transform
     if all(param is None for param in (affine, normalized_affine, position, normal_vector, timepoint)):
         raise ValueError("Invalid parameters: need to pass at least one parameter")
@@ -299,23 +320,34 @@ def get_viewer_transform(affine=None, normalized_affine=None, position=None, nor
 #
 
 
-def get_view(names, source_types, sources, display_settings,
-             is_exclusive, menu_name, description=None,
-             source_transforms=None, viewer_transform=None, region_displays=None):
+def get_view(
+    names: Sequence[str],
+    source_types: Sequence[str],
+    sources: Sequence[Sequence[str]],
+    display_settings: Sequence[Dict],
+    is_exclusive: bool,
+    menu_name: str,
+    description: Optional[str] = None,
+    source_transforms: Optional[Sequence[Dict]] = None,
+    viewer_transform: Optional[Dict] = None,
+    region_displays: Optional[Dict[str, Dict]] = None
+) -> Dict:
     """ Create view for a multiple sources and optional transformations.
 
-    Arguments:
-        names [list[str]] - names of the display groups in this view.
-        source_types [list[str]] - list of source types in this view.
-        sources [list[list[str]]] - nested list of source names in this view.
-        display_settings [list[dict]] - list of display settings in this view.
-        is_exclusive [bool] - is this an exclusive view.
-        menu_name [str] - menu name for this view
-        description [str] - description for this view (default: None)
-        source_transforms [list[dict]] - (default: None)
-        viewer_transform [dict] - (default: None)
-        region_displays dict[str, dict] - dictionary from region display name
-            to the region display settings (default: None)
+    Args:
+        names: The names of the display groups in this view.
+        source_types: The list of source types in this view.
+        sources: The nested list of source names in this view.
+        display_settings: The list of display settings in this view.
+        is_exclusive: Whether this is an exclusive view.
+        menu_name; The menu name for this view
+        description: The description of this view.
+        source_transforms: The list of source transforms for this view.
+        viewer_transform: An optional viewer transform for this view.
+        region_displays: A dictionary mapping region display names to the region display settings.
+
+    Returns:
+        The view metadata.
     """
 
     if not len(names) == len(source_types) == len(sources) == len(display_settings):
@@ -332,11 +364,11 @@ def get_view(names, source_types, sources, display_settings,
             # display settings can either be passed as arguments or return values of get_image_display
             if "imageDisplay" in display_setting:
                 assert len(display_setting) == 1
-                assert display_setting["imageDisplay"]["name"] == name,\
+                assert display_setting["imageDisplay"]["name"] == name, \
                     f"{display_setting['imageDisplay']['name']}, {name}"
                 _sources = display_setting["imageDisplay"]["sources"]
                 invalid_sources = set(_sources) - set(source_list)
-                assert len(invalid_sources) == 0,\
+                assert len(invalid_sources) == 0, \
                     f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
@@ -347,11 +379,11 @@ def get_view(names, source_types, sources, display_settings,
             # display settings can either be passed as arguments or return values of get_segmentation_display
             if "segmentationDisplay" in display_setting:
                 assert len(display_setting) == 1
-                assert display_setting["segmentationDisplay"]["name"] == name,\
+                assert display_setting["segmentationDisplay"]["name"] == name, \
                     f"{display_setting['segmentationDisplay']['name']}, {name}"
                 _sources = display_setting["segmentationDisplay"]["sources"]
                 invalid_sources = set(_sources) - set(source_list)
-                assert len(invalid_sources) == 0,\
+                assert len(invalid_sources) == 0, \
                     f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
@@ -361,11 +393,11 @@ def get_view(names, source_types, sources, display_settings,
             # display settings can either be passed as arguments or return values of get_spot_display
             if "spotDisplay" in display_settings:
                 assert len(display_setting) == 1
-                assert display_setting["spotDisplay"]["name"] == name,\
+                assert display_setting["spotDisplay"]["name"] == name, \
                     f"{display_setting['spotDisplay']['name']}, {name}"
                 _sources = display_setting["spotDisplay"]["sources"]
                 invalid_sources = set(_sources) - set(source_list)
-                assert len(invalid_sources) == 0,\
+                assert len(invalid_sources) == 0, \
                     f"The settings for {name} contain invalid sources: {invalid_sources} not in {source_list}"
                 display = display_setting
             else:
@@ -406,20 +438,29 @@ def get_view(names, source_types, sources, display_settings,
     return view
 
 
-def get_default_view(source_type, source_name, menu_name=None,
-                     source_transform=None, viewer_transform=None,
-                     description=None, **kwargs):
-    """ Create default view metadata for a single source.
+def get_default_view(
+    source_type: str,
+    source_name: str,
+    menu_name: Optional[str] = None,
+    source_transform: Optional[Dict] = None,
+    viewer_transform: Optional[Dict] = None,
+    description: Optional[str] = None,
+    **kwargs
+) -> Dict:
+    """Create the default view metadata for a single source.
 
-    Arguments:
-        source_type [str] - type of the source, either "image", "segmentation" or "spots"
-        source_name [str] - name of the source.
-        menu_name [str] - menu name for this view (default: None)
-        source_transform [dict] - dict with affine source transform.
-            If given, must contain "parameters" and may contain "timepoints" (default: None).
-        viewer_transform [dict] - dict with viewer transform (default: None)
-        description [str] - description for this view (default: None).
-        **kwargs - additional settings for this view
+    Args:
+        source_type: The type of the source, either "image", "segmentation" or "spots".
+        source_name: The name of the source.
+        menu_name: The menu name for this view.
+        source_transform: The dict with affine source transform.
+            If given, must contain "parameters" and may contain "timepoints".
+        viewer_transform: Optional dict with a viewer transform.
+        descriptio: The description of this view.
+        kwargs: Additional settings for this view.
+
+    Returns:
+        The view metadata.
     """
     if menu_name is None:
         menu_name = source_type if source_type.endswith("s") else f"{source_type}s"
@@ -458,6 +499,8 @@ def _to_merged_grid(sources, name, positions, center_at_origin):
 
 
 def require_region_table(dataset_folder, table_source, table_folder, this_sources):
+    """@private
+    """
     ds_metadata = read_dataset_metadata(dataset_folder)
     sources = ds_metadata["sources"]
 
@@ -484,8 +527,9 @@ def require_region_table(dataset_folder, table_source, table_folder, this_source
         write_dataset_metadata(dataset_folder, ds_metadata)
 
 
+# Get a region display and create the corresponding table.
 def create_region_display(name, sources, dataset_folder, table_source, table_folder=None, region_ids=None, **kwargs):
-    """Get a region display and create the corresponding table.
+    """@private
     """
     if isinstance(sources, list) and region_ids is None:
         sources = {ii: source_list for ii, source_list in enumerate(sources)}
@@ -508,41 +552,47 @@ def create_region_display(name, sources, dataset_folder, table_source, table_fol
 # "grid_sources" need to be passed as dict and specify the correct names
 # (i.e. names after transform). dict needs to match from the grid id
 # to list of source names
-def get_grid_view(dataset_folder, name, sources, menu_name,
-                  table_source=None, table_folder=None, display_groups=None,
-                  display_group_settings=None, positions=None,
-                  grid_sources=None, center_at_origin=None,
-                  additional_source_transforms=None,
-                  use_transformed_grid=True, region_ids=None):
-    """ Create a view that places multiple sources in a grid.
+def get_grid_view(
+    dataset_folder: str,
+    name: str,
+    sources: Sequence[Sequence[str]],
+    menu_name: str,
+    table_source: Optional[str] = None,
+    table_folder: Optional[str] = None,
+    display_groups: Optional[Dict[str, str]] = None,
+    display_group_settings: Optional[Dict[str, Dict]] = None,
+    positions: Sequence[Sequence[int]] = None,
+    grid_sources: Sequence[Sequence[str]] = None,
+    center_at_origin: Optional[bool] = None,
+    additional_source_transforms: Optional[Sequence[Dict]] = None,
+    use_transformed_grid: bool = True,
+    region_ids: Optional[Sequence[str]] = None,
+) -> Dict:
+    """Create a view that places multiple sources in a grid.
 
-    Arguments:
-        dataset_folder [str] - the folder for this dataset
-        name [str] - name of this view
-        sources [list[list[str]]] - nested list of source names,
-            each inner lists contains the source(s) for one grid position
-        menu_name [str] - menu name for this view
-        table_source [str] - name of the table source for the region display that is created
-            for this grid view. If the source is not present yet it will be created.
-            If the table source is None than no region table and display will be created for this view (default: None)
-        table_folder [str] - table folder to store the annotation table(s) for this grid.
-            By default "tables/{name}" will be used (default: None)
-        display_groups [dict[str, str]] - dictionary from source name to their display group.
-            By default each source type is put into the same display group (default: None)
-        display_group_settings [dict[str, dict]] - dictionary from display group name to settings.
-            By default the standard settings for the first source of the group are used (default: None)
-        positions [list[Sequence[int]]] - cartesian grid position for the grid points.
-            By default the grid is auto-created (default: None)
-        grid_sources [list[list[str]]] - optional nested list of source names for each grid position.
+    Args:
+        dataset_folder: The dataset folder.
+        name: The name of this view.
+        sources: The nested list of source names, each inner lists contains the source(s) for one grid position.
+        menu_name: The menu name for this view.
+        table_source: The name of the table source for the region display that is created for this grid view.
+            If the source is not present yet it will be created.
+            If the table source is None than no region table and display will be created for this view.
+        table_folder: The table folder to store the annotation table(s) for this grid.
+            By default "tables/{name}" will be used.
+            display_groups: A dictionary mapping source names to their display group.
+            By default each source type is put into the same display group.
+        display_group_settings: A dictionary mapping display group name to settings.
+            By default the standard settings for the first source of the group are used.
+        positions: Cartesian grid position for the grid points. By default a regular grid is created.
+        grid_sources: An optional nested list of source names for each grid position.
             Replaces the names in `sources` that are used in the sourceDisplays of the view.
-            Passing grid sources can be used to show sources that are generated by an additional
-            transform in this view. (default: None)
-        center_at_origin [bool] - whether to center the sources at the origin across the z-axis (default: None)
-        additional_source_transforms [list[source_transforms]] - list of source transforms to
-            be applied before the grid transform. (default: None)
-        use_transformed_grid [bool] - Whether to use a transformedGrid, which does not merge all sources
-            into a single source in the MoBIE viewer (default: True)
-        region_ids [list[str]] - Custom keys for the regionDisplay source map (default: None)
+            Passing grid sources can be used to show sources that are generated by an additional transform in this view.
+        center_at_origin: Whether to center the sources at the origin across the z-axis.
+        additional_source_transforms: A ist of source transforms to be applied before the grid transform.
+        use_transformed_grid: Whether to use a transformedGrid, which does not merge all sources
+            into a single source in the MoBIE viewer.
+        region_ids: Custom keys for the regionDisplay source map.
     """
     assert len(sources) > 1, "A grid view needs at least 2 grid positions."
 
@@ -628,7 +678,15 @@ def get_grid_view(dataset_folder, name, sources, menu_name,
     return view
 
 
-def is_grid_view(view):
+def is_grid_view(view: Dict) -> bool:
+    """Check whether the given view metadata is a grid view.
+
+    Args:
+        view: The view metadata.
+
+    Returns:
+        Whether this view is a grid view.
+    """
     trafos = view.get("sourceTransforms", None)
     if trafos is None:
         return False

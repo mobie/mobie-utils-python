@@ -1,6 +1,9 @@
+"""Helper functions for the high content microscopy functionality.
+"""
 import json
 import os
 from concurrent import futures
+from typing import List, Optional
 
 import numpy as np
 from elf.io import open_file
@@ -9,8 +12,26 @@ from ..metadata import read_dataset_metadata
 
 
 def compute_contrast_limits(
-    source_prefix, dataset_folder, lower_percentile, upper_percentile, n_threads, cache_path=None
-):
+    source_prefix: str,
+    dataset_folder: str,
+    lower_percentile: float,
+    upper_percentile: float,
+    n_threads: int,
+    cache_path: Optional[str] = None,
+) -> List[float]:
+    """Compute the contrast limits for images of a high content microscopy screen.
+
+    Args:
+        source_prefix: The source prefix for selecting the images to use for contrast limit computation.
+        dataset_folder: The folder of the MoBIE dataset.
+        lower_percentile: The lower percentile for computing the contrast limit.
+        upper_precentile: The upper percentile for computing the contrast limit.
+        n_threads: The number of threads to use in the computation.
+        cache_path: An optional path for caching the compuation result.
+
+    Returns:
+        The upper and lower contrast limit.
+    """
     if cache_path is not None and os.path.exists(cache_path):
         with open(cache_path) as f:
             return json.load(f)
@@ -25,7 +46,7 @@ def compute_contrast_limits(
             data = f["s0"][:]
             cmin = np.percentile(data, lower_percentile)
             cmax = np.percentile(data, upper_percentile)
-        return cmin, cmax
+        return [cmin, cmax]
 
     source_names = [name for name in sources.keys() if name.startswith(source_prefix)]
     with futures.ThreadPoolExecutor(n_threads) as tp:

@@ -1,5 +1,8 @@
+"""Functionality for creating sources from high content microscopy data.
+"""
 import multiprocessing
 import os
+from typing import List, Optional, Sequence
 
 import luigi
 import cluster_tools.utils.volume_utils as vu
@@ -84,12 +87,44 @@ def _add_sources(dataset_folder, source_names, paths,
                                        table_folder=table_folder, view={})
 
 
-def add_images(files, root,
-               dataset_name, image_names,
-               resolution, scale_factors, chunks,
-               key=None, file_format="ome.zarr",
-               tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-               unit="micrometer", is_default_dataset=False, is2d=None):
+def add_images(
+    files: Sequence[str],
+    root: str,
+    dataset_name: str,
+    image_names: Sequence[str],
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    key: Optional[str] = None,
+    file_format: str = "ome.zarr",
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = multiprocessing.cpu_count(),
+    unit: str = "micrometer",
+    is_default_dataset: bool = False,
+    is2d: Optional[bool] = None,
+) -> None:
+    """Add images from a high-content microscopy experiment to a MoBIE dataset.
+
+    Args:
+        files: The input image files.
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the MoBIE dataset.
+        image_names: The names of the images.
+        resolution: The resolution in physical units.
+        scale_factors: The scale factors to use for downsampling the data.
+        chunks: The chunk size for the internal data format.
+        key: The key / internal file path for the input image data.
+            This is only required for hdf5, n5, zarr data; but not for tif or simlar.
+        file_format: The internal file format to use.
+        tmp_folder: The temporary folder for data conversion.
+        target: The computational target.
+        max_jobs: The number of jobs for parallelization.
+        unit: The physical unit of the coordinate system.
+        is_default_dataset: Whether this is the default dataset.
+            Only relevant if the dataset will be created.
+        is2d: Whether this is a 2D datasets.
+    """
     assert len(files) == len(image_names), f"{len(files)}, {len(image_names)}"
 
     # require the dataset
@@ -107,17 +142,49 @@ def add_images(files, root,
 
     # add metadata for all the images
     if source_names:
-        _add_sources(os.path.join(root, dataset_name), source_names, metadata_paths,
-                     file_format, "image")
+        _add_sources(os.path.join(root, dataset_name), source_names, metadata_paths, file_format, "image")
 
 
-def add_segmentations(files, root,
-                      dataset_name, segmentation_names,
-                      resolution, scale_factors, chunks,
-                      key=None, file_format="ome.zarr",
-                      tmp_folder=None, target="local", max_jobs=multiprocessing.cpu_count(),
-                      add_default_tables=True, unit="micrometer",
-                      is_default_dataset=False, is2d=None):
+def add_segmentations(
+    files: Sequence[str],
+    root: str,
+    dataset_name: str,
+    segmentation_names: Sequence[str],
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    key: Optional[str] = None,
+    file_format: str = "ome.zarr",
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = multiprocessing.cpu_count(),
+    add_default_tables: bool = True,
+    unit: str = "micrometer",
+    is_default_dataset: bool = False,
+    is2d: Optional[bool] = None,
+) -> None:
+    """Add segmentation data for a high-content microscopy experiment to a MoBIE dataset.
+
+    Args:
+        files: The input segmentation files.
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the MoBIE dataset.
+        segmentation_names: The names of the segmentations.
+        resolution: The resolution in physical units.
+        scale_factors: The scale factors to use for downsampling the data.
+        chunks: The chunk size for the internal data format.
+        key: The key / internal file path for the input image data.
+            This is only required for hdf5, n5, zarr data; but not for tif or simlar.
+        file_format: The internal file format to use.
+        tmp_folder: The temporary folder for data conversion.
+        target: The computational target.
+        max_jobs: The number of jobs for parallelization.
+        add_default_tables: Whether to create the default segmentation tables.
+        unit: The physical unit of the coordinate system.
+        is_default_dataset: Whether this is the default dataset.
+            Only relevant if the dataset will be created.
+        is2d: Whether this is a 2D datasets.
+    """
     assert len(files) == len(segmentation_names)
 
     # require the dataset
@@ -144,5 +211,6 @@ def add_segmentations(files, root,
 
     # add metadata for all the images
     if source_names:
-        _add_sources(os.path.join(root, dataset_name), source_names, metadata_paths,
-                     file_format, "segmentation", table_folders)
+        _add_sources(
+            os.path.join(root, dataset_name), source_names, metadata_paths, file_format, "segmentation", table_folders
+        )

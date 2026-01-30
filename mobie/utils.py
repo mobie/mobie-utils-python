@@ -1,10 +1,14 @@
+"""General-purpose helper functions.
+"""
 import argparse
 import json
 import multiprocessing
 import os
 from copy import deepcopy
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import h5py
+import numpy as np
 import elf.transformation as trafo_helper
 import mobie.metadata as metadata
 
@@ -22,9 +26,21 @@ FILE_FORMATS = [
     "ome.zarr.s3",
     "openOrganelle.s3"
 ]
+"""List of supported file formats.
+"""
 
 
-def get_data_key(file_format, scale, path=None):
+def get_data_key(file_format: str, scale: int, path: Optional[str] = None) -> str:
+    """Get the key / internal path for data stored in one of the supported file formats.
+
+    Args:
+        file_format: The file format of the data.
+        scale: The scale level to retrieve.
+        path: The path to the data. Only required for data stored in ome.zarr format.
+
+    Returns:
+        The key / internal path to the data.
+    """
     if file_format.startswith("bdv"):
         is_h5 = file_format == "bdv.hdf5"
         key = get_key(is_h5, timepoint=0, setup_id=0, scale=scale)
@@ -38,7 +54,18 @@ def get_data_key(file_format, scale, path=None):
     return key
 
 
-def get_internal_paths(dataset_folder, file_format, name):
+def get_internal_paths(dataset_folder: str, file_format: str, name: str) -> Tuple[str, str]:
+    """Get the internal paths to source data stored in a MoBIE dataset.
+
+    Args:
+        dataset_folder: The folder of the MoBIE dataset.
+        file_format: The file format in which the data is stored.
+        name: The name of the source.
+
+    Returns:
+        The path to the data of the source.
+        The path of the bdv xml file of the source. Only applicable if the file format is a bdv format.
+    """
     if file_format not in FILE_FORMATS:
         raise ValueError(f"Unknown file format {file_format}.")
 
@@ -60,8 +87,17 @@ def get_internal_paths(dataset_folder, file_format, name):
     raise ValueError(f"Data creation for the file format {file_format} is not supported.")
 
 
-def require_dataset(root, dataset_name):
-    # check if we have the project and dataset already
+def require_dataset(root: str, dataset_name: str) -> bool:
+    """Check if a dataset in the given project exists, create the project if it does not exist.
+
+    Args:
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the dataset.
+
+    Returns:
+        Whether the dataset exists in the project.
+    """
+    # Check if we have the project and dataset already.
     proj_exists = metadata.project_exists(root)
     if proj_exists:
         ds_exists = metadata.dataset_exists(root, dataset_name)
@@ -71,16 +107,44 @@ def require_dataset(root, dataset_name):
     return ds_exists
 
 
-def require_dataset_and_view(root, dataset_name, file_format,
-                             source_type, source_name, menu_name,
-                             view, is_default_dataset,
-                             contrast_limits=None, description=None):
+def require_dataset_and_view(
+    root: str,
+    dataset_name: str,
+    file_format: str,
+    source_type: str,
+    source_name: str,
+    menu_name: str,
+    view: Dict,
+    is_default_dataset: bool,
+    contrast_limits: Optional[List[float]] = None,
+    description: Optional[str] = None,
+) -> Dict:
+    """Require that the specified dataset and given view exist.
+
+    Args:
+        root: The root directory of the MoBIE project.
+        dataset_name: The name of the dataset.
+        file_format: The file format in which the data is stored in the dataset.
+        source_type: The type of the source ('image', 'segmentation', or 'spots').
+        source_name: The name of the source.
+        menu_name: The menu for the view.
+        view: The view data.
+        is_default_dataset: Whether to set new dataset as default dataset.
+            Only applies if the dataset is being created.
+        contrast_limits: The contrast limits. Only applicable for an image source.
+        description: The description of this view.
+
+    Returns:
+        The view data.
+    """
     ds_exists = require_dataset(root, dataset_name)
 
     dataset_folder = os.path.join(root, dataset_name)
     if view is None:
         kwargs = {"contrastLimits": contrast_limits} if source_type == "image" else {}
-        view = metadata.get_default_view(source_type, source_name, menu_name=menu_name, description=description, **kwargs)
+        view = metadata.get_default_view(
+            source_type, source_name, menu_name=menu_name, description=description, **kwargs
+        )
     elif view == {}:
         pass
     else:
@@ -106,7 +170,16 @@ def require_dataset_and_view(root, dataset_name, file_format,
 
 
 # TODO default arguments for scale-factors and chunks
-def get_base_parser(description, transformation_file=False):
+def get_base_parser(description: str, transformation_file: bool = False):
+    """Get the argument parser for CLI functionality for adding sources.
+
+    Args:
+        description: The description string for the CLI.
+        transformation_file: Whether to add an argument for passing a transformation file.
+
+    Returns:
+        The argpument parser.
+    """
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--input_path", type=str,
                         help="path to the input data", required=True)
@@ -160,6 +233,8 @@ def get_base_parser(description, transformation_file=False):
 
 
 def parse_spatial_args(args, parse_transformation=True):
+    """@private
+    """
     resolution = json.loads(args.resolution)
     if args.scale_factors is None:
         scale_factors = None
@@ -181,6 +256,8 @@ def parse_spatial_args(args, parse_transformation=True):
 
 
 def parse_view(args):
+    """@private
+    """
     view = args.view
     if view is None:
         return view
@@ -190,15 +267,21 @@ def parse_view(args):
     return json.loads(view)
 
 
-def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=None):
-    """ Initialize a MoBIE dataset by cloning an existing dataset.
+def clone_dataset(
+    root: str,
+    src_dataset: str,
+    dst_dataset: str,
+    is_default: bool = False,
+    copy_misc: Optional[Callable] = None,
+) -> None:
+    """Initialize a MoBIE dataset by cloning an existing dataset.
 
-    Arguments:
-        root [str] - root folder of the MoBIE project
-        src_dataset [str] - name of the MoBIE dataset to be cloned
-        dst_dataset [str] - name of the MoBIE dataset to be added
-        is_default [bool] - set this dataset as default dataset (default: False)
-        copy_misc [callable] - function to copy additonal misc data (default: None)
+    Args:
+        root: The root folder of the MoBIE project.
+        src_dataset: The name of the MoBIE dataset to be cloned.
+        dst_dataset: The name of the MoBIE dataset to be added.
+        is_default: Whether to set the new dataset as default dataset.
+        copy_misc: An optional function to copy additonal misc data.
     """
     # check that we have the src dataset and don"t have the dst dataset already
     if not metadata.dataset_exists(root, src_dataset):
@@ -216,12 +299,16 @@ def clone_dataset(root, src_dataset, dst_dataset, is_default=False, copy_misc=No
     metadata.add_dataset(root, dst_dataset, is_default)
 
 
-def write_global_config(config_folder,
-                        block_shape=None,
-                        roi_begin=None,
-                        roi_end=None,
-                        qos=None,
-                        require3d=True):
+def write_global_config(
+    config_folder,
+    block_shape=None,
+    roi_begin=None,
+    roi_end=None,
+    qos=None,
+    require3d=True
+):
+    """@private
+    """
     os.makedirs(config_folder, exist_ok=True)
 
     conf_path = os.path.join(config_folder, "global.config")
@@ -255,14 +342,17 @@ def write_global_config(config_folder,
         json.dump(global_config, f)
 
 
-def transformation_to_xyz(transform, invert=False):
-    """Convert a transformation from zyx coordinates (python default)
-    to xyz coordinates (expected by mobie).
+def transformation_to_xyz(transform: Union[List, np.ndarray], invert: bool = False) -> List[float]:
+    """Convert a transformation from zyx coordinates (python default) to xyz coordinates (expected by mobie).
 
-    Arguments:
-        transform [list, np.ndarray] - the transformation parameters (12 values = upper 3 rows of affine matrix)
-        invert [bool] - whether to invert the transformation.
-            This can be necessary because e.g. scipy uses the different transformation direction (default: False)
+    Args:
+        transform: The transformation parameters. It must contain 12 values,
+            corresponding to the upper 3 rows of the affine matrix.
+        invert: Whether to invert the transformation.
+            This may be necessary because e.g. scipy uses the different transformation direction.
+
+    Returns:
+        The transformation parameters in the format expected by MoBIE.
     """
     trafo = trafo_helper.parameters_to_matrix(transform)
     trafo = trafo_helper.native_to_bdv(trafo, invert=invert)
@@ -270,6 +360,8 @@ def transformation_to_xyz(transform, invert=False):
 
 
 def save_temp_input(data, tmp_folder, name):
+    """@private
+    """
     os.makedirs(tmp_folder, exist_ok=True)
 
     save_path = os.path.join(tmp_folder, f"{name}.h5")
@@ -285,6 +377,8 @@ def save_temp_input(data, tmp_folder, name):
 
 # TODO implement this once ome.zarr v0.5 is released
 def update_ome_zarr_transformation_parameter(metadata_path, parameter):
+    """@private
+    """
     raise NotImplementedError(
         "Transformations in the image metadata are currently not supported for the ome.zarr file format."
         "You can use the bdv.n5 format instead."
@@ -292,6 +386,8 @@ def update_ome_zarr_transformation_parameter(metadata_path, parameter):
 
 
 def update_transformation_parameter(metadata_path, parameter, file_format):
+    """@private
+    """
     if file_format.startswith("bdv"):
         assert os.path.splitext(metadata_path)[1] == ".xml"
         update_xml_transformation_parameter(metadata_path, parameter)

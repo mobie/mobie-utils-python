@@ -1,4 +1,8 @@
+"""Functionality for converting paintera data into a segmentation compatible with MoBIE.
+"""
 import os
+from typing import Dict, List, Optional, Sequence, Tuple
+
 from elf.io import open_file, is_z5py, is_group
 from .utils import downscale, add_max_id
 
@@ -9,11 +13,13 @@ except ImportError:
 
 
 def is_paintera(path, key):
-    expected_keys = {'data',
-                     'fragment-segment-assignment',
-                     'unique-labels',
-                     'label-to-block-mapping'}
-    with open_file(path, 'r') as f:
+    """@private
+    """
+    expected_keys = {"data",
+                     "fragment-segment-assignment",
+                     "unique-labels",
+                     "label-to-block-mapping"}
+    with open_file(path, "r") as f:
         if not is_z5py(f):
             return False
         g = f[key]
@@ -25,30 +31,39 @@ def is_paintera(path, key):
     return True
 
 
-def import_segmentation_from_paintera(in_path, in_key, out_path,
-                                      resolution, scale_factors, chunks,
-                                      tmp_folder, target, max_jobs,
-                                      block_shape=None, postprocess_config=None,
-                                      map_to_background=None, unit='micrometer',
-                                      source_name=None):
-    """ Import segmentation data into mobie format from a paintera dataset
+def import_segmentation_from_paintera(
+    in_path: str,
+    in_key: str,
+    out_path: str,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    tmp_folder: str,
+    target: str,
+    max_jobs: int,
+    block_shape: Optional[Tuple[int, int, int]] = None,
+    postprocess_config: Optional[Dict] = None,
+    map_to_background: Optional[Sequence[int]] = None,
+    unit: str = "micrometer",
+    source_name: Optional[str] = None,
+) -> None:
+    """Import segmentation data into mobie format from a paintera dataset
 
-    Arguments:
-        in_path [str] - input paintera dataset to be added.
-        in_key [str] - key of the paintera dataset to be added.
-        out_path [str] - where to add the segmentation.
-        resolution [list[float]] - resolution in micrometer
-        scale_factors [list[list[int]]] - scale factors used for down-sampling the data
-        chunks [tuple[int]] - chunks of the data to be added
-        tmp_folder [str] - folder for temporary files
-        target [str] - computation target
-        max_jobs [int] - number of jobs
-        block_shape [tuple[int]] - block shape used for computation.
-            By default, same as chunks. (default:None)
-        postprocess_config: config for segmentation post-processing (default: None)
-        map_to_background: additional ids to be mapped to background label (default: None)
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        source_name [str] - name of the source (default: None)
+    Args:
+        in_path: The input paintera dataset to be added.
+        in_key: The key of the paintera dataset to be added.
+        out_path: The output path for saving the converted segmentation.
+        resolution: The resolution in physical units.
+        scale_factors: The scale factors to use for down-sampling the data.
+        chunks: The chunks of the data to be added.
+        tmp_folder: The folder for temporary files.
+        target: The computation target.
+        max_jobs: The number of jobs for parallelization.
+        block_shape: The block shape to use for computation. By default, same as chunks.
+        postprocess_config: The config for segmentation post-processing.
+        map_to_background: Optional ids to be mapped to background label.
+        unit: The physical unit of the coordinate system.
+        source_name: The name of the source.
     """
     if serialize_from_commit is None:
         msg = """Importing a segmentation from paintera is only possible wit paintera_tools:
@@ -56,17 +71,17 @@ def import_segmentation_from_paintera(in_path, in_key, out_path,
         """
         raise AttributeError(msg)
 
-    out_key = 'setup0/timepoint0/s0'
+    out_key = "setup0/timepoint0/s0"
     # run post-processing if specified for this segmentation name
     if postprocess_config is not None:
-        boundary_path = postprocess_config['BoundaryPath']
-        boundary_key = postprocess_config['BoundaryKey']
+        boundary_path = postprocess_config["BoundaryPath"]
+        boundary_key = postprocess_config["BoundaryKey"]
 
-        min_segment_size = postprocess_config.get('MinSegmentSize', None)
-        max_segment_number = postprocess_config.get('MaxSegmentNumber', None)
+        min_segment_size = postprocess_config.get("MinSegmentSize", None)
+        max_segment_number = postprocess_config.get("MaxSegmentNumber", None)
 
-        label_segmentation = postprocess_config['LabelSegmentation']
-        tmp_postprocess = os.path.join(tmp_folder, 'postprocess_paintera')
+        label_segmentation = postprocess_config["LabelSegmentation"]
+        tmp_postprocess = os.path.join(tmp_folder, "postprocess_paintera")
 
         print("Run postprocessing:")
         if label_segmentation:
@@ -94,7 +109,7 @@ def import_segmentation_from_paintera(in_path, in_key, out_path,
     downscale(out_path, out_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
-              library='vigra', library_kwargs={'order': 0},
+              library="vigra", library_kwargs={"order": 0},
               unit=unit, source_name=source_name)
 
     add_max_id(in_path, in_key, out_path, out_key,

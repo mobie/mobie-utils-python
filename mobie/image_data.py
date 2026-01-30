@@ -1,8 +1,11 @@
+"""Import intensity image data into a MoBIE project.
+"""
+
 import multiprocessing
 import os
 import warnings
 import shutil
-from typing import Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import mobie.metadata as metadata
 import mobie.utils as utils
@@ -96,18 +99,39 @@ def add_bdv_image(
     image_name: Optional[Union[str, Tuple[str]]] = None,
     file_format: str = "bdv.n5",
     menu_name: Optional[str] = None,
-    setup_ids=None,
-    scale_factors=None,
-    tmp_folder=None,
-    target="local",
-    max_jobs=multiprocessing.cpu_count(),
-    is_default_dataset=False,
-    description=None,
-    trafos_for_mobie=None,
-    move_data=False,
-    int_to_uint=False
-):
+    setup_ids: Optional[Sequence[int]] = None,
+    scale_factors: Optional[Sequence[Sequence[int]]] = None,
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = multiprocessing.cpu_count(),
+    is_default_dataset: bool = False,
+    description: Optional[str] = None,
+    trafos_for_mobie: Optional[Union[List[float], np.ndarray]] = None,
+    move_data: bool = False,
+    int_to_uint: bool = False,
+) -> None:
     """Add the image(s) specified in an bdv xml file and copy the metadata.
+
+    Args:
+        input_path: Path to the bdv xml file
+        root: Root folder of the MoBIE project.
+        dataset_name: Name of the dataset the image data is added to.
+        image_name: Name of the image data in MoBIE. If not given will derive the name from BDV metadata.
+        file_format: The file format used to store the data internally.
+        menu_name: Menu name for this source.
+            If none is given will be created based on the image name.
+        setup_ids: The setup ids to extract from the BDV data.
+            If not given, then all available setup ids will be extracted.
+        scale_factors: Scale factors used for down-sampling.
+        tmp_folder: Folder for temporary files.
+        target: The computation target.
+        max_jobs: The maximum number of jobs for parallelization.
+        is_default_dataset: Whether to set new dataset as default dataset.
+            Only applies if the dataset is being created.
+        description: Description for this image.
+        trafos_for_mobie: Additional transformations.
+        move_data: If input data is already in a MoBIE compatible format, just move it into the project directory.
+        int_to_uint: Whether to convert signed to unsigned integer.
     """
     # find how many timepoints we have
     t_start, t_stop = bdv_metadata.get_time_range(xml_path)
@@ -178,60 +202,68 @@ def add_bdv_image(
 
 
 # TODO support default arguments for scale factors and chunks
-def add_image(input_path, input_key,
-              root, dataset_name, image_name,
-              resolution, scale_factors, chunks,
-              file_format="ome.zarr", menu_name=None,
-              tmp_folder=None, target="local",
-              max_jobs=multiprocessing.cpu_count(),
-              view=None, transformation=None,
-              unit="micrometer",
-              is_default_dataset=False,
-              description=None,
-              move_only=False,
-              int_to_uint=False,
-              channel=None,
-              skip_add_to_dataset=False,
-              use_memmap=False):
+def add_image(
+    input_path: Union[str, np.ndarray],
+    input_key: Optional[str],
+    root: str,
+    dataset_name: str,
+    image_name: str,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    file_format: str = "ome.zarr",
+    menu_name: Optional[str] = None,
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = multiprocessing.cpu_count(),
+    view: Optional[Dict] = None,
+    transformation: Optional[Union[List[float], np.ndarray]] = None,
+    unit: str = "micrometer",
+    is_default_dataset: bool = False,
+    description: Optional[str] = None,
+    move_only: bool = False,
+    int_to_uint: bool = False,
+    channel: Optional[int] = None,
+    skip_add_to_dataset: bool = False,
+    use_memmap: bool = False,
+) -> None:
     """Add an image source to a MoBIE dataset.
 
     Will create the dataset if it does not exist.
 
-    Arguments:
-        input_path [str, np.ndarray] - path to the data that should be added.
-            This can also be a numpy array in order to save in memory data.
-        input_key [str] - key to the data that should be added.
-        root [str] - data root folder.
-        dataset_name [str] - name of the dataset the image data should be added to.
-        image_name [str] - name of the image data.
-        resolution [list[float]] - resolution of the image data in micrometer.
-        scale_factors [list[list[int]]] - scale factors used for down-sampling.
-        chunks [list[int]] - chunks for the data.
-        menu_name [str] - menu name for this source.
-            If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: ome.zarr)
-        tmp_folder [str] - folder for temporary files (default: None)
-        target [str] - computation target (default: "local")
-        max_jobs [int] - number of jobs (default: number of cores)
-        view [dict] - default view settings for this source (default: None)
-        transformation [list or np.ndarray] - parameter for affine transformation
-            applied to the data on the fly (default: None)
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        is_default_dataset [bool] - whether to set new dataset as default dataset.
-            Only applies if the dataset is being created. (default: False)
-        description [str] - description for this image (default: None)
-        move_only [bool] - if input data is already in a MoBIE compatible format,
-            just move it into the project directory. (default: False)
-        int_to_uint [bool] - whether to convert signed to unsigned integer (default: False)
-        channel [int] - the channel to load from the data.
-            Currently only supported for the ome.zarr format (default: None)
-        skip_add_to_dataset [bool] - Skip adding the source to the dataset after converting the image data.
+    Args:
+        input_path: Path to the data to add.
+            This can also be a numpy array for in memory data.
+        input_key: Key of the data to add, corresponding to the internal path
+            in hdf5/zarr/n5 etc. Set to None for adding data stored in a tif file.
+        root: Root folder of the MoBIE project.
+        dataset_name: Name of the dataset the image data is added to.
+        image_name: Name of the image data in MoBIE.
+        resolution: Resolution of the image data in micrometer.
+        scale_factors: Scale factors used for down-sampling.
+        chunks: Chunks for the data.
+        menu_name: Menu name for this source.
+            If none is given will be created based on the image name.
+        file_format: The file format used to store the data internally.
+        tmp_folder: Folder for temporary files.
+        target: The computation target.
+        max_jobs: The maximum number of jobs for parallelization.
+        view: Default view settings for this source.
+        transformation: Parameter for affine transformation applied to the data on the fly.
+        unit: The physical unit of the coordinate system.
+        is_default_dataset: Whether to set new dataset as default dataset.
+            Only applies if the dataset is being created.
+        description: Description for this image.
+        move_only: If input data is already in a MoBIE compatible format, just move it into the project directory.
+        int_to_uint: Whether to convert signed to unsigned integer.
+        channel: The channel to load from the data. Currently only supported for the ome.zarr format.
+        skip_add_to_dataset: Skip adding the source to the dataset after converting the image data.
             This should be used when calling `add_image` in parallel in order to avoid
             writing to dataset.json in parallel, which can cause issues.
-            In this case the source needs to be added later, e.g. by calling this function again. (default: False)
-        use_memmap [bool] - Whether to use memmap for loading the input data.
+            In this case the source needs to be added later, e.g. by calling this function again.
+        use_memmap: Whether to use memmap for loading the input data.
             This option is only supported for inputs in tif file format that can be loaded via `tifffile.memmap`.
-            This does not work for images that are compressed or have an otherwise non-standard format. (default: False)
+            This does not work for images that are compressed or have an otherwise non-standard format.
     """
     # TODO add 'setup_id' to the json schema for bdv formats to also support it there
     if channel is not None and file_format != "ome.zarr":
@@ -287,6 +319,8 @@ def add_image(input_path, input_key,
 
 
 def main():
+    """@private
+    """
     description = """Add image data to MoBIE dataset.
                      Initialize the dataset if it does not exist."""
     parser = utils.get_base_parser(description)

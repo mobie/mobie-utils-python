@@ -1,5 +1,8 @@
+"""Validation functionality for MoBIE source and view metadata.
+"""
 import json
 import os
+from typing import Dict, List, Callable, Optional
 
 # from elf.io import open_file
 from jsonschema import ValidationError
@@ -89,11 +92,38 @@ def _check_data(storage, format_, name, dataset_folder,
         _check_ome_zarr_s3(s3_address, name, assert_true, assert_equal, channel)
 
 
-def validate_source_metadata(name, metadata,
-                             dataset_folder=None, is_2d=None,
-                             require_local_data=True, require_remote_data=False,
-                             assert_true=_assert_true, assert_equal=_assert_equal,
-                             assert_in=_assert_in, suppress_warnings=False):
+def validate_source_metadata(
+    name: str,
+    metadata: Dict,
+    dataset_folder: Optional[str] = None,
+    is_2d: Optional[bool] = None,
+    require_local_data: bool = True,
+    require_remote_data: bool = False,
+    assert_true: Callable = _assert_true,
+    assert_equal: Callable = _assert_equal,
+    assert_in: Callable = _assert_in,
+    suppress_warnings: bool = False,
+) -> None:
+    """Validate that source metadata adheres to the specification.
+
+    Raises a ValueError if the metadata does not adhere to the spec.
+    The type of error that is thrown can be modified by over-writing
+    the assert_true, assert_in, and assert_equal arguments.
+
+    Args:
+        name: The name of the source.
+        metadata: The metadata of the source.
+        dataset_folder: The folder to the dataset. This argument is optional,
+            and the local source data can only be checked if it is given.
+        require_loca_data: Whether to require that local source data,
+            i.e. the corresponding ome.zarr or bdv files, exists.
+        require_remote_data: Whether to require that remote source data,
+            i.e. the corresponding ome.zarr or bdv.n5.s3 file exists.
+        assert_true: Function to over-write the default assert_true check.
+        assert_in: Function to over-write the default assert_in check.
+        assert_equal: Function to over-write the default assert_equal check.
+        suppress_warnings: Whether to suppress valdiation warnings.
+    """
     # static validation with json schema
     try:
         validate_with_schema(metadata, "source")
@@ -268,7 +298,28 @@ def _dynamic_view_display_validation(displays, dataset_folder, dataset_metadata,
                 )
 
 
-def validate_view_metadata(view, sources=None, dataset_folder=None, assert_true=_assert_true, dataset_metadata=None):
+def validate_view_metadata(
+    view: Dict,
+    sources: Optional[List[str]] = None,
+    dataset_folder: Optional[str] = None,
+    assert_true: Callable = _assert_true,
+    dataset_metadata: Optional[Dict] = None,
+) -> None:
+    """Validate that view metadata adheres to the specification.
+
+    Raises a ValueError if the metadata does not adhere to the spec.
+    The type of error that is thrown can be modified by over-writing the assert_true argument.
+
+    Args:
+        view: The view metadata.
+        sources: Optional list of source names that are part of the MoBIE dataset.
+            If given, will validate that the sources specified in the view are part of the dataset.
+        dataset_folder: The folder to the dataset. This argument is optional,
+            it is required to check if tables specified in the view are valid.
+        assert_true: Function to over-write the default assert_true check.
+        dataset_metadata: The dataset metadata. This argument is optional,
+            it is required to check if tables specified in the view are valid.
+    """
     # static validation with json schema
     try:
         validate_with_schema(view, "view")

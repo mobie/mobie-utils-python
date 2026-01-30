@@ -1,9 +1,12 @@
+"""Validation functionality for data associate with MoBIE sources.
+"""
 import json
 import os
 import warnings
 from concurrent import futures
 from shutil import rmtree
 from subprocess import run
+from typing import List, Optional
 
 import zarr
 import s3fs
@@ -12,6 +15,8 @@ from tqdm import tqdm
 
 
 def validate_chunks_local(store, dataset, keys, n_threads):
+    """@private
+    """
 
     def validate_chunk(chunk_key):
         key = os.path.join(dataset.path, chunk_key)
@@ -27,7 +32,25 @@ def validate_chunks_local(store, dataset, keys, n_threads):
     return corrupted_chunks
 
 
-def validate_local_dataset(path, dataset_name, n_threads, keys=None):
+def validate_local_dataset(
+    path: str,
+    dataset_name: str,
+    n_threads: int,
+    keys: Optional[List[str]] = None,
+) -> List[str]:
+    """Validate the chunks in a locally stored zarr array.
+
+    Args:
+        path: The path to the zarr root group.
+        dataset_name: The internal name of the zarr dataset / array.
+        n_threads: The number of threads to use for computation.
+        keys: Optional list of chunnk keys to be checked.
+            This can for example be used to check keys again that were
+            previously identified as being corrupted.
+
+    Returns:
+        The list of corrupted chunks in the zarr array.
+    """
     f = zarr.open(path, mode="r")
     ds = f[dataset_name]
     store = ds.store
@@ -40,6 +63,8 @@ def validate_local_dataset(path, dataset_name, n_threads, keys=None):
 
 
 def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
+    """@private
+    """
     max_tries = 4
 
     def load_from_store(key, n_tries):
@@ -76,12 +101,27 @@ def _get_fs(server, anon):
 
 
 # zarr doesn't support s3 n5 yet, so we need to hack it...
-def validate_s3_dataset(bucket_name,
-                        path_in_bucket,
-                        dataset_name,
-                        server=None,
-                        anon=True,
-                        n_threads=1):
+def validate_s3_dataset(
+    bucket_name: str,
+    path_in_bucket: str,
+    dataset_name: str,
+    server: Optional[str] = None,
+    anon: bool = True,
+    n_threads: int = 1,
+) -> List[str]:
+    """Validate the chunks in a zarr array stored on s3.
+
+    Args:
+        bucket_name: The name of the s3 bucket.
+        path_in_bucket: The path in the bucket to the zarr root group.
+        dataset_name: The internal name of the zarr dataset / array.
+        server: Optional server endpoint url.
+        anon: Whether to use anonymous access in the s3 client.
+        n_threads: The number of threads to use for computation.
+
+    Returns:
+        The list of corrupted chunks in the zarr array.
+    """
 
     tmp_file = "./tmp_file.n5"
     os.makedirs(tmp_file, exist_ok=True)
@@ -139,6 +179,8 @@ def fix_corrupted_chunks_minio(corrupted_chunks,
                                path_in_bucket,
                                dataset_name,
                                server="embl"):
+    """@private
+    """
     try:
         local_ds = zarr.open(local_dataset_path, "r")[local_dataset_key]
     except KeyError:
@@ -168,6 +210,8 @@ def fix_corrupted_chunks_s3(corrupted_chunks,
                             dataset_name,
                             server=None,
                             anon=False):
+    """@private
+    """
     try:
         local_ds = zarr.open(local_dataset_path, "r")[local_dataset_key]
     except KeyError:

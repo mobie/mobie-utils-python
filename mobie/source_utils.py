@@ -1,3 +1,5 @@
+"""Helper functions to modify sources in a MoBIE project.
+"""
 import json
 import os
 from shutil import rmtree
@@ -71,11 +73,16 @@ def _remove_name_in_view(view, name):
     return view
 
 
-def remove_source(dataset_folder, name, remove_data=False):
-    """Remove a source in the dataset.
+def remove_source(dataset_folder: str, name: str, remove_data: bool = False) -> None:
+    """Remove a source in the given MoBIE dataset.
 
-    NOTE: this only works for local projects, i.e. projects that have not been
-    uploaded to s3 yet.
+    This only works for local projects, i.e. projects that have not been uploaded to s3 yet.
+
+    Args:
+        dataset_folder: The path to the MoBIE dataset folder.
+        name: The name of the source to remove.
+        remove_data: Whether to also remove the image data of this source.
+            By default only the MoBIE metadata will be removed.
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources = dataset_metadata["sources"]
@@ -166,11 +173,15 @@ def _replace_name_in_view(view, old_name, new_name):
     return view
 
 
-def rename_source(dataset_folder, old_name, new_name):
-    """Rename a source in the dataset.
+def rename_source(dataset_folder: str, old_name: str, new_name: str) -> None:
+    """Rename a source in the given MoBIE dataset.
 
-    NOTE: this only works for local projects, i.e. projects that have not been
-    uploaded to s3 yet.
+    This only works for local projects, i.e. projects that have not been uploaded to s3 yet.
+
+    Args:
+        dataset_folder: The path to the MoBIE dataset folder.
+        old_name: The old name of the source.
+        new_name: The new name of the source.
     """
     dataset_metadata = read_dataset_metadata(dataset_folder)
     sources = dataset_metadata["sources"]

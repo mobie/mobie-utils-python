@@ -32,7 +32,7 @@ def registration_affine(input_path, input_key,
     """
     from cluster_tools.transformations import AffineTransformationWorkflow
     task = AffineTransformationWorkflow
-    config_dir = os.path.join(tmp_folder, 'configs')
+    config_dir = os.path.join(tmp_folder, "configs")
 
     # load the transformation in bdv format
     # either join all transformation or implement chained application on the fly
@@ -46,25 +46,25 @@ def registration_affine(input_path, input_key,
     # once we support pre-smooting in nifty, should set it to 1 for everything but linear
     sigma = None
     # determine appropriate values for interpolation and sigma (anti-aliasing) based on interpolation
-    if interpolation == 'nearest':
+    if interpolation == "nearest":
         order = 0
         # sigma= None
-    elif interpolation == 'linear':
+    elif interpolation == "linear":
         order = 1
         # sigma = 1.
-    elif interpolation == 'quadratic':
+    elif interpolation == "quadratic":
         order = 2
         # sigma = 1.
-    elif interpolation == 'cubic':
+    elif interpolation == "cubic":
         order = 3
         # sigma = 1.
     else:
         raise ValueError(f"Invalid interpolation mode {interpolation}")
 
-    config = task.get_config()['affine']
-    config.update({'chunks': chunks, 'sigma_anti_aliasing': sigma})
+    config = task.get_config()["affine"]
+    config.update({"chunks": chunks, "sigma_anti_aliasing": sigma})
 
-    with open(os.path.join(config_dir, 'affine.config'), 'w') as f:
+    with open(os.path.join(config_dir, "affine.config"), "w") as f:
         json.dump(config, f)
 
     t = task(tmp_folder=tmp_folder, config_dir=config_dir,
@@ -81,8 +81,8 @@ def registration_bdv(input_path, output_path, transformation, resolution):
     """Apply registration by writing affine transformation to bdv.
     Only works for affine transformations.
     """
-    assert input_path.endswith('.xml')
-    assert output_path.endswith('.xml')
+    assert input_path.endswith(".xml")
+    assert output_path.endswith(".xml")
 
     trafo = elastix_to_bdv(transformation, resolution)
     # copy the xml path and replace the file path with the correct relative filepath
@@ -96,9 +96,9 @@ def registration_transformix(input_path, output_path,
                              transformation, fiji_executable,
                              elastix_directory, tmp_folder,
                              shape, resolution,
-                             interpolation='nearest', output_format='tif',
-                             result_dtype='unsigned char',
-                             n_threads=8, target='local'):
+                             interpolation="nearest", output_format="tif",
+                             result_dtype="unsigned char",
+                             n_threads=8, target="local"):
     """Apply registration by using tranformix from the fiji elastix wrapper.
     """
     from cluster_tools.transformations import TransformixTransformationWorkflow
@@ -110,20 +110,20 @@ def registration_transformix(input_path, output_path,
     if output_format not in task.formats:
         raise ValueError(f"Expected output_format to be one of {task.formats}, got {output_format}")
 
-    config_dir = os.path.join(tmp_folder, 'configs')
+    config_dir = os.path.join(tmp_folder, "configs")
 
-    task_config = task.get_config()['transformix']
-    task_config.update({'mem_limit': 16, 'time_limit': 240, 'threads_per_job': n_threads,
-                        'ResultImagePixelType': result_dtype})
-    with open(os.path.join(config_dir, 'transformix.config'), 'w') as f:
+    task_config = task.get_config()["transformix"]
+    task_config.update({"mem_limit": 16, "time_limit": 240, "threads_per_job": n_threads,
+                        "ResultImagePixelType": result_dtype})
+    with open(os.path.join(config_dir, "transformix.config"), "w") as f:
         json.dump(task_config, f)
 
-    in_file = os.path.join(tmp_folder, 'inputs.json')
-    with open(in_file, 'w') as f:
+    in_file = os.path.join(tmp_folder, "inputs.json")
+    with open(in_file, "w") as f:
         json.dump([os.path.abspath(input_path)], f)
 
-    out_file = os.path.join(tmp_folder, 'outputs.json')
-    with open(out_file, 'w') as f:
+    out_file = os.path.join(tmp_folder, "outputs.json")
+    with open(out_file, "w") as f:
         json.dump([os.path.abspath(output_path)], f)
 
     if shape is None:
@@ -150,11 +150,11 @@ def registration_coordinate(input_path, input_key,
     from cluster_tools.transformations import TransformixCoordinateTransformationWorkflow
     task = TransformixCoordinateTransformationWorkflow
 
-    config_dir = os.path.join(tmp_folder, 'configs')
+    config_dir = os.path.join(tmp_folder, "configs")
 
-    task_config = task.get_config()['transformix_coordinate']
-    task_config.update({'mem_limit': 8, 'time_limit': 1440})
-    with open(os.path.join(config_dir, 'transformix_coordinate.config'), 'w') as f:
+    task_config = task.get_config()["transformix_coordinate"]
+    task_config.update({"mem_limit": 8, "time_limit": 1440})
+    with open(os.path.join(config_dir, "transformix_coordinate.config"), "w") as f:
         json.dump(task_config, f)
 
     if shape is None:

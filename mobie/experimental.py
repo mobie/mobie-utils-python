@@ -1,3 +1,5 @@
+"""@private
+"""
 import warnings
 
 import numpy as np
@@ -114,7 +116,7 @@ def create_slice_grid(
 ):
     """Create a grid that aligns n slices of a source shifted so that each n-th slice is aligned with the origin.
 
-    Arguments:
+    Args:
         dataset_folder [str] -
         source [str] -
         n_slices [int] -
@@ -161,7 +163,7 @@ def create_slice_grid_with_reference_view(
     The reference view will be used to derive initial transformation, display settigns and
     other view specific parameters, unless over-written by a more explicit parameter.
 
-    Arguments:
+    Args:
         dataset_folder [str] -
         source [str] -
         reference_view [str] -

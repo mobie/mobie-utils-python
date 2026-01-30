@@ -1,10 +1,24 @@
+"""Functionality for creating region display tables.
+"""
 import os
-import pandas as pd
+from typing import Dict, List, Union
 
+import pandas as pd
 from .utils import read_table
 
 
-def compute_region_table(sources, table_path, **additional_columns):
+def compute_region_table(
+    sources: Union[List, Dict],
+    table_path: str,
+    **additional_columns
+) -> None:
+    """Create the table for a region display.
+
+    Args:
+        sources: The image, segmentation or spot sources in the the region display.
+        table_path: The path for saving the region table.
+        additional_columns: Additonal columns to add to the region table.
+    """
     first_col_name = "region_id"
 
     if isinstance(sources, list):
@@ -25,7 +39,15 @@ def compute_region_table(sources, table_path, **additional_columns):
     table.to_csv(table_path, sep="\t", index=False, na_rep="nan")
 
 
-def check_region_table(sources, table_path):
+def check_region_table(sources: Union[List, Dict], table_path: str) -> None:
+    """Check if the given table path contains a valid region table.
+
+    Raises a ValueError if the table is not valid.
+
+    Args:
+        sources: The expected sources for the region display.
+        table_path: The path to the table to check.
+    """
     first_col_name = "region_id"
     table = read_table(table_path)
 

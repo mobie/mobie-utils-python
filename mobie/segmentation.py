@@ -1,5 +1,9 @@
+"""Import segmentation label data into a MoBIE project.
+"""
+
 import multiprocessing
 import os
+from typing import Dict, List, Optional, Sequence, Union
 
 import mobie
 import numpy as np
@@ -14,46 +18,59 @@ from mobie.tables import check_and_copy_default_table, compute_default_table
 
 # TODO support transformation
 # TODO support default arguments for scale factors and chunks
-def add_segmentation(input_path, input_key,
-                     root, dataset_name, segmentation_name,
-                     resolution, scale_factors, chunks,
-                     menu_name=None, file_format="ome.zarr",
-                     node_label_path=None, node_label_key=None,
-                     tmp_folder=None, target="local",
-                     max_jobs=multiprocessing.cpu_count(),
-                     add_default_table=True, view=None,
-                     postprocess_config=None, unit="micrometer",
-                     is_default_dataset=False, description=None, is_2d=None):
-    """ Add segmentation source to MoBIE dataset.
+def add_segmentation(
+    input_path: str,
+    input_key: str,
+    root: str,
+    dataset_name: str,
+    segmentation_name: str,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    chunks: Sequence[int],
+    menu_name: Optional[str] = None,
+    file_format: str = "ome.zarr",
+    node_label_path: Optional[str] = None,
+    node_label_key: Optional[str] = None,
+    tmp_folder: Optional[str] = None,
+    target: str = "local",
+    max_jobs: int = multiprocessing.cpu_count(),
+    add_default_table: Union[bool, str, pd.DataFrame] = True,
+    view: Optional[Dict] = None,
+    postprocess_config: Optional[Dict] = None,
+    unit: str = "micrometer",
+    is_default_dataset: bool = False,
+    description: Optional[str] = None,
+    is_2d: Optional[bool] = None,
+) -> None:
+    """Add segmentation source to MoBIE dataset.
 
-    Arguments:
-        input_path [str] - path to the segmentation to add.
-        input_key [str] - key to the segmentation to add.
-        root [str] - data root folder.
-        dataset_name [str] - name of the dataset the segmentation should be added to.
-        segmentation_name [str] - name of the segmentation.
-        resolution [list[float]] - resolution of the segmentation in micrometer.
-        scale_factors [list[list[int]]] - scale factors used for down-sampling.
-        chunks [list[int]] - chunks for the data.
-        menu_name [str] - menu name for this source.
-            If none is given will be created based on the image name. (default: None)
-        file_format [str] - the file format used to store the data internally (default: bdv.n5)
-        node_label_path [str] - path to node labels (default: None)
-        node_label_key [str] - key to node labels (default: None)
-        tmp_folder [str] - folder for temporary files (default: None)
-        target [str] - computation target (default: "local")
-        max_jobs [int] - number of jobs (default: number of cores)
-        add_default_table [bool, str, pd.DataFrame] - whether to add the default table.
-            Can also be a filepath to a table or a pandas DataFrame.
-            In the two latter cases the default table will be initialized from the passed data. (default: True)
-        view [dict] - default view settings for this source (default: None)
-        postprocess_config [dict] - config for postprocessing,
-            only available for paintera dataset (default: None)
-        unit [str] - physical unit of the coordinate system (default: micrometer)
-        is_default_dataset [bool] - whether to set new dataset as default dataset.
-            Only applies if the dataset is being created. (default: False)
-        description [str] - description for this segmentation (default: None)
-        is_2d [bool] - whether this is a 2d segmentation (default: None)
+    Args:
+        input_path: The path to the segmentation to add.
+        input_key: The key to the segmentation to add.
+        root: The data root folder.
+        dataset_name: The name of the dataset the segmentation should be added to.
+        segmentation_name: The name of the segmentation.
+        resolution: The resolution of the segmentation in micrometer.
+        scale_factors: The scale factors used for down-sampling.
+        chunks: The chunks for the data.
+        menu_name: The menu name for this source.
+            If none is given will be created based on the sourec name.
+        file_format: The file format used to store the data internally.
+        node_label_path: The path to node labels of a paintera dataset.
+            If given, these will be used to re-assign the label ids.
+        node_label_key: The key to the node labels, for the internal path where the node labels are stored.
+        tmp_folder: Folder for temporary files.
+        target: The computation target.
+        max_jobs: The maximum number of jobs for parallelization.
+        add_default_table: Whether to add the default segmentation table.
+            Can also be a filepath to a table in tsv format or a pandas DataFrame.
+            In the two latter cases the default table will be initialized from the passed data.
+        view: The default view settings for this source.
+        postprocess_config: The config for postprocessing, only available for a paintera dataset.
+        unit: The physical unit of the coordinate system.
+        is_default_dataset: Whether to set new dataset as default dataset. Only applies if the dataset is being created.
+        description: The description for this segmentation source.
+        is_2d: Whether this is a 2d segmentation.
     """
     if isinstance(input_path, np.ndarray):
         input_path, input_key = mobie.utils.save_temp_input(input_path, tmp_folder, segmentation_name)
@@ -126,6 +143,8 @@ def add_segmentation(input_path, input_key,
 
 
 def main():
+    """@private
+    """
     description = "Add segmentation source to MoBIE dataset."
     parser = mobie.utils.get_base_parser(description)
     parser.add_argument("--node_label_path", type=str, default=None,

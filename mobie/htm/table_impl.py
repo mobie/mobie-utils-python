@@ -1,5 +1,8 @@
 #! /bin/python
 
+"""@private
+"""
+
 import os
 import sys
 import json
@@ -21,7 +24,7 @@ from cluster_tools.utils.task_utils import DummyTask
 #
 
 class TableImplBase(luigi.Task):
-    """ table_impl base class
+    """table_impl base class
     """
 
     task_name = "table_impl"

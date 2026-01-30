@@ -338,7 +338,7 @@ def default_menu_name_parser(source_type, source_name):
 def migrate_dataset(folder, parse_menu_name=None, parse_source_name=None):
     """Migrate dataset to spec version 0.2
 
-    Arguments:
+    Args:
         folder [str] - dataset folder
         parse_menu_name [callable] -
         parse_source_name [callable] -

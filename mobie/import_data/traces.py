@@ -1,5 +1,8 @@
+"""Functionality for converting (neuron) traces to a segmentation format compatible with MoBIE.
+"""
 import os
 from glob import glob
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import elf.skeleton.io as skio
@@ -14,16 +17,22 @@ from tqdm import tqdm
 
 
 def is_ome_zarr(path):
+    """@private
+    """
     return path.endswith("ome.zarr")
 
 
 def get_key_ome_zarr(path):
+    """@private
+    """
     with open_file(path, "r") as f:
         key = f.attrs["multiscales"][0]["datasets"][0]["path"]
     return key
 
 
 def coords_to_vol(coords, nid, radius=5):
+    """@private
+    """
     bb_min = coords.min(axis=0)
     bb_max = coords.max(axis=0) + 1
 
@@ -41,6 +50,8 @@ def coords_to_vol(coords, nid, radius=5):
 
 
 def vals_to_coords(vals, res):
+    """@private
+    """
     coords = np.array(vals)
     coords /= res
     coords = coords.astype('uint64')
@@ -48,7 +59,7 @@ def vals_to_coords(vals, res):
 
 
 def parse_traces_from_nmx(trace_folder):
-    """Extract all traced neurons stored in nmx format and return as dict.
+    """@private
     """
     trace_files = glob(os.path.join(trace_folder, "*.nmx"))
     if not trace_files:
@@ -86,6 +97,8 @@ def parse_traces_from_nmx(trace_folder):
 
 # TODO enable passing the 'parse_id' function
 def parse_traces_from_swc(trace_folder, parse_id=None):
+    """@private
+    """
     trace_files = glob(os.path.join(trace_folder, "*.swc"))
     if not trace_files:
         raise ValueError("Did not find any traces in %s" % trace_folder)
@@ -99,6 +112,8 @@ def parse_traces_from_swc(trace_folder, parse_id=None):
 
 
 def parse_traces(trace_folder):
+    """@private
+    """
     have_nmx = len(glob(os.path.join(trace_folder, "*.nmx"))) > 0
     have_swc = len(glob(os.path.join(trace_folder, "*.swc"))) > 0
 
@@ -116,11 +131,12 @@ def parse_traces(trace_folder):
 
 def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
                      radius, n_threads, crop_overhanging=True):
+    """@private
+    """
     # write temporary h5 dataset
     # and write coordinates (with some radius) to it
     with open_file(out_path, mode="a") as f:
-        ds = f.require_dataset(key, shape=shape, dtype='int16', compression='gzip',
-                               chunks=chunks)
+        ds = f.require_dataset(key, shape=shape, dtype="int16", compression="gzip", chunks=chunks)
         ds.n_threads = n_threads
         for nid, vals in tqdm(traces.items()):
             coords = vals_to_coords(vals, resolution)
@@ -138,8 +154,7 @@ def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
                     this_trace = this_trace[vol_bb]
                     bb_max = [b - crp for b, crp in zip(bb_max, crop)]
                 else:
-                    raise RuntimeError("Invalid bounding box: %s, %s" % (str(bb_max),
-                                                                         str(shape)))
+                    raise RuntimeError("Invalid bounding box: %s, %s" % (str(bb_max), str(shape)))
 
             bb = tuple(slice(int(bmi), int(bma)) for bmi, bma in zip(bb_min, bb_max))
 
@@ -149,24 +164,33 @@ def traces_to_volume(traces, out_path, key, shape, resolution, chunks,
             ds[bb] = sub_vol
 
 
-def import_traces(input_folder, out_path,
-                  reference_path, reference_scale,
-                  resolution, scale_factors,
-                  radius=2, chunks=None, max_jobs=8,
-                  unit='micrometer', source_name=None):
-    """ Import trace data into the mobie format.
+def import_traces(
+    input_folder: str,
+    out_path: str,
+    reference_path: str,
+    reference_scale: int,
+    resolution: Sequence[float],
+    scale_factors: List[List[int]],
+    radius: int = 2,
+    chunks: Optional[Tuple[int, int, int]] = None,
+    max_jobs: int = 8,
+    unit: str = "micrometer",
+    source_name: Optional[str] = None,
+) -> None:
+    """Convert trace data into a MoBIE-compatible format.
 
-    input_folder [str] - folder with traces to be imported.
-    out_path [str] - where to save the segmentation
-    reference_path [str] - path to the reference volume
-    reference_scale [str] - scale to use for reference
-    resolution [list[float]] - resolution of the traces in micrometers
-    scale_factors [list[list[int]]] - scale factors for down-sampling
-    radius [int] - radius to write for the traces
-    chunks [list[int]] - chunks for the traces volume
-    max_jobs [int] - number of threads to use for down-samling
-    unit [str] - physical unit (default: micrometer)
-    source_name [str] - name of the source (default: None)
+    Args:
+        input_folder: The folder with traces to be imported.
+        out_path: The output path for saving the converted segmentation.
+        reference_path: The path to the reference volume.
+        reference_scale: The scale to use for reference.
+        resolution: The resolution of the traces in physical units.
+        scale_factors: The scale factors for down-sampling.
+        radius: The radius to write the points in the traces.
+        chunks: The chunks for the output segmentation volume.
+        max_jobs: The number of threads to use for parallelization.
+        unit: The physical unit of the coordinate system.
+        source_name: The name of the source.
     """
 
     traces = parse_traces(input_folder)
@@ -194,16 +218,16 @@ def import_traces(input_folder, out_path,
     traces_to_volume(traces, out_path, key0, shape, resolution, chunks, radius, max_jobs)
 
     print("Downscaling traces ...")
-    make_scales(out_path, scale_factors, downscale_mode='max',
+    make_scales(out_path, scale_factors, downscale_mode="max",
                 ndim=3, setup_id=0, is_h5=is_h5,
                 chunks=chunks, n_threads=max_jobs)
 
-    xml_path = os.path.splitext(out_path)[0] + '.xml'
+    xml_path = os.path.splitext(out_path)[0] + ".xml"
     # we assume that the resolution is in nanometer, but want to write in microns for bdv
     bdv_res = [res / 1000. for res in resolution]
     write_xml_metadata(xml_path, out_path, unit, bdv_res, is_h5,
                        setup_id=0, timepoint=0, setup_name=source_name,
-                       affine=None, attributes={'channel': {'id': 0}},
+                       affine=None, attributes={"channel": {"id": 0}},
                        overwrite=False, overwrite_data=False, enforce_consistency=False)
     bdv_scale_factors = [[1, 1, 1]] + scale_factors
     if is_h5:
