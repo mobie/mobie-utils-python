@@ -4,7 +4,7 @@ channels:
     - conda-forge
 dependencies:
     - cluster_tools >=0.4.4
-    - python-elf
+    - python-elf <0.9
     - numba
     - jsonschema
     - pandas
