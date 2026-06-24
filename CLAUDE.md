@@ -1,0 +1,86 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+`mobie` is a Python library (PyPI/conda name `mobie_utils`, import name `mobie`) for generating, populating, validating, and migrating [MoBIE](https://github.com/mobie/mobie) projects. A MoBIE project is a folder structure of large bioimage data plus JSON metadata that the MoBIE Fiji viewer reads. This library's job is to convert raw image/segmentation/spot data into MoBIE-compatible storage and to write spec-compliant metadata.
+
+## Commands
+
+```sh
+# Environment (conda required — pulls in the C/Java-backed image deps)
+conda env create -f environment.yaml   # or env_with_paintera.yaml for paintera import support
+conda activate mobie
+pip install -e .
+
+# Tests (this is exactly what CI runs)
+python -m unittest discover -s test -v
+
+# A single test module / case / method
+python -m unittest test.test_image_data
+python -m unittest test.metadata.test_view_metadata.TestViewMetadata
+python -m unittest test.test_image_data.TestImageData.test_add_image
+```
+
+Tests write scratch projects under `test/test-folder/` and `tmp*/` (both gitignored).
+
+### Linting
+
+We lint with **pyflakes** and **flake8**. There is no config file, so pass the line length on the command line — the codebase follows a ~120-char limit (the default 79 does not apply):
+
+```sh
+pyflakes mobie test
+flake8 --max-line-length=120 mobie test
+```
+
+Run these before considering a change done.
+
+## Architecture
+
+The library is layered. A typical `mobie.add_*` call flows top-to-bottom through these layers:
+
+1. **Public API (`mobie/__init__.py`)** — the `add_*` entry functions: `add_image`/`add_bdv_image` (`image_data.py`), `add_segmentation`, `add_spots`, `add_traces`, `add_registered_source`, `add_open_organelle_data`, plus view/source helpers. Every `add_*` function follows the same three-step shape: (a) `utils.require_dataset_and_view(...)` creates the project/dataset and the default view if needed, (b) the data is converted via the import layer, (c) `metadata.add_source_to_dataset(...)` writes the source + view into `dataset.json`. When changing one `add_*`, check whether the others need the same change — they are near-parallel.
+
+2. **Import layer (`mobie/import_data/`)** — converts raw arrays/files into MoBIE storage formats (`ome.zarr`, `bdv.n5`, `bdv.hdf5`). This is the heavy compute path: it runs **cluster_tools luigi workflows** (`DownscalingWorkflow`, `DataStatisticsWorkflow`, `NodeLabelWorkflow`) for parallel downscaling/pyramid generation. The `target` argument (`"local"` or a cluster target like `"slurm"`) and `max_jobs` thread all the way down from the public API into these workflows. `import_data/utils.py` is the shared engine; `image.py`/`segmentation.py`/`traces.py`/`paintera.py` are thin format-specific wrappers.
+
+3. **Metadata layer (`mobie/metadata/`)** — pure read/write/construct of the spec JSON. This is the core of the project structure:
+   - `project_metadata.py` → `project.json` (lists datasets, default dataset)
+   - `dataset_metadata.py` → `dataset.json` (sources + views) and the on-disk dataset folder layout
+   - `source_metadata.py` → individual image/segmentation/spot/region source entries
+   - `view_metadata.py` → constructs **views** (the central MoBIE concept: a named arrangement of sources with displays + transforms). `get_view`, `get_default_view`, displays (`get_image_display`, …), and source transforms (affine, crop, grid, merged-grid) all live here.
+   - There is **no data here, only JSON** — keep heavy I/O out of this layer.
+
+4. **Validation layer (`mobie/validation/`)** — validates metadata dicts against JSON schemas with `jsonschema`. Schemas are **downloaded from `mobie.github.io` and cached in `~/.mobie/`**. Gotcha: the cache is never invalidated automatically — after a spec change you must delete `~/.mobie/` (or the relevant `*.schema.json`) or validation runs against stale schemas. `add_*` functions validate views as they build them, so a schema mismatch surfaces during import, not just in the explicit `validate_*` CLIs.
+
+5. **Tables (`mobie/tables/`)** — generates the TSV tables MoBIE attaches to segmentations, spots, regions, and traces.
+
+6. **HTM (`mobie/htm/`)** — high-throughput / high-content microscopy: batch `add_images`/`add_segmentations` plus plate/well grid-view construction.
+
+7. **Migration (`mobie/migration/`)** — upgrades existing projects between spec versions (`migrate_v1`/`v2`/`v3`). Run via `mobie.migrate_project` / `mobie.migrate_dataset`. These rewrite metadata **in place without backups** — guard with git or a manual copy.
+
+### CLI
+
+`setup.py` registers `console_scripts` of the form `mobie.<action>` (e.g. `mobie.add_image`, `mobie.validate_project`, `mobie.migrate_project`), each mapping to a `main()` in the corresponding module. The shared `utils.get_base_parser()` defines the common spatial arguments (`--resolution`, `--scale_factors`, `--chunks`, all JSON-encoded), so CLI changes for sources usually belong there.
+
+## Conventions and gotchas
+
+- **Axis order:** internal numpy/array data is `zyx`; MoBIE and BDV metadata are `xyz`. Use `utils.transformation_to_xyz()` to convert affine parameters before writing them — do not hand-build xyz transforms.
+- **Supported formats** are the `FILE_FORMATS` list in `mobie/utils.py`. `add_image` defaults to `ome.zarr`. Format-specific path layout lives in `utils.get_internal_paths()` / `get_data_key()`.
+- **Two versions** in `mobie/__version__.py`: `__version__` is the library release; `SPEC_VERSION` is the MoBIE spec version the library writes. Bump `SPEC_VERSION` only alongside a spec migration.
+- **NumPy in JSON:** metadata is dumped with `metadata/utils.py::NPTypesEncoder`, which coerces numpy scalar types — return values from import code can carry np dtypes safely.
+- **Docstrings:** use Google style (`Args:` / `Returns:` / `Raises:` sections), matching the existing public functions. Mark internal/helper functions with a `"""@private"""` docstring so they are excluded from the generated API docs.
+
+## Current task: migrate from cluster_tools to bioimage-py
+
+The active work on this branch (`migrate-bioimage-py`) is replacing the `cluster_tools` compute backend with **`bioimage-py`**. The env files (`environment.yaml`, `env_with_paintera.yaml`) already swap `cluster_tools`/`numba`/`python-elf<0.9` for `bioimage-py` + `python-elf>0.9`.
+
+**Progress so far:** the **foundation shim** (`mobie/utils.py::get_run_config`) and the **core downscaling path** (`mobie/import_data/utils.py::downscale`, `compute_max_id`, plus the new `mobie/import_data/_format_metadata.py`) are migrated to bioimage-py and tested. **Still on cluster_tools (deferred):** registration transformix/coordinate, paintera/`from_node_labels` node-label write, HTM (`htm/`), and the segmentation-table `MorphologyWorkflow` (`tables/default_table.py`) — so `cluster_tools` is still a temporary dependency.
+
+The migration means rewriting the layer-2 import code to drive `bioimage-py` instead of cluster_tools luigi workflows. **The agreed scope, gap analysis, and per-decision rationale live in the project memory node [[bioimage-py-migration-decisions]] — read it before starting any migration work.** Key points to keep in mind:
+
+- **bioimage-py provides *primitives*; mobie *composes* them.** Do NOT take "implement what is missing in bioimage-py" to mean adding off-the-shelf, mobie-specific high-level functions there. bioimage-py stays a clean, general primitive library (block-wise `copy`/`downsample`/`stats`/`morphology`, the runner, source wrappers). When something is missing, add the missing *primitive* (e.g. a `SourceWrapper`) — and keep MoBIE-specific orchestration and all spec/format-metadata writing here in mobie. Concretely: the multiscale-pyramid loop and the ome.zarr/bdv metadata writing (via pybdv / ome-zarr) belong in mobie, not bioimage-py.
+- **Execution model:** bioimage-py replaces the luigi `*Workflow` + `luigi.build` + on-disk `*.config`/`global.config` model with a runner — every op takes `job_type` (`local`/`subprocess`/`slurm`), `num_workers`, `block_shape`, and a `RunnerConfig`/`SlurmConfig`. This collapses `write_global_config`, the per-task `.config` files, and `BaseClusterTask` into per-call kwargs + one config object. Concentrate changes in `mobie/import_data/utils.py` (the shared engine) and `mobie/utils.py`; the format-specific wrappers and the metadata/validation layers should be largely unaffected.
+- Preserve the public-API surface (`target`, `max_jobs`, function signatures) so callers and the `add_*` flow described above keep working. Note: **LSF is dropped** (only `local`/`subprocess`/`slurm` are supported), and the legacy `int_to_uint` option has been **removed**.
+- **ome.zarr is currently written as zarr v2 via z5py** (not `elf.io.open_file`, which writes zarr v3 in this env — incompatible with MoBIE NGFF v0.4). **Additional goal — support BOTH zarr v2 and v3** as output formats (v3 not yet implemented; a writer/metadata toggle threaded through `downscale` + `_format_metadata.py`).
+- **Additional goal — drop the `vigra` dependency** as part of this work (alongside the already-removed `cluster_tools`/`nifty` in the migrated path).

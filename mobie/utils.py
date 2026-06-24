@@ -12,6 +12,7 @@ import numpy as np
 import elf.transformation as trafo_helper
 import mobie.metadata as metadata
 
+from bioimage_py.runner.config import RunnerConfig, SlurmConfig
 from cluster_tools.cluster_tasks import BaseClusterTask
 from elf.io import open_file
 from mobie.validation import validate_view_metadata
@@ -297,6 +298,45 @@ def clone_dataset(
     metadata.copy_dataset_folder(src_folder, dst_folder, copy_misc=copy_misc)
 
     metadata.add_dataset(root, dst_dataset, is_default)
+
+
+def get_run_config(
+    target: str,
+    max_jobs: int,
+    tmp_folder: Optional[str] = None,
+    qos: Optional[str] = None,
+) -> Tuple[str, Optional[RunnerConfig], int]:
+    """Map mobie's computation target onto a bioimage-py runner configuration.
+
+    This is the foundation shim that replaces the cluster_tools luigi / global-config model:
+    instead of writing `*.config` files, the computation target and job count are translated
+    into bioimage-py's per-call `job_type` / `job_config` / `num_workers` arguments.
+
+    Args:
+        target: The computation target. One of 'local', 'subprocess' or 'slurm'.
+        max_jobs: The number of jobs for parallelization (maps to bioimage-py `num_workers`).
+        tmp_folder: The folder for temporary computation files. Used as the runner's shared
+            `tmp_root` for the distributed targets ('subprocess' and 'slurm').
+        qos: The slurm quality-of-service. Only applies to the 'slurm' target.
+
+    Returns:
+        The bioimage-py job type.
+        The runner configuration (None for the 'local' target).
+        The number of workers.
+
+    Raises:
+        ValueError: If the computation target is not supported. Note that 'lsf' is no longer
+            supported.
+    """
+    if target == "local":
+        return "local", None, max_jobs
+    elif target == "subprocess":
+        return "subprocess", RunnerConfig(tmp_root=tmp_folder), max_jobs
+    elif target == "slurm":
+        return "slurm", SlurmConfig(tmp_root=tmp_folder, qos=qos), max_jobs
+    raise ValueError(
+        f"Invalid computation target '{target}'. Supported targets are 'local', 'subprocess' and 'slurm'."
+    )
 
 
 def write_global_config(

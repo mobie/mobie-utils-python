@@ -4,8 +4,8 @@ channels:
     - conda-forge
     - cpape
 dependencies:
-    - cluster_tools >=0.4.4
-    - python-elf <0.9
+    - bioimage-py
+    - python-elf >=0.9
     - numba
     - jsonschema
     - pandas

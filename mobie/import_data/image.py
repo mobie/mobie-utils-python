@@ -19,9 +19,7 @@ def import_image_data(
     unit: str = "micrometer",
     source_name: Optional[str] = None,
     file_format: str = "ome.zarr",
-    int_to_uint: bool = False,
     channel: Optional[int] = None,
-    use_memmap: bool = False,
 ) -> None:
     """Convert image data into a format supported by MoBIE.
 
@@ -39,9 +37,7 @@ def import_image_data(
         unit: The physical unit of the coordinate system.
         source_name: The name of the source.
         file_format: The file format the data will be converted into.
-        int_to_uint Whether to convert data stored as signed integer to unsigned integer.
-        channel: The channel to load from the data. Currently only supported for the ome.zarr format.
-        use_memmap: Whether the input is a tif file that can be memmaped.
+        channel: The channel to load from the data.
     """
     # we allow 2d data for ome.zarr file format
     if file_format != "ome.zarr":
@@ -50,5 +46,4 @@ def import_image_data(
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format, int_to_uint=int_to_uint,
-              channel=channel, use_memmap=use_memmap)
+              metadata_format=file_format, channel=channel)
