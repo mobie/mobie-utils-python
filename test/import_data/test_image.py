@@ -4,6 +4,7 @@ import unittest
 from multiprocessing import cpu_count
 from shutil import rmtree
 
+import bioimage_py as bp
 import imageio
 import numpy as np
 from elf.io import open_file
@@ -14,6 +15,11 @@ try:
     import mrcfile
 except ImportError:
     mrcfile = None
+
+try:
+    import nibabel
+except ImportError:
+    nibabel = None
 
 
 class TestImportImage(unittest.TestCase):
@@ -133,10 +139,47 @@ class TestImportImage(unittest.TestCase):
                           target="local", max_jobs=self.n_jobs)
         self.check_data_ome_zarr(data, scales, self.out_path, resolution, scales)
 
-    # TODO
     @unittest.skipIf(mrcfile is None, "Need mrcfile")
     def test_import_mrc(self):
-        pass
+        from mobie.import_data import import_image_data
+        # mrcfile does not support float64, so use uint8 here.
+        shape = (32, 64, 64)
+        data = (np.random.rand(*shape) * 255).astype("uint8")
+
+        mrc_path = os.path.join(self.test_folder, "data.mrc")
+        with mrcfile.new(mrc_path, overwrite=True) as mrc:
+            mrc.set_data(data)
+
+        scales = [[2, 2, 2], [2, 2, 2]]
+        resolution = (0.5, 0.5, 0.5)
+        import_image_data(mrc_path, None, self.out_path,
+                          resolution=resolution, chunks=(16, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=self.n_jobs)
+
+        # the mrc reader applies an axis convention, so compare against what the importer reads.
+        expected = bp.open_source(mrc_path, "data")[:]
+        self.check_data_ome_zarr(expected, scales, self.out_path, resolution, scales)
+
+    @unittest.skipIf(nibabel is None, "Need nibabel")
+    def test_import_nifti(self):
+        from mobie.import_data import import_image_data
+        shape = (32, 64, 64)
+        data = np.random.rand(*shape).astype("float32")
+
+        nifti_path = os.path.join(self.test_folder, "data.nii.gz")
+        nibabel.save(nibabel.Nifti1Image(data, np.eye(4)), nifti_path)
+
+        scales = [[2, 2, 2], [2, 2, 2]]
+        resolution = (0.5, 0.5, 0.5)
+        import_image_data(nifti_path, None, self.out_path,
+                          resolution=resolution, chunks=(16, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=self.n_jobs)
+
+        # the nifti reader transposes axes, so compare against what the importer reads.
+        expected = bp.open_source(nifti_path)[:]
+        self.check_data_ome_zarr(expected, scales, self.out_path, resolution, scales)
 
     #
     # test exports to different output formats
@@ -163,6 +206,24 @@ class TestImportImage(unittest.TestCase):
                           scale_factors=scales, tmp_folder=self.tmp_folder,
                           target="local", max_jobs=1, file_format="bdv.n5")
         self.check_data(data, scales, is_h5=False, out_path=out_path)
+
+    def test_import_2d_to_bdv(self):
+        from mobie.import_data import import_image_data
+        # a 2d input is promoted to a 3d (1, y, x) volume on the fly (via ExpandDimsSource) for the
+        # bdv formats, which require 3d data. The scale factors must keep z=1 (sample_shape floors).
+        data = np.random.rand(128, 128)
+        test_path = os.path.join(self.test_folder, "data-2d.h5")
+        key = "data"
+        with open_file(test_path, mode="a") as f:
+            f.create_dataset(key, data=data)
+
+        scales = [[1, 2, 2], [1, 2, 2]]
+        out_path = os.path.join(self.test_folder, "imported_data.n5")
+        import_image_data(test_path, key, out_path,
+                          resolution=(1, 1, 1), chunks=(1, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=1, file_format="bdv.n5")
+        self.check_data(data[None], scales, is_h5=False, out_path=out_path)
 
     def test_import_ome_zarr(self):
         from mobie.import_data import import_image_data
