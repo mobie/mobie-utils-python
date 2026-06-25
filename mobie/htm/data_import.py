@@ -1,16 +1,17 @@
 """Functionality for creating sources from high content microscopy data.
 """
+import functools
 import multiprocessing
 import os
 from typing import List, Optional, Sequence
 
+import bioimage_py as bp
 import luigi
-import cluster_tools.utils.volume_utils as vu
 from cluster_tools.copy_sources import get_copy_task
 
-from .table_impl import get_table_impl_task
 from .. import metadata
 from .. import utils
+from ..tables import compute_default_table
 
 
 def _copy_image_data(files, key, root,
@@ -54,20 +55,31 @@ def _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d):
         metadata.add_dataset(root, dataset_name, is_default_dataset)
 
 
+def _compute_one_table(index, input_files, table_paths, input_key, resolution):
+    # Each image is computed in-memory (target "local"); the parallelization happens over images
+    # in `_add_tables`, not via bioimage-py's within-image block runner. The anchors are always
+    # corrected so they fall inside the (potentially concave) objects.
+    compute_default_table(
+        input_files[index], input_key, table_paths[index], resolution,
+        tmp_folder=None, target="local", max_jobs=1, correct_anchors=True,
+    )
+
+
 def _add_tables(file_format, paths,
                 source_names, resolution,
                 ds_folder, tmp_folder, target, max_jobs):
-    task = get_table_impl_task(target)
-    config_dir = os.path.join(tmp_folder, "configs")
-
     table_folders = [os.path.join(ds_folder, "tables", name) for name in source_names]
     table_paths = [os.path.join(tab_folder, "default.tsv") for tab_folder in table_folders]
-    input_key = vu.get_format_key(file_format, scale=0)
+    input_key = utils.get_data_key(file_format, scale=0, path=paths[0])
 
-    t = task(tmp_folder=tmp_folder, max_jobs=max_jobs, config_dir=config_dir,
-             input_files=paths, output_files=table_paths, input_key=input_key,
-             resolution=resolution)
-    assert luigi.build([t], local_scheduler=True), "Computing tables failed"
+    # parallelize the table computation over the images (one task per image).
+    job_type, job_config, num_workers = utils.get_run_config(target, max_jobs, tmp_folder)
+    runner = bp.get_runner(job_type, job_config)
+    runner.map(
+        functools.partial(_compute_one_table, input_files=paths, table_paths=table_paths,
+                          input_key=input_key, resolution=resolution),
+        len(paths), num_workers=num_workers, has_return_val=False, name="htm-tables",
+    )
 
     return table_folders
 

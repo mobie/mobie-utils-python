@@ -12,6 +12,7 @@ import mobie.utils as utils
 import numpy as np
 import pybdv.metadata as bdv_metadata
 import tifffile
+from bioimage_py import open_source
 from elf.io import open_file
 from mobie.import_data import import_image_data
 from pybdv.util import absolute_to_relative_scale_factors, get_key, get_scale_factors
@@ -21,8 +22,10 @@ def _get_default_contrast_limits(input_path, input_key, use_memmap=False):
     if use_memmap:
         dtype = tifffile.memmap(input_path).dtype
     else:
-        with open_file(input_path, "r") as f:
-            dtype = f[input_key].dtype
+        # read the dtype via bioimage-py so all of its supported input formats work (e.g. mrc /
+        # nifti, and single-file inputs with input_key=None, which elf's f[None] could not handle).
+        src = open_source(input_path, input_key) if input_key else open_source(input_path)
+        dtype = src.dtype
 
     if np.issubdtype(dtype, np.integer):
         contrast_limits = [np.iinfo(dtype).min, np.iinfo(dtype).max]

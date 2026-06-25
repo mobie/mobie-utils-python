@@ -8,7 +8,7 @@ import numpy as np
 import z5py
 from bioimage_py import copy, open_source, stats
 from bioimage_py.sources import as_source
-from bioimage_py.wrapper import ResizedSource, RoiSource
+from bioimage_py.wrapper import ExpandDimsSource, ResizedSource, RoiSource
 from elf.io import open_file
 from pybdv.downsample import sample_shape
 
@@ -154,6 +154,10 @@ def downscale(in_path, in_key, out_path,
         src = open_source(in_path, in_key) if in_key else open_source(in_path)
         if channel is not None:
             src = RoiSource(src, roi=(channel,), squeeze=True)
+        # the bdv formats require 3d data; promote a 2d source to (1, y, x) on the fly via a wrapper
+        # view (ome.zarr keeps 2d data as-is). This replaces the former on-disk temp file.
+        if metadata_format != "ome.zarr" and src.ndim == 2:
+            src = ExpandDimsSource(src, axis=0)
         ndim = src.ndim
         _validate(ndim, resolution, scale_factors, metadata_format)
         order, anti_aliasing = _downsampling_params(library, library_kwargs, src.dtype)
@@ -193,27 +197,3 @@ def add_max_id(in_path, in_key, out_path, out_key,
 
     with _open_data(out_path, mode="a") as f:
         f[out_key].attrs["maxId"] = int(max_id)
-
-
-def ensure_volume(in_path, in_key, tmp_folder, chunks):
-    with open_file(in_path, mode="r") as f:
-        ndim = len(f[in_key].shape)
-    if ndim not in (2, 3):
-        raise ValueError(f"Expected input of dimension 2 or 3, got {ndim}")
-
-    if ndim == 2:
-        assert chunks[0] == 1, f"{chunks}"
-        with open_file(in_path, mode="r") as f:
-            ds = f[in_key]
-            img = ds[:]
-
-        name = os.path.splitext(os.path.split(in_path)[1])[0]
-        tmp_path = os.path.join(tmp_folder, f"tmp_{name}.h5")
-        tmp_key = "data"
-
-        os.makedirs(tmp_folder, exist_ok=True)
-        with open_file(tmp_path, mode="a") as f:
-            f.create_dataset(tmp_key, data=img[None], chunks=tuple(chunks))
-        return tmp_path, tmp_key
-    else:
-        return in_path, in_key
