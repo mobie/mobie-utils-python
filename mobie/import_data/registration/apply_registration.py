@@ -1,15 +1,13 @@
-import json
 import os
 import subprocess
 
+import bioimage_py as bp
 import imageio
-import luigi
 import numpy as np
 
-from elf.io import open_file
 from elf.transformation import elastix_parser
-from cluster_tools.copy_volume import CopyVolumeLocal, CopyVolumeSlurm
-from mobie.utils import write_global_config
+from mobie.utils import get_run_config
+from mobie.import_data.utils import _create_level, _open_storage, _remove_output
 from .registration_impl import (registration_affine,
                                 registration_bdv,
                                 registration_coordinate,
@@ -57,37 +55,30 @@ def save_tif(data, path, fiji_executable, resolution):
     subprocess.run(cmd)
 
 
-# TODO implement this as cluster task to make it run safely on login nodes
 def write_transformix_input(in_path, in_key, out_path,
                             fiji_executable, resolution,
                             tmp_folder, target, max_jobs,
                             cast_to=None):
-    with open_file(in_path, 'r') as f:
-        ds = f[in_key]
-        ds.n_threads = max_jobs
-        data = ds[:]
+    src = bp.open_source(in_path, in_key) if in_key else bp.open_source(in_path)
+    data = src[:]
     if cast_to is not None:
         data = data.astype(cast_to)
 
     save_tif(data, out_path, fiji_executable, resolution=resolution)
 
 
-def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, target, max_jobs):
-    task = CopyVolumeSlurm if target == 'slurm' else CopyVolumeLocal
-    config_dir = os.path.join(tmp_folder, 'configs')
+def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, target, max_jobs,
+                             file_format="ome.zarr"):
+    # the transformix result tif is materialized into the scale-0 dataset via a block-wise copy
+    # (replacing the former cluster_tools CopyVolume task).
+    src = bp.open_source(in_path)
+    job_type, job_config, num_workers = get_run_config(target, max_jobs, tmp_folder)
 
-    task_config = task.default_task_config()
-    task_config.update({'chunks': chunks})
-    with open(os.path.join(config_dir, 'copy_volume.config'), 'w') as f:
-        json.dump(task_config, f)
-
-    t = task(tmp_folder=tmp_folder, config_dir=config_dir, max_jobs=max_jobs,
-             input_path=in_path, input_key='',
-             output_path=out_path, output_key=out_key,
-             prefix='transformix-output')
-    ret = luigi.build([t], local_scheduler=True)
-    if not ret:
-        raise RuntimeError("Copying transformix output failed")
+    _remove_output(out_path)
+    with _open_storage(out_path, file_format, mode="a") as f:
+        ds = _create_level(f, file_format, 0, src.shape, chunks, src.dtype)
+        bp.copy(src, output=ds, block_shape=tuple(int(c) for c in ds.chunks),
+                job_type=job_type, job_config=job_config, num_workers=num_workers)
 
 
 def apply_affine(input_path, input_key,
@@ -95,19 +86,15 @@ def apply_affine(input_path, input_key,
                  transformation, interpolation,
                  shape, resolution, chunks,
                  tmp_folder, target, max_jobs,
-                 bounding_box):
+                 bounding_box, file_format):
     os.makedirs(tmp_folder, exist_ok=True)
-    if bounding_box is None:
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
-    else:
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks,
-                            roi_begin=bounding_box[0], roi_end=bounding_box[1])
     registration_affine(input_path, input_key,
                         output_path, output_key,
                         transformation, interpolation,
                         shape=shape, resolution=resolution,
                         chunks=chunks, tmp_folder=tmp_folder,
-                        target=target, max_jobs=max_jobs)
+                        target=target, max_jobs=max_jobs,
+                        bounding_box=bounding_box, file_format=file_format)
 
 
 def apply_bdv(input_path, output_path, transformation, resolution):
@@ -128,14 +115,13 @@ def apply_transformix(input_path, input_key, output_path, output_key,
                       transformation, interpolation,
                       shape, resolution, chunks,
                       fiji_executable, elastix_directory,
-                      tmp_folder, target, max_jobs):
+                      tmp_folder, target, max_jobs,
+                      file_format):
     os.makedirs(tmp_folder, exist_ok=True)
-    write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
 
     # get the data type of the input dataset
-    with open_file(input_path, 'r') as f:
-        ds = f[input_key]
-        dtype = ds.dtype
+    src = bp.open_source(input_path, input_key) if input_key else bp.open_source(input_path)
+    dtype = src.dtype
 
     # make sure it's in the supported datatypes and set the correct
     # datatype name for elastix
@@ -168,31 +154,29 @@ def apply_transformix(input_path, input_key, output_path, output_key,
                              interpolation=interpolation, output_format='tif',
                              shape=shape, resolution=resolution,
                              result_dtype=dtype, target=target,
-                             n_threads=max_jobs)
+                             n_threads=max_jobs, max_jobs=max_jobs)
 
     output_tmp_path += '-ch0.tif'
     write_transformix_output(output_tmp_path, output_path, output_key,
-                             chunks, tmp_folder, target, max_jobs)
+                             chunks, tmp_folder, target, max_jobs,
+                             file_format=file_format)
 
 
 def apply_coordinate(input_path, input_key,
                      output_path, output_key,
-                     transformation, elastix_directory,
+                     transformation, interpolation, elastix_directory,
                      shape, resolution, chunks,
                      tmp_folder, target, max_jobs,
-                     bounding_box):
+                     bounding_box, file_format):
     os.makedirs(tmp_folder, exist_ok=True)
-    if bounding_box is None:
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks)
-    else:
-        write_global_config(os.path.join(tmp_folder, 'configs'), block_shape=chunks,
-                            roi_begin=bounding_box[0], roi_end=bounding_box[1])
     registration_coordinate(input_path, input_key,
                             output_path, output_key,
                             transformation=transformation,
                             elastix_directory=elastix_directory,
-                            shape=shape, resolution=resolution,
-                            tmp_folder=tmp_folder, target=target, max_jobs=max_jobs)
+                            shape=shape, resolution=resolution, chunks=chunks,
+                            tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
+                            interpolation=interpolation, bounding_box=bounding_box,
+                            file_format=file_format)
 
 
 def _validate_bounding_box(bounding_box):
@@ -213,7 +197,7 @@ def apply_registration(input_path, input_key,
                        fiji_executable, elastix_directory,
                        shape, resolution, chunks,
                        tmp_folder, target, max_jobs,
-                       bounding_box=None):
+                       bounding_box=None, file_format="ome.zarr"):
     if elastix_parser.get_transformation_type(transformation) is None:
         raise ValueError(f"{transformation} is not an elastix transformation")
 
@@ -238,28 +222,30 @@ def apply_registration(input_path, input_key,
                           elastix_directory=elastix_directory,
                           tmp_folder=tmp_folder,
                           target=target,
-                          max_jobs=max_jobs)
+                          max_jobs=max_jobs,
+                          file_format=file_format)
     # write on the fly-transformation to bdv xml metadata
     elif method == 'bdv':
         apply_bdv(input_path, output_path, transformation, resolution)
-    # transform via affine transformation functionality of nifty
+    # transform via bioimage-py's affine source wrapper
     elif method == 'affine':
         apply_affine(input_path, input_key,
                      output_path, output_key,
                      transformation, interpolation,
                      shape, resolution, chunks,
                      tmp_folder, target, max_jobs,
-                     bounding_box)
-    # transform via coordinate transformation functionality of transformix and nifty
+                     bounding_box, file_format)
+    # transform via transformix coordinate mapping, resampled with map_coordinates
     elif method == 'coordinate':
         apply_coordinate(input_path, input_key,
                          output_path, output_key,
                          transformation=transformation,
+                         interpolation=interpolation,
                          elastix_directory=elastix_directory,
                          shape=shape, resolution=resolution,
                          chunks=chunks, tmp_folder=tmp_folder,
                          target=target, max_jobs=max_jobs,
-                         bounding_box=bounding_box)
+                         bounding_box=bounding_box, file_format=file_format)
     else:
         msg = (
             f"Invalid registration method {method} provided."
