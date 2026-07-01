@@ -139,7 +139,7 @@ def downscale(in_path, in_key, out_path,
     run_kwargs = dict(job_type=job_type, job_config=job_config, num_workers=num_workers)
 
     # downscaling in-place: the scale-0 data already exists at out_path/in_key (e.g. when importing
-    # a segmentation from node labels / paintera). In that case we only add the downsampled levels.
+    # a segmentation from node labels). In that case we only add the downsampled levels.
     in_place = os.path.abspath(in_path) == os.path.abspath(out_path)
 
     if in_place:

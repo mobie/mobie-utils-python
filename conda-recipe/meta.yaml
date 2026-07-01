@@ -22,11 +22,10 @@ requirements:
     - python >=3.6
     - pip
   run:
-    - cluster_tools >=0.3.4
-    - python-elf
+    - bioimage-py
+    - python-elf >0.9
     - jsonschema
     - pandas
-    - paintera_tools >=0.2.1
     - pybdv >=0.5
     - python >=3.6
     - requests
