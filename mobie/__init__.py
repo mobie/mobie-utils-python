@@ -1,4 +1,7 @@
-"""Lorem ipsum
+"""mobie is a python library for generating, populating, validating and migrating
+[MoBIE](https://github.com/mobie/mobie) projects: it converts raw image, segmentation
+and spot data into MoBIE-compatible storage and writes the spec-compliant metadata
+that the MoBIE Fiji viewer reads.
 """
 
 from .image_data import add_image, add_bdv_image

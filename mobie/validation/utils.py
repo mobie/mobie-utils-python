@@ -30,7 +30,7 @@ def _download_schema():
         if os.path.exists(out_file):
             return True
         try:
-            r = requests.get(address)
+            r = requests.get(address, timeout=30)
             with open(out_file, "w") as f:
                 f.write(r.content.decode("utf-8"))
             return True
