@@ -1,23 +1,36 @@
 """Functionality for creating sources from high content microscopy data.
 """
+import functools
 import multiprocessing
 import os
 from typing import List, Optional, Sequence
 
-import luigi
-import cluster_tools.utils.volume_utils as vu
-from cluster_tools.copy_sources import get_copy_task
+import bioimage_py as bp
 
-from .table_impl import get_table_impl_task
 from .. import metadata
 from .. import utils
+from ..import_data import import_image_data, import_segmentation
+from ..tables import compute_default_table
+
+
+def _import_one_source(index, input_files, output_files, names, key, file_format,
+                       resolution, unit, scale_factors, chunks, is_seg):
+    # Each source is converted in-memory (target "local"); parallelization happens over
+    # sources in `_copy_image_data`, not via bioimage-py's within-source block runner.
+    import_fn = import_segmentation if is_seg else import_image_data
+    import_fn(
+        input_files[index], key, output_files[index],
+        resolution, scale_factors, chunks,
+        tmp_folder=None, target="local", max_jobs=1,
+        unit=unit, source_name=names[index], file_format=file_format,
+    )
 
 
 def _copy_image_data(files, key, root,
                      dataset_name, source_names,
                      file_format,  resolution, unit,
                      scale_factors, chunks,
-                     tmp_folder, target, max_jobs):
+                     tmp_folder, target, max_jobs, is_seg=False):
     assert len(files) == len(source_names)
     ds_folder = os.path.join(root, dataset_name)
     sources = list(metadata.read_dataset_metadata(ds_folder).get("sources", {}).keys())
@@ -33,15 +46,16 @@ def _copy_image_data(files, key, root,
     output_files = [paths[0] for paths in out_paths]
     metadata_paths = [paths[1] for paths in out_paths]
 
-    task = get_copy_task(target)
-    config_dir = os.path.join(tmp_folder, "configs")
-    image_metadata = {"resolution": resolution, "unit": unit}
-
-    t = task(input_files=input_files, output_files=output_files, key=key,
-             metadata_format=file_format, scale_factors=scale_factors, chunks=chunks,
-             metadata_dict=image_metadata, names=input_names,
-             tmp_folder=tmp_folder, max_jobs=max_jobs, config_dir=config_dir)
-    assert luigi.build([t], local_scheduler=True), "Copying the sources failed"
+    # import each source into the dataset, parallelizing over sources (one task per source).
+    job_type, job_config, num_workers = utils.get_run_config(target, max_jobs, tmp_folder)
+    runner = bp.get_runner(job_type, job_config)
+    runner.map(
+        functools.partial(_import_one_source, input_files=input_files, output_files=output_files,
+                          names=input_names, key=key, file_format=file_format,
+                          resolution=resolution, unit=unit, scale_factors=scale_factors,
+                          chunks=chunks, is_seg=is_seg),
+        len(input_files), num_workers=num_workers, has_return_val=False, name="htm-import",
+    )
     return input_names, metadata_paths
 
 
@@ -54,20 +68,31 @@ def _require_dataset(root, dataset_name, file_format, is_default_dataset, is2d):
         metadata.add_dataset(root, dataset_name, is_default_dataset)
 
 
+def _compute_one_table(index, input_files, table_paths, input_key, resolution):
+    # Each image is computed in-memory (target "local"); the parallelization happens over images
+    # in `_add_tables`, not via bioimage-py's within-image block runner. The anchors are always
+    # corrected so they fall inside the (potentially concave) objects.
+    compute_default_table(
+        input_files[index], input_key, table_paths[index], resolution,
+        tmp_folder=None, target="local", max_jobs=1, correct_anchors=True,
+    )
+
+
 def _add_tables(file_format, paths,
                 source_names, resolution,
                 ds_folder, tmp_folder, target, max_jobs):
-    task = get_table_impl_task(target)
-    config_dir = os.path.join(tmp_folder, "configs")
-
     table_folders = [os.path.join(ds_folder, "tables", name) for name in source_names]
     table_paths = [os.path.join(tab_folder, "default.tsv") for tab_folder in table_folders]
-    input_key = vu.get_format_key(file_format, scale=0)
+    input_key = utils.get_data_key(file_format, scale=0, path=paths[0])
 
-    t = task(tmp_folder=tmp_folder, max_jobs=max_jobs, config_dir=config_dir,
-             input_files=paths, output_files=table_paths, input_key=input_key,
-             resolution=resolution)
-    assert luigi.build([t], local_scheduler=True), "Computing tables failed"
+    # parallelize the table computation over the images (one task per image).
+    job_type, job_config, num_workers = utils.get_run_config(target, max_jobs, tmp_folder)
+    runner = bp.get_runner(job_type, job_config)
+    runner.map(
+        functools.partial(_compute_one_table, input_files=paths, table_paths=table_paths,
+                          input_key=input_key, resolution=resolution),
+        len(paths), num_workers=num_workers, has_return_val=False, name="htm-tables",
+    )
 
     return table_folders
 
@@ -138,7 +163,7 @@ def add_images(
                                                     dataset_name, image_names,
                                                     file_format,  resolution, unit,
                                                     scale_factors, chunks,
-                                                    tmp_folder, target, max_jobs)
+                                                    tmp_folder, target, max_jobs, is_seg=False)
 
     # add metadata for all the images
     if source_names:
@@ -194,12 +219,12 @@ def add_segmentations(
     tmp_folder = f"tmp_{dataset_name}_{segmentation_names[0]}" if tmp_folder\
         is None else tmp_folder
 
-    # copy all the image data into the dataset with the given file format
+    # copy all the segmentation data into the dataset with the given file format
     source_names, metadata_paths = _copy_image_data(files, key, root,
                                                     dataset_name, segmentation_names,
                                                     file_format,  resolution, unit,
                                                     scale_factors, chunks,
-                                                    tmp_folder, target, max_jobs)
+                                                    tmp_folder, target, max_jobs, is_seg=True)
 
     if add_default_tables:
         table_folders = _add_tables(file_format, metadata_paths,

@@ -10,9 +10,7 @@ import numpy as np
 import pandas as pd
 
 from mobie.import_data import (import_segmentation,
-                               import_segmentation_from_node_labels,
-                               import_segmentation_from_paintera,
-                               is_paintera)
+                               import_segmentation_from_node_labels)
 from mobie.tables import check_and_copy_default_table, compute_default_table
 
 
@@ -36,7 +34,6 @@ def add_segmentation(
     max_jobs: int = multiprocessing.cpu_count(),
     add_default_table: Union[bool, str, pd.DataFrame] = True,
     view: Optional[Dict] = None,
-    postprocess_config: Optional[Dict] = None,
     unit: str = "micrometer",
     is_default_dataset: bool = False,
     description: Optional[str] = None,
@@ -56,8 +53,8 @@ def add_segmentation(
         menu_name: The menu name for this source.
             If none is given will be created based on the sourec name.
         file_format: The file format used to store the data internally.
-        node_label_path: The path to node labels of a paintera dataset.
-            If given, these will be used to re-assign the label ids.
+        node_label_path: The path to a node-label assignment (a fragment -> segment id mapping).
+            If given, these will be used to re-assign the label ids of the input segmentation.
         node_label_key: The key to the node labels, for the internal path where the node labels are stored.
         tmp_folder: Folder for temporary files.
         target: The computation target.
@@ -66,7 +63,6 @@ def add_segmentation(
             Can also be a filepath to a table in tsv format or a pandas DataFrame.
             In the two latter cases the default table will be initialized from the passed data.
         view: The default view settings for this source.
-        postprocess_config: The config for postprocessing, only available for a paintera dataset.
         unit: The physical unit of the coordinate system.
         is_default_dataset: Whether to set new dataset as default dataset. Only applies if the dataset is being created.
         description: The description for this segmentation source.
@@ -96,16 +92,8 @@ def add_segmentation(
                                              resolution, scale_factors, chunks,
                                              tmp_folder=tmp_folder, target=target,
                                              max_jobs=max_jobs, unit=unit,
-                                             source_name=segmentation_name)
-    elif is_paintera(input_path, input_key):
-        if file_format != "bdv.n5":
-            raise NotImplementedError
-        import_segmentation_from_paintera(input_path, input_key, data_path,
-                                          resolution, scale_factors, chunks,
-                                          tmp_folder=tmp_folder, target=target,
-                                          max_jobs=max_jobs,
-                                          postprocess_config=postprocess_config,
-                                          unit=unit, source_name=segmentation_name)
+                                             source_name=segmentation_name,
+                                             file_format=file_format)
     else:
         import_segmentation(input_path, input_key, data_path,
                             resolution, scale_factors, chunks,

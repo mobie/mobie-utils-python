@@ -169,6 +169,7 @@ class TestViewUtils(unittest.TestCase):
 
     def setUp(self):
         os.makedirs(self.root)
+        os.makedirs(self.tmp_root, exist_ok=True)
         in_key = "data"
         resolution = (1.0, 1.0, 1.0)
         scale_factors = [[2, 2, 2]]

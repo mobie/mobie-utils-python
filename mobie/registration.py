@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Sequence
 
 import mobie.metadata as metadata
 import mobie.utils as utils
-from mobie.import_data.utils import downscale, add_max_id
+from mobie.import_data.utils import downscale, add_max_id, get_scale_key
 from mobie.tables import compute_default_table
 
 try:
@@ -88,7 +88,7 @@ def add_registered_source(
     dataset_folder = os.path.join(root, dataset_name)
     tmp_folder = f"tmp_{source_name}" if tmp_folder is None else tmp_folder
 
-    data_key = "setup0/timepoint0/s0"
+    data_key = get_scale_key(file_format, 0)
     data_path, image_metadata_path = utils.get_internal_paths(dataset_folder, file_format, source_name)
 
     interpolation = "linear" if source_type == "image" else "nearest"
@@ -99,9 +99,9 @@ def add_registered_source(
                                               fiji_executable=fiji_executable, elastix_directory=elastix_directory,
                                               shape=shape, resolution=resolution, chunks=chunks,
                                               tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
-                                              bounding_box=bounding_box)
+                                              bounding_box=bounding_box, file_format=file_format)
 
-    data_key = "setup0/timepoint0/s0"
+    data_key = get_scale_key(file_format, 0)
     # we don"t need to downscale the data if the transformation is applied on the fly by bdv
     if method != "bdv":
         if source_type == "image":
@@ -114,7 +114,7 @@ def add_registered_source(
                   effective_resolution, scale_factors, chunks,
                   tmp_folder, target, max_jobs, block_shape=chunks,
                   library=ds_library, library_kwargs=ds_library_kwargs,
-                  source_name=source_name)
+                  metadata_format=file_format, source_name=source_name)
         add_max_id(input_path, input_key, data_path, data_key,
                    tmp_folder, target, max_jobs)
 

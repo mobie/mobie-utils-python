@@ -1,7 +1,7 @@
 """Functionality for converting segmentation data into a format compatible with MoBIE.
 """
 from typing import List, Optional, Sequence, Tuple
-from .utils import add_max_id, downscale, ensure_volume, get_scale_key
+from .utils import add_max_id, downscale, get_scale_key
 
 
 def import_segmentation(
@@ -38,10 +38,7 @@ def import_segmentation(
         source_name: The name of the source.
         file_format: The output file format.
     """
-    # we allow 2d data for ome.zarr file format
-    if file_format != "ome.zarr":
-        in_path, in_key = ensure_volume(in_path, in_key, tmp_folder, chunks)
-
+    # 2d input is promoted to 3d on the fly inside downscale for the bdv formats (ome.zarr keeps 2d).
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,

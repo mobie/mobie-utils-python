@@ -3,9 +3,8 @@ name:
 channels:
     - conda-forge
 dependencies:
-    - cluster_tools >=0.4.4
-    - python-elf <0.9
-    - numba
+    - bioimage-py
+    - python-elf >0.9
     - jsonschema
     - pandas
     - pip
