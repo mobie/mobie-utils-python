@@ -34,6 +34,8 @@ jobs:
       with:
         micromamba-version: "latest"
         environment-file: environment.yaml
+        create-args: >-
+          python=3.13
         init-shell: bash
         cache-environment: true
         post-cleanup: 'all'
