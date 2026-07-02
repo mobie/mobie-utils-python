@@ -4,10 +4,14 @@ channels:
     - conda-forge
 dependencies:
     - bioimage-py
-    - python-elf >0.9
     - jsonschema
+    - imageio
     - pandas
     - pip
-    - requests
+    - python-elf >0.9
     - pybdv >=0.5
+    - requests
     - s3fs
+    - tifffile
+    - zarr >=3
+    - z5py >=3

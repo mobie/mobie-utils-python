@@ -3,11 +3,30 @@ from setuptools import setup, find_packages
 
 version = runpy.run_path("mobie/__version__.py")["__version__"]
 
+requires = [
+    "bioimage-py",
+    "python-elf>=0.9",
+    "pybdv>=0.5",
+    "z5py",
+    "h5py",
+    "imageio",
+    "jsonschema",
+    "pandas",
+    "requests",
+    "s3fs",
+    "scikit-image",
+    "tifffile",
+    "tqdm",
+    "zarr>=3",
+    "z5py>=3",
+]
+
 setup(
     name="mobie",
     packages=find_packages(exclude=["test"]),
     version=version,
     author="Constantin Pape",
+    install_requires=requires,
     url="https://github.com/platybrowser/mobie-utils-python",
     license="MIT",
     entry_points={
