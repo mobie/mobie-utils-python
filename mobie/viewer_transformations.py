@@ -1,6 +1,6 @@
 """Helper functions for converting viewer transformations to global coordinate transformations.
 """
-from Typing import List, Union
+from typing import List, Union
 
 import elf.transformation as trafo
 import numpy as np
