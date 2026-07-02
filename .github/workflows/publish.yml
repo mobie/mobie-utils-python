@@ -40,7 +40,7 @@ jobs:
 
     environment:
       name: pypi
-      url: https://pypi.org/p/mobie-utils
+      url: https://pypi.org/p/mobie_utils
 
     permissions:
       id-token: write
@@ -63,7 +63,7 @@ jobs:
 
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/mobie-utils
+      url: https://test.pypi.org/p/mobie_utils
 
     permissions:
       id-token: write

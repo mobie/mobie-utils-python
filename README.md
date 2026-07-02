@@ -66,7 +66,7 @@ mobie.add_image(data_path, data_key,
 
 ```
 
-Check out the [python library documentation](TODO) for further info.
+Check out the [python library documentation](https://mobie.github.io/mobie-utils-python/) for further info.
 
 ### From the command line
 
