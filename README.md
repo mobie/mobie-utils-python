@@ -8,22 +8,27 @@ A python library to generate projects for [MoBIE](https://github.com/mobie-org/m
 
 ## Installation
 
+**From pip:**
+```
+pip install mobie_utils
+```
+
 **From conda:**
 
 ```
-$ conda install -c conda-forge mobie_utils
+conda install -c conda-forge mobie_utils
 ```
 
 **For development:**
 
 You can set up (and activate) a conda environment with all dependencies from `environment.yaml`:
 ```sh
-$ conda env create -f environment.yaml
-$ conda activate mobie
+conda env create -f environment.yaml
+conda activate mobie
 ```
 and  install the library via
 ```sh
-$ pip install -e .
+pip install -e .
 ```
 
 ## Usage
@@ -60,6 +65,8 @@ mobie.add_image(data_path, data_key,
                 resolution, chunks, scale_factors)
 
 ```
+
+Check out the [python library documentation](TODO) for further info.
 
 ### From the command line
 
