@@ -22,7 +22,7 @@ requires = [
 ]
 
 setup(
-    name="mobie",
+    name="mobie_utils",
     packages=find_packages(exclude=["test"]),
     version=version,
     author="Constantin Pape",
