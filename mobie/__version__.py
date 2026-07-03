@@ -1,2 +1,2 @@
-__version__ = "0.5.5"
+__version__ = "0.6.1"
 SPEC_VERSION = "0.3.0"
