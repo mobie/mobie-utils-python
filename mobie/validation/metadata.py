@@ -9,8 +9,16 @@ from jsonschema import ValidationError
 from pybdv.metadata import get_name, get_data_path
 
 from .tables import check_region_tables, check_segmentation_tables, check_spot_tables, check_tables_in_view
-from .utils import _assert_true, _assert_equal, _assert_in, validate_with_schema, load_json_from_s3
+from .utils import (_assert_true, _assert_equal, _assert_in, validate_with_schema, load_json_from_s3,
+                    load_ngff_group_attrs, validate_ngff_metadata)
 from ..xml_utils import parse_s3_xml
+
+
+def _read_json_if_exists(path):
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        return json.load(f)
 
 
 def _check_bdv_n5_s3(xml, assert_true):
@@ -24,12 +32,17 @@ def _check_bdv_n5_s3(xml, assert_true):
 
 
 def _check_ome_zarr_s3(address, name, assert_true, assert_equal, channel):
-    try:
-        zattrs = load_json_from_s3(os.path.join(address, ".zattrs"))
-    except Exception:
-        assert_true(False, f"Can't find ome.zarr..s3file at {address}")
+    def read_json(fname):
+        try:
+            return load_json_from_s3(os.path.join(address, fname))
+        except Exception:
+            return None
 
-    validate_with_schema(zattrs, "NGFF")
+    # handle both the zarr v2 (.zattrs) and v3 (zarr.json) on-disk layouts.
+    attrs = load_ngff_group_attrs(read_json)
+    assert_true(attrs is not None, f"Can't find ome.zarr.s3 file at {address}")
+
+    validate_ngff_metadata(attrs)
 
     # we disable the name check for the time being since it seems to not be necessary,
     # AND restricting the name in this fashion prevents embedding existing ome.zarr files in mobie projects
@@ -69,13 +82,11 @@ def _check_data(storage, format_, name, dataset_folder,
         path = os.path.join(dataset_folder, storage["relativePath"])
         assert_true(os.path.exists(path), f"Could not find data for {name} at {path}")
 
-        attr_path = os.path.join(path, ".zattrs")
-        assert_true(os.path.exists(attr_path), f"Could not find metadata for {name} at {path}")
+        # handle both the zarr v2 (.zattrs) and v3 (zarr.json) on-disk layouts.
+        attrs = load_ngff_group_attrs(lambda fname: _read_json_if_exists(os.path.join(path, fname)))
+        assert_true(attrs is not None, f"Could not find metadata for {name} at {path}")
 
-        with open(attr_path) as f:
-            zattrs = json.load(f)
-
-        validate_with_schema(zattrs, "NGFF")
+        validate_ngff_metadata(attrs)
 
         # we disable the name check for the time being since it seems to not be necessary,
         # AND restricting the name in this fashion prevents embedding existing ome.zarr files in mobie projects

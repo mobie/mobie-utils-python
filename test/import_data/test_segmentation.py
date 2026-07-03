@@ -59,6 +59,26 @@ class TestImportSegmentation(unittest.TestCase):
 
         self.check_seg(data, scales)
 
+    def test_import_segmentation_ome_zarr_v05(self):
+        from mobie.import_data import import_segmentation
+        shape = (64, 128, 128)
+        data = np.random.randint(0, 100, size=shape, dtype='uint64')
+
+        test_path = os.path.join(self.test_folder, 'data.h5')
+        key = 'data'
+        with open_file(test_path, mode="a") as f:
+            f.create_dataset(key, data=data)
+
+        scales = [[1, 2, 2], [2, 2, 2]]
+        import_segmentation(test_path, key, self.out_path,
+                            resolution=(0.5, 1, 1), chunks=(32, 64, 64),
+                            scale_factors=scales, tmp_folder=self.tmp_folder,
+                            target='local', max_jobs=self.n_jobs,
+                            ome_zarr_version="0.5", shards=(64, 128, 128))
+        # the output is a zarr v3 store (metadata in zarr.json, no .zgroup)
+        self.assertTrue(os.path.exists(os.path.join(self.out_path, "zarr.json")))
+        self.check_seg(data, scales)
+
     def _write_fragments(self, shape=(64, 128, 128), n_ids=100):
         data = np.random.randint(0, n_ids, size=shape, dtype='uint64')
         test_path = os.path.join(self.test_folder, 'data.h5')
@@ -112,6 +132,30 @@ class TestImportSegmentation(unittest.TestCase):
         lut = np.zeros(int(data.max()) + 1, dtype='uint64')
         lut[old_ids] = new_ids
         exp_data = lut[data]
+        self.check_seg(exp_data, scales)
+
+    def test_import_from_node_labels_ome_zarr_v05(self):
+        # node-label import to ome.zarr v0.5 (zarr v3), incl. maxId recomputed from the relabeled output
+        from mobie.import_data import import_segmentation_from_node_labels
+        n_ids = 100
+        test_path, key, data = self._write_fragments(n_ids=n_ids)
+
+        labeling = np.random.randint(0, 50, size=n_ids, dtype='uint64')
+        labeling[0] = 0
+        node_label_path = os.path.join(self.test_folder, 'node_labels.h5')
+        with open_file(node_label_path, mode="a") as f:
+            f.create_dataset('labels', data=labeling)
+
+        scales = [[1, 2, 2], [2, 2, 2]]
+        import_segmentation_from_node_labels(
+            test_path, key, self.out_path, node_label_path, 'labels',
+            resolution=(0.5, 1, 1), scale_factors=scales, chunks=(32, 64, 64),
+            tmp_folder=self.tmp_folder, target='local', max_jobs=self.n_jobs,
+            ome_zarr_version="0.5",
+        )
+
+        self.assertTrue(os.path.exists(os.path.join(self.out_path, "zarr.json")))
+        exp_data = np.take(labeling, data)
         self.check_seg(exp_data, scales)
 
     def test_import_from_node_labels_bdv_n5(self):

@@ -21,12 +21,14 @@ from pybdv.util import relative_to_absolute_scale_factors
 AXES_TYPES = {"t": "time", "c": "channel", "z": "space", "y": "space", "x": "space"}
 
 
-def _write_ome_zarr_metadata(path, metadata_dict, scale_factors):
+def _write_ome_zarr_metadata(path, metadata_dict, scale_factors, ome_zarr_version="0.4"):
     setup_name = metadata_dict.get("setup_name", None)
     setup_name = "data" if setup_name is None else setup_name
     unit = metadata_dict.get("unit", "pixel")
 
-    with z5py.File(path, mode="a", dimension_separator="/") as f:
+    # v0.4 -> zarr v2 (.zattrs, dimension_separator='/'); v0.5 -> zarr v3 (zarr.json).
+    open_kwargs = {"zarr_format": 3} if ome_zarr_version == "0.5" else {"dimension_separator": "/"}
+    with z5py.File(path, mode="a", **open_kwargs) as f:
         ndim = f["s0"].ndim
         axes_names = ["y", "x"] if ndim == 2 else ["z", "y", "x"]
         resolution = metadata_dict.get("resolution", [1.0] * ndim)
@@ -41,9 +43,13 @@ def _write_ome_zarr_metadata(path, metadata_dict, scale_factors):
             {"path": f"s{level}", "coordinateTransformations": [{"type": "scale", "scale": scale}]}
             for level, scale in enumerate(scales)
         ]
-        f.attrs["multiscales"] = [
-            {"axes": axes, "datasets": datasets, "name": setup_name, "version": "0.4"}
-        ]
+        multiscales = [{"axes": axes, "datasets": datasets, "name": setup_name}]
+        if ome_zarr_version == "0.5":
+            # NGFF v0.5: the metadata lives under an 'ome' key, with the version at the 'ome' level.
+            f.attrs["ome"] = {"version": "0.5", "multiscales": multiscales}
+        else:
+            multiscales[0]["version"] = ome_zarr_version
+            f.attrs["multiscales"] = multiscales
 
 
 def _write_bdv_metadata(metadata_format, path, metadata_dict, scale_factors):
@@ -66,7 +72,7 @@ def _write_bdv_metadata(metadata_format, path, metadata_dict, scale_factors):
         write_n5_metadata(path, scale_factors, resolution)
 
 
-def write_format_metadata(metadata_format, path, metadata_dict, scale_factors):
+def write_format_metadata(metadata_format, path, metadata_dict, scale_factors, ome_zarr_version="0.4"):
     """Write the multiscale metadata for the given storage format.
 
     Args:
@@ -74,12 +80,14 @@ def write_format_metadata(metadata_format, path, metadata_dict, scale_factors):
         path: The path to the (already written) multiscale data.
         metadata_dict: The metadata values, with keys 'resolution', 'unit' and 'setup_name'.
         scale_factors: The relative per-level downscaling factors (without the s0 identity).
+        ome_zarr_version: The ome.zarr / NGFF version to write. Only applies to the 'ome.zarr'
+            format ('0.4' -> zarr v2, '0.5' -> zarr v3).
 
     Raises:
         ValueError: If the storage format is not supported.
     """
     if metadata_format == "ome.zarr":
-        _write_ome_zarr_metadata(path, metadata_dict, scale_factors)
+        _write_ome_zarr_metadata(path, metadata_dict, scale_factors, ome_zarr_version)
     elif metadata_format in ("bdv", "bdv.n5", "bdv.hdf5"):
         _write_bdv_metadata(metadata_format, path, metadata_dict, scale_factors)
     else:

@@ -15,7 +15,7 @@ from mobie.xml_utils import copy_xml_with_relpath
 from pybdv.metadata import write_affine
 
 from mobie.utils import get_run_config
-from mobie.import_data.utils import _create_level, _open_storage, _remove_output
+from mobie.import_data.utils import _create_level, _open_storage, _remove_output, _write_block_shape
 
 # numpy/scipy interpolation order for the affine method.
 _INTERPOLATION_TO_ORDER = {"nearest": 0, "linear": 1, "quadratic": 2, "cubic": 3}
@@ -43,7 +43,8 @@ def registration_affine(input_path, input_key,
                         transformation, interpolation,
                         shape, resolution, chunks,
                         tmp_folder, target, max_jobs,
-                        bounding_box=None, file_format="ome.zarr"):
+                        bounding_box=None, file_format="ome.zarr",
+                        ome_zarr_version="0.4", shards=None):
     """Apply registration via bioimage-py's affine source wrapper.
 
     Only works for affine transformations. This replaces the former nifty-backed
@@ -72,9 +73,9 @@ def registration_affine(input_path, input_key,
 
     # re-import overwrites any previous conversion at the output location.
     _remove_output(output_path)
-    with _open_storage(output_path, file_format, mode="a") as f:
-        ds = _create_level(f, file_format, 0, shape, chunks, src.dtype)
-        block_shape = tuple(int(c) for c in ds.chunks)
+    with _open_storage(output_path, file_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
+        ds = _create_level(f, file_format, 0, shape, chunks, src.dtype, shards=shards)
+        block_shape = _write_block_shape(ds)
         # restrict the computation to the bounding box (output space) when one is given. We derive
         # the block ids from the same full-shape blocking that bp.copy uses internally, so only
         # blocks overlapping the box are written (matching the old block-granular roi behavior).
@@ -359,7 +360,7 @@ def _run_transformix_coordinates(in_coord_file, coord_folder, transformation_fil
 
 def _coordinate_worker(block_id, input_path, input_key, output_path, output_key,
                        transformation_file, elastix_directory, tmp_folder,
-                       shape, block_shape, order, file_format):
+                       shape, block_shape, order, file_format, ome_zarr_version="0.4"):
     """Per-block worker: transformix-map the block's output coordinates and resample the source."""
     blocking = bp.util.get_blocking(shape, block_shape)
     block = blocking.get_block(block_id)
@@ -383,7 +384,7 @@ def _coordinate_worker(block_id, input_path, input_key, output_path, output_key,
         )
 
         bb = tuple(slice(b, e) for b, e in zip(begin, end))
-        with _open_storage(output_path, file_format, mode="a") as f:
+        with _open_storage(output_path, file_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
             f[output_key][bb] = out_block
     finally:
         shutil.rmtree(coord_folder, ignore_errors=True)
@@ -395,7 +396,8 @@ def registration_coordinate(input_path, input_key,
                             shape, resolution, chunks,
                             tmp_folder, target, max_jobs,
                             interpolation="linear", bounding_box=None,
-                            file_format="ome.zarr"):
+                            file_format="ome.zarr",
+                            ome_zarr_version="0.4", shards=None):
     """Apply registration via transformix coordinate transformation, resampled with map_coordinates.
 
     For each output block the block's voxel coordinates are mapped into the source image by the elastix
@@ -409,6 +411,8 @@ def registration_coordinate(input_path, input_key,
             "The bdv.hdf5 format does not support distributed (slurm) writing. "
             "Use target='local' or a different file format."
         )
+    if shards is not None and not (file_format == "ome.zarr" and ome_zarr_version == "0.5"):
+        raise ValueError("Sharding is only supported for the ome.zarr v0.5 (zarr v3) format.")
 
     if shape is None:
         shape = determine_shape(transformation, resolution)
@@ -425,9 +429,10 @@ def registration_coordinate(input_path, input_key,
 
     # re-import overwrites any previous conversion at the output location, then create scale 0.
     _remove_output(output_path)
-    with _open_storage(output_path, file_format, mode="a") as f:
-        ds = _create_level(f, file_format, 0, shape, chunks, dtype)
-        block_shape = tuple(int(c) for c in ds.chunks)
+    with _open_storage(output_path, file_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
+        ds = _create_level(f, file_format, 0, shape, chunks, dtype, shards=shards)
+        # for a sharded array many chunks share one shard file, so write at shard granularity.
+        block_shape = _write_block_shape(ds)
 
     blocking = bp.util.get_blocking(shape, block_shape)
     if bounding_box is None:
@@ -449,7 +454,8 @@ def registration_coordinate(input_path, input_key,
                           elastix_directory=elastix_directory,
                           tmp_folder=tmp_folder,
                           shape=shape, block_shape=block_shape,
-                          order=order, file_format=file_format),
+                          order=order, file_format=file_format,
+                          ome_zarr_version=ome_zarr_version),
         n_blocks, item_ids=item_ids, num_workers=num_workers,
         has_return_val=False, name="transformix-coordinate",
     )

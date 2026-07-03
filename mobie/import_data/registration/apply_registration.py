@@ -7,7 +7,7 @@ import numpy as np
 
 from elf.transformation import elastix_parser
 from mobie.utils import get_run_config
-from mobie.import_data.utils import _create_level, _open_storage, _remove_output
+from mobie.import_data.utils import _create_level, _open_storage, _remove_output, _write_block_shape
 from .registration_impl import (registration_affine,
                                 registration_bdv,
                                 registration_coordinate,
@@ -68,16 +68,16 @@ def write_transformix_input(in_path, in_key, out_path,
 
 
 def write_transformix_output(in_path, out_path, out_key, chunks, tmp_folder, target, max_jobs,
-                             file_format="ome.zarr"):
+                             file_format="ome.zarr", ome_zarr_version="0.4", shards=None):
     # the transformix result tif is materialized into the scale-0 dataset via a block-wise copy
     # (replacing the former cluster_tools CopyVolume task).
     src = bp.open_source(in_path)
     job_type, job_config, num_workers = get_run_config(target, max_jobs, tmp_folder)
 
     _remove_output(out_path)
-    with _open_storage(out_path, file_format, mode="a") as f:
-        ds = _create_level(f, file_format, 0, src.shape, chunks, src.dtype)
-        bp.copy(src, output=ds, block_shape=tuple(int(c) for c in ds.chunks),
+    with _open_storage(out_path, file_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
+        ds = _create_level(f, file_format, 0, src.shape, chunks, src.dtype, shards=shards)
+        bp.copy(src, output=ds, block_shape=_write_block_shape(ds),
                 job_type=job_type, job_config=job_config, num_workers=num_workers)
 
 
@@ -86,7 +86,8 @@ def apply_affine(input_path, input_key,
                  transformation, interpolation,
                  shape, resolution, chunks,
                  tmp_folder, target, max_jobs,
-                 bounding_box, file_format):
+                 bounding_box, file_format,
+                 ome_zarr_version="0.4", shards=None):
     os.makedirs(tmp_folder, exist_ok=True)
     registration_affine(input_path, input_key,
                         output_path, output_key,
@@ -94,7 +95,8 @@ def apply_affine(input_path, input_key,
                         shape=shape, resolution=resolution,
                         chunks=chunks, tmp_folder=tmp_folder,
                         target=target, max_jobs=max_jobs,
-                        bounding_box=bounding_box, file_format=file_format)
+                        bounding_box=bounding_box, file_format=file_format,
+                        ome_zarr_version=ome_zarr_version, shards=shards)
 
 
 def apply_bdv(input_path, output_path, transformation, resolution):
@@ -116,7 +118,7 @@ def apply_transformix(input_path, input_key, output_path, output_key,
                       shape, resolution, chunks,
                       fiji_executable, elastix_directory,
                       tmp_folder, target, max_jobs,
-                      file_format):
+                      file_format, ome_zarr_version="0.4", shards=None):
     os.makedirs(tmp_folder, exist_ok=True)
 
     # get the data type of the input dataset
@@ -159,7 +161,8 @@ def apply_transformix(input_path, input_key, output_path, output_key,
     output_tmp_path += '-ch0.tif'
     write_transformix_output(output_tmp_path, output_path, output_key,
                              chunks, tmp_folder, target, max_jobs,
-                             file_format=file_format)
+                             file_format=file_format,
+                             ome_zarr_version=ome_zarr_version, shards=shards)
 
 
 def apply_coordinate(input_path, input_key,
@@ -167,7 +170,8 @@ def apply_coordinate(input_path, input_key,
                      transformation, interpolation, elastix_directory,
                      shape, resolution, chunks,
                      tmp_folder, target, max_jobs,
-                     bounding_box, file_format):
+                     bounding_box, file_format,
+                     ome_zarr_version="0.4", shards=None):
     os.makedirs(tmp_folder, exist_ok=True)
     registration_coordinate(input_path, input_key,
                             output_path, output_key,
@@ -176,7 +180,8 @@ def apply_coordinate(input_path, input_key,
                             shape=shape, resolution=resolution, chunks=chunks,
                             tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
                             interpolation=interpolation, bounding_box=bounding_box,
-                            file_format=file_format)
+                            file_format=file_format,
+                            ome_zarr_version=ome_zarr_version, shards=shards)
 
 
 def _validate_bounding_box(bounding_box):
@@ -197,7 +202,8 @@ def apply_registration(input_path, input_key,
                        fiji_executable, elastix_directory,
                        shape, resolution, chunks,
                        tmp_folder, target, max_jobs,
-                       bounding_box=None, file_format="ome.zarr"):
+                       bounding_box=None, file_format="ome.zarr",
+                       ome_zarr_version="0.4", shards=None):
     if elastix_parser.get_transformation_type(transformation) is None:
         raise ValueError(f"{transformation} is not an elastix transformation")
 
@@ -223,7 +229,8 @@ def apply_registration(input_path, input_key,
                           tmp_folder=tmp_folder,
                           target=target,
                           max_jobs=max_jobs,
-                          file_format=file_format)
+                          file_format=file_format,
+                          ome_zarr_version=ome_zarr_version, shards=shards)
     # write on the fly-transformation to bdv xml metadata
     elif method == 'bdv':
         apply_bdv(input_path, output_path, transformation, resolution)
@@ -234,7 +241,8 @@ def apply_registration(input_path, input_key,
                      transformation, interpolation,
                      shape, resolution, chunks,
                      tmp_folder, target, max_jobs,
-                     bounding_box, file_format)
+                     bounding_box, file_format,
+                     ome_zarr_version=ome_zarr_version, shards=shards)
     # transform via transformix coordinate mapping, resampled with map_coordinates
     elif method == 'coordinate':
         apply_coordinate(input_path, input_key,
@@ -245,7 +253,8 @@ def apply_registration(input_path, input_key,
                          shape=shape, resolution=resolution,
                          chunks=chunks, tmp_folder=tmp_folder,
                          target=target, max_jobs=max_jobs,
-                         bounding_box=bounding_box, file_format=file_format)
+                         bounding_box=bounding_box, file_format=file_format,
+                         ome_zarr_version=ome_zarr_version, shards=shards)
     else:
         msg = (
             f"Invalid registration method {method} provided."

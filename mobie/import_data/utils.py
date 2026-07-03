@@ -1,5 +1,6 @@
 """@private
 """
+import math
 import os
 import shutil
 
@@ -31,14 +32,18 @@ def get_scale_key(file_format, scale=0):
     return out_key
 
 
-def _open_storage(path, metadata_format, mode="a"):
+def _open_storage(path, metadata_format, mode="a", ome_zarr_version="0.4"):
     """Open the output container with the backend that writes the on-disk format MoBIE expects.
 
-    ome.zarr is written as zarr v2 (`.zarray` + dimension_separator='/') via z5py, bdv.n5 as n5
-    via z5py, and bdv.hdf5 via h5py. (`elf.io.open_file` is intentionally not used here because it
-    writes zarr v3, which is incompatible with the MoBIE NGFF v0.4 layout.)
+    ome.zarr is written via z5py: NGFF v0.4 as zarr v2 (`.zarray` + dimension_separator='/'), NGFF
+    v0.5 as zarr v3 (`zarr.json`, which also enables sharding). bdv.n5 is written as n5 via z5py and
+    bdv.hdf5 via h5py. (`elf.io.open_file` is intentionally not used for writing here because it
+    writes zarr v3 unconditionally, so it cannot produce the v0.4 layout.)
     """
     if metadata_format == "ome.zarr":
+        if ome_zarr_version == "0.5":
+            # zarr v3: chunk keys are '/'-separated by default (dimension_separator is v2-only).
+            return z5py.File(path, mode=mode, zarr_format=3)
         return z5py.File(path, mode=mode, dimension_separator="/")
     elif metadata_format == "bdv.n5":
         return z5py.File(path, mode=mode)
@@ -97,24 +102,72 @@ def _validate(ndim, resolution, scale_factors, metadata_format):
             raise ValueError(f"Expect scale factors of length {ndim}, got: {sf}")
 
 
-def _create_level(f, metadata_format, scale, shape, chunks, dtype):
+def _level_shards(shards, chunks, level_chunks, level_shape):
+    """Compute the per-level shard shape, or None if this level should not be sharded.
+
+    Sharding (zarr v3) requires each shard dimension to be a whole multiple of the per-level chunk.
+    At coarse levels a chunk may be clipped to the (smaller) level shape, breaking that invariant, so
+    such levels are left unsharded. Otherwise each shard dimension is clipped down to the smallest
+    multiple of the chunk that still covers the level, avoiding an all-empty trailing shard.
+    """
+    if shards is None:
+        return None
+    # a level whose chunk was clipped to the shape can't be sharded consistently -> skip it.
+    if any(lc != int(c) for lc, c in zip(level_chunks, chunks)):
+        return None
+    level_shards = []
+    for s, c, extent in zip(shards, level_chunks, level_shape):
+        max_shards = math.ceil(extent / c) * c  # smallest multiple of the chunk covering this level
+        level_shards.append(int(min(int(s), max_shards)))
+    return tuple(level_shards)
+
+
+def _write_block_shape(ds):
+    """The block shape for safe concurrent writes: the shard shape when sharded, else the chunks.
+
+    For a sharded array many chunks share one on-disk shard object, so writing must happen at shard
+    granularity to keep concurrent block writes from racing on the same shard file.
+    """
+    shards = getattr(ds, "shards", None)
+    return tuple(int(c) for c in (shards if shards is not None else ds.chunks))
+
+
+def _create_level(f, metadata_format, scale, shape, chunks, dtype, shards=None):
     key = get_scale_key(metadata_format, scale)
     shape = tuple(int(s) for s in shape)
     # clip the chunks to the level shape: h5py rejects chunks larger than the data shape, and
-    # keeping block_shape == chunks (see below) guarantees safe concurrent block writes.
+    # keeping block_shape == chunks/shards (see _write_block_shape) guarantees safe concurrent writes.
     level_chunks = tuple(int(min(c, s)) for c, s in zip(chunks, shape))
-    return f.create_dataset(key, shape=shape, chunks=level_chunks, dtype=dtype)
+    kwargs = {}
+    level_shards = _level_shards(shards, chunks, level_chunks, shape)
+    if level_shards is not None:
+        kwargs["shards"] = level_shards
+    return f.create_dataset(key, shape=shape, chunks=level_chunks, dtype=dtype, **kwargs)
 
 
 def _build_pyramid(f, base, base_shape, scale_factors, metadata_format, chunks, dtype,
-                   order, anti_aliasing, run_kwargs):
+                   order, anti_aliasing, run_kwargs, shards=None):
     prev, prev_shape = base, tuple(int(s) for s in base_shape)
     for level, factor in enumerate(scale_factors, start=1):
         level_shape = tuple(int(s) for s in sample_shape(prev_shape, factor))
-        ds = _create_level(f, metadata_format, level, level_shape, chunks, dtype)
+        ds = _create_level(f, metadata_format, level, level_shape, chunks, dtype, shards=shards)
         resized = ResizedSource(as_source(prev), level_shape, order=order, anti_aliasing=anti_aliasing)
-        copy(resized, output=ds, block_shape=tuple(int(c) for c in ds.chunks), **run_kwargs)
+        copy(resized, output=ds, block_shape=_write_block_shape(ds), **run_kwargs)
         prev, prev_shape = ds, level_shape
+
+
+def _check_shards_chunks(shards, chunks):
+    """Sharding requires each shard dimension to be a whole multiple of the corresponding chunk."""
+    if shards is None:
+        return
+    if len(shards) != len(chunks):
+        raise ValueError(f"shards and chunks must have the same length, got {shards} and {chunks}.")
+    for s, c in zip(shards, chunks):
+        if int(s) <= 0 or int(s) % int(c) != 0:
+            raise ValueError(
+                f"Each shard dimension must be a positive whole multiple of the chunk, "
+                f"got shards={shards} and chunks={chunks}."
+            )
 
 
 def downscale(in_path, in_key, out_path,
@@ -123,17 +176,24 @@ def downscale(in_path, in_key, out_path,
               library="vigra", library_kwargs=None,
               metadata_format="ome.zarr",
               unit="micrometer", source_name=None,
-              channel=None):
+              channel=None, ome_zarr_version="0.4", shards=None):
     """Convert input data into a MoBIE multiscale pyramid using bioimage-py and write the metadata.
 
     Note: the `block_shape` argument is accepted for backwards compatibility but is no longer used;
-    write blocks now follow the (per-level) storage chunks, which keeps concurrent writes safe.
+    write blocks now follow the (per-level) storage chunks / shards, which keeps concurrent writes safe.
+
+    The `ome_zarr_version` selects the NGFF version for the 'ome.zarr' format ('0.4' -> zarr v2,
+    '0.5' -> zarr v3). `shards`, if given, enables zarr v3 sharding and is therefore only valid for
+    ome.zarr v0.5.
     """
     if metadata_format in ("bdv", "bdv.hdf5") and target == "slurm":
         raise ValueError(
             "The bdv.hdf5 format does not support distributed (slurm) writing. "
             "Use target='local' or a different file format."
         )
+    if shards is not None and not (metadata_format == "ome.zarr" and ome_zarr_version == "0.5"):
+        raise ValueError("Sharding is only supported for the ome.zarr v0.5 (zarr v3) format.")
+    _check_shards_chunks(shards, chunks)
 
     job_type, job_config, num_workers = get_run_config(target, max_jobs, tmp_folder)
     run_kwargs = dict(job_type=job_type, job_config=job_config, num_workers=num_workers)
@@ -143,13 +203,13 @@ def downscale(in_path, in_key, out_path,
     in_place = os.path.abspath(in_path) == os.path.abspath(out_path)
 
     if in_place:
-        with _open_storage(out_path, metadata_format, mode="a") as f:
+        with _open_storage(out_path, metadata_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
             base = f[in_key]
             ndim = base.ndim
             _validate(ndim, resolution, scale_factors, metadata_format)
             order, anti_aliasing = _downsampling_params(library, library_kwargs, base.dtype)
             _build_pyramid(f, base, base.shape, scale_factors, metadata_format, chunks,
-                           base.dtype, order, anti_aliasing, run_kwargs)
+                           base.dtype, order, anti_aliasing, run_kwargs, shards=shards)
     else:
         src = open_source(in_path, in_key) if in_key else open_source(in_path)
         if channel is not None:
@@ -165,14 +225,14 @@ def downscale(in_path, in_key, out_path,
         # overwrite any previous conversion of this source at the output location.
         _remove_output(out_path)
 
-        with _open_storage(out_path, metadata_format, mode="a") as f:
-            base = _create_level(f, metadata_format, 0, src.shape, chunks, src.dtype)
-            copy(src, output=base, block_shape=tuple(int(c) for c in base.chunks), **run_kwargs)
+        with _open_storage(out_path, metadata_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
+            base = _create_level(f, metadata_format, 0, src.shape, chunks, src.dtype, shards=shards)
+            copy(src, output=base, block_shape=_write_block_shape(base), **run_kwargs)
             _build_pyramid(f, base, src.shape, scale_factors, metadata_format, chunks,
-                           src.dtype, order, anti_aliasing, run_kwargs)
+                           src.dtype, order, anti_aliasing, run_kwargs, shards=shards)
 
     metadata_dict = {"resolution": list(resolution), "unit": unit, "setup_name": source_name}
-    write_format_metadata(metadata_format, out_path, metadata_dict, scale_factors)
+    write_format_metadata(metadata_format, out_path, metadata_dict, scale_factors, ome_zarr_version)
 
 
 def compute_max_id(path, key, tmp_folder, target, max_jobs):

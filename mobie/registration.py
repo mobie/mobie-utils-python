@@ -42,6 +42,7 @@ def add_registered_source(
     bounding_box: Optional[List[List[int]]] = None,
     is_default_dataset: bool = False,
     description: Optional[str] = None,
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Add a volume after registration in elastix format.
 
@@ -76,9 +77,15 @@ def add_registered_source(
             needs to be specified in the output dataset space.
         is_default_dataset: Whether to set new dataset as default dataset. Only applies if the dataset is created.
         description: The description of this source.
+        shards: The shard shape for zarr v3 sharding. Only supported for the ome.zarr v0.5 format
+            (pass file_format='ome.zarr@0.5').
     """
     if apply_registration is None:
         raise ValueError("Could not import 'apply_registration' functionality")
+
+    # the ome.zarr / NGFF version may be encoded as a suffix on the file format (e.g. 'ome.zarr@0.5').
+    file_format, ome_zarr_version = utils.parse_file_format(file_format)
+    utils.check_shards(shards, file_format, ome_zarr_version)
 
     view = utils.require_dataset_and_view(root, dataset_name, file_format,
                                           source_type=source_type, source_name=source_name,
@@ -99,7 +106,8 @@ def add_registered_source(
                                               fiji_executable=fiji_executable, elastix_directory=elastix_directory,
                                               shape=shape, resolution=resolution, chunks=chunks,
                                               tmp_folder=tmp_folder, target=target, max_jobs=max_jobs,
-                                              bounding_box=bounding_box, file_format=file_format)
+                                              bounding_box=bounding_box, file_format=file_format,
+                                              ome_zarr_version=ome_zarr_version, shards=shards)
 
     data_key = get_scale_key(file_format, 0)
     # we don"t need to downscale the data if the transformation is applied on the fly by bdv
@@ -114,7 +122,8 @@ def add_registered_source(
                   effective_resolution, scale_factors, chunks,
                   tmp_folder, target, max_jobs, block_shape=chunks,
                   library=ds_library, library_kwargs=ds_library_kwargs,
-                  metadata_format=file_format, source_name=source_name)
+                  metadata_format=file_format, source_name=source_name,
+                  ome_zarr_version=ome_zarr_version, shards=shards)
         add_max_id(input_path, input_key, data_path, data_key,
                    tmp_folder, target, max_jobs)
 
@@ -177,5 +186,6 @@ def main():
                           method=args.method, menu_name=args.menu_name,
                           shape=args.shape, source_type=args.source_type, view=view,
                           add_default_table=bool(args.add_default_table),
-                          tmp_folder=args.tmp_folder, targer=args.target, max_jobs=args.max_jobs,
-                          is_default_dataset=bool(args.is_default_dataset))
+                          tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs,
+                          is_default_dataset=bool(args.is_default_dataset),
+                          **utils.get_source_kwargs(args))

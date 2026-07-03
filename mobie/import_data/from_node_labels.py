@@ -7,7 +7,7 @@ import numpy as np
 from bioimage_py import open_source
 from bioimage_py.segmentation import relabel
 
-from .utils import (_create_level, _open_storage, _remove_output,
+from .utils import (_create_level, _open_storage, _remove_output, _write_block_shape,
                     add_max_id, downscale, get_scale_key)
 from ..utils import get_run_config
 
@@ -38,7 +38,8 @@ def _load_node_labels(node_label_path: str,
 def _write_segmentation(in_path, in_key, out_path, out_key,
                         node_label_path, node_label_key,
                         chunks, metadata_format,
-                        target, max_jobs, tmp_folder):
+                        target, max_jobs, tmp_folder,
+                        ome_zarr_version="0.4", shards=None):
     """Apply the node-label assignment to the fragment segmentation, writing the relabeled scale-0
     dataset to ``out_path/out_key``."""
     job_type, job_config, num_workers = get_run_config(target, max_jobs, tmp_folder)
@@ -47,13 +48,13 @@ def _write_segmentation(in_path, in_key, out_path, out_key,
     src = open_source(in_path, in_key)
     # overwrite any previous conversion of this segmentation at the output location.
     _remove_output(out_path)
-    with _open_storage(out_path, metadata_format, mode="a") as f:
+    with _open_storage(out_path, metadata_format, mode="a", ome_zarr_version=ome_zarr_version) as f:
         # segment ids can exceed the fragment-id range, so store the relabeled output as uint64.
-        ds = _create_level(f, metadata_format, 0, src.shape, chunks, np.dtype("uint64"))
-        # relabel is a disjoint per-block point op; block_shape == the output chunks keeps
+        ds = _create_level(f, metadata_format, 0, src.shape, chunks, np.dtype("uint64"), shards=shards)
+        # relabel is a disjoint per-block point op; block_shape == the output chunks/shards keeps
         # concurrent block writes safe (same idiom as downscale's copy calls).
         relabel(src, labeling, output=ds,
-                block_shape=tuple(int(c) for c in ds.chunks),
+                block_shape=_write_block_shape(ds),
                 job_type=job_type, job_config=job_config, num_workers=num_workers)
 
 
@@ -73,6 +74,8 @@ def import_segmentation_from_node_labels(
     unit: str = "micrometer",
     source_name: Optional[str] = None,
     file_format: str = "ome.zarr",
+    ome_zarr_version: str = "0.4",
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Import segmentation data into MoBIE format from a fragment segmentation and a node-label assignment.
 
@@ -95,26 +98,33 @@ def import_segmentation_from_node_labels(
         unit: The physical unit of the coordinate system.
         source_name: The name of the source.
         file_format: The output file format.
+        ome_zarr_version: The ome.zarr / NGFF version to write ('0.4' -> zarr v2, '0.5' -> zarr v3).
+        shards: The shard shape for zarr v3 sharding. Only valid for ome.zarr v0.5.
     """
     if file_format in ("bdv", "bdv.hdf5") and target == "slurm":
         raise ValueError(
             "The bdv.hdf5 format does not support distributed (slurm) writing. "
             "Use target='local' or a different file format."
         )
+    # the relabeled s0 is written before downscale runs its own guard, so check sharding up front.
+    if shards is not None and not (file_format == "ome.zarr" and ome_zarr_version == "0.5"):
+        raise ValueError("Sharding is only supported for the ome.zarr v0.5 (zarr v3) format.")
 
     out_key = get_scale_key(file_format)
 
     _write_segmentation(in_path, in_key, out_path, out_key,
                         node_label_path, node_label_key,
                         chunks, metadata_format=file_format,
-                        target=target, max_jobs=max_jobs, tmp_folder=tmp_folder)
+                        target=target, max_jobs=max_jobs, tmp_folder=tmp_folder,
+                        ome_zarr_version=ome_zarr_version, shards=shards)
 
     downscale(out_path, out_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="vigra", library_kwargs={"order": 0},
               unit=unit, source_name=source_name,
-              metadata_format=file_format)
+              metadata_format=file_format,
+              ome_zarr_version=ome_zarr_version, shards=shards)
 
     # relabel does not write the maxId attribute (the cluster_tools Write task used to), so compute
     # it from the relabeled output (the max segment id actually present).

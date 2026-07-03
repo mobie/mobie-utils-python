@@ -20,6 +20,8 @@ def import_image_data(
     source_name: Optional[str] = None,
     file_format: str = "ome.zarr",
     channel: Optional[int] = None,
+    ome_zarr_version: str = "0.4",
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Convert image data into a format supported by MoBIE.
 
@@ -38,10 +40,13 @@ def import_image_data(
         source_name: The name of the source.
         file_format: The file format the data will be converted into.
         channel: The channel to load from the data.
+        ome_zarr_version: The ome.zarr / NGFF version to write ('0.4' -> zarr v2, '0.5' -> zarr v3).
+        shards: The shard shape for zarr v3 sharding. Only valid for ome.zarr v0.5.
     """
     # 2d input is promoted to 3d on the fly inside downscale for the bdv formats (ome.zarr keeps 2d).
     downscale(in_path, in_key, out_path,
               resolution, scale_factors, chunks,
               tmp_folder, target, max_jobs, block_shape,
               library="skimage", unit=unit, source_name=source_name,
-              metadata_format=file_format, channel=channel)
+              metadata_format=file_format, channel=channel,
+              ome_zarr_version=ome_zarr_version, shards=shards)

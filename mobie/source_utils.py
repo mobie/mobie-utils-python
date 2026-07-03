@@ -1,9 +1,9 @@
 """Helper functions to modify sources in a MoBIE project.
 """
-import json
 import os
 from shutil import rmtree
 
+from elf.io import open_file
 from pybdv import metadata as bdv_metadata
 from .metadata import read_dataset_metadata, write_dataset_metadata
 
@@ -128,10 +128,18 @@ def _replace_name_in_data(storage_type, path, new_name):
     if "bdv" in storage_type:
         bdv_metadata.write_name(path, setup_id=0, name=new_name)
     elif "ome.zarr" in storage_type:
-        attrs_path = os.path.join(path, ".zattrs")
-        with open(attrs_path, "r") as f:
-            attrs = json.load(f)
-        attrs["multiscales"][0]["name"] = new_name
+        # read the ome.zarr group attributes, replace the multiscales name and write them back.
+        # elf.io.open_file handles both the v0.4 (zarr v2, .zattrs) and v0.5 (zarr v3, zarr.json)
+        # layouts; in v0.5 the multiscales live under the 'ome' key.
+        with open_file(path, "a") as f:
+            if "ome" in f.attrs:
+                ome = f.attrs["ome"]
+                ome["multiscales"][0]["name"] = new_name
+                f.attrs["ome"] = ome
+            else:
+                multiscales = f.attrs["multiscales"]
+                multiscales[0]["name"] = new_name
+                f.attrs["multiscales"] = multiscales
     else:
         raise ValueError(f"Invalid storage type {storage_type} for name replacement.")
 

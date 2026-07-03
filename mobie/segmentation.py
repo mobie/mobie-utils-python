@@ -38,6 +38,7 @@ def add_segmentation(
     is_default_dataset: bool = False,
     description: Optional[str] = None,
     is_2d: Optional[bool] = None,
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Add segmentation source to MoBIE dataset.
 
@@ -67,7 +68,14 @@ def add_segmentation(
         is_default_dataset: Whether to set new dataset as default dataset. Only applies if the dataset is being created.
         description: The description for this segmentation source.
         is_2d: Whether this is a 2d segmentation.
+        shards: The shard shape for zarr v3 sharding. Only supported for the ome.zarr v0.5 format
+            (pass file_format='ome.zarr@0.5').
     """
+    # the ome.zarr / NGFF version may be encoded as a suffix on the file format (e.g. 'ome.zarr@0.5').
+    # split it off so all downstream folder / metadata-key / dispatch logic sees the canonical name.
+    file_format, ome_zarr_version = mobie.utils.parse_file_format(file_format)
+    mobie.utils.check_shards(shards, file_format, ome_zarr_version)
+
     if isinstance(input_path, np.ndarray):
         input_path, input_key = mobie.utils.save_temp_input(input_path, tmp_folder, segmentation_name)
 
@@ -93,14 +101,16 @@ def add_segmentation(
                                              tmp_folder=tmp_folder, target=target,
                                              max_jobs=max_jobs, unit=unit,
                                              source_name=segmentation_name,
-                                             file_format=file_format)
+                                             file_format=file_format,
+                                             ome_zarr_version=ome_zarr_version, shards=shards)
     else:
         import_segmentation(input_path, input_key, data_path,
                             resolution, scale_factors, chunks,
                             tmp_folder=tmp_folder, target=target,
                             max_jobs=max_jobs, unit=unit,
                             source_name=segmentation_name,
-                            file_format=file_format)
+                            file_format=file_format,
+                            ome_zarr_version=ome_zarr_version, shards=shards)
 
     if is_2d is None:
         is_2d = mobie.metadata.read_dataset_metadata(dataset_folder).get("is2D", False)
@@ -156,4 +166,5 @@ def main():
                      add_default_table=bool(args.add_default_table),
                      view=view, unit=args.unit, menu_name=args.menu_name,
                      tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs,
-                     is_default_dataset=bool(args.is_default_dataset))
+                     is_default_dataset=bool(args.is_default_dataset),
+                     **mobie.utils.get_source_kwargs(args))

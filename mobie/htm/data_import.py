@@ -14,7 +14,8 @@ from ..tables import compute_default_table
 
 
 def _import_one_source(index, input_files, output_files, names, key, file_format,
-                       resolution, unit, scale_factors, chunks, is_seg):
+                       resolution, unit, scale_factors, chunks, is_seg,
+                       ome_zarr_version="0.4", shards=None):
     # Each source is converted in-memory (target "local"); parallelization happens over
     # sources in `_copy_image_data`, not via bioimage-py's within-source block runner.
     import_fn = import_segmentation if is_seg else import_image_data
@@ -23,6 +24,7 @@ def _import_one_source(index, input_files, output_files, names, key, file_format
         resolution, scale_factors, chunks,
         tmp_folder=None, target="local", max_jobs=1,
         unit=unit, source_name=names[index], file_format=file_format,
+        ome_zarr_version=ome_zarr_version, shards=shards,
     )
 
 
@@ -30,7 +32,8 @@ def _copy_image_data(files, key, root,
                      dataset_name, source_names,
                      file_format,  resolution, unit,
                      scale_factors, chunks,
-                     tmp_folder, target, max_jobs, is_seg=False):
+                     tmp_folder, target, max_jobs, is_seg=False,
+                     ome_zarr_version="0.4", shards=None):
     assert len(files) == len(source_names)
     ds_folder = os.path.join(root, dataset_name)
     sources = list(metadata.read_dataset_metadata(ds_folder).get("sources", {}).keys())
@@ -53,7 +56,8 @@ def _copy_image_data(files, key, root,
         functools.partial(_import_one_source, input_files=input_files, output_files=output_files,
                           names=input_names, key=key, file_format=file_format,
                           resolution=resolution, unit=unit, scale_factors=scale_factors,
-                          chunks=chunks, is_seg=is_seg),
+                          chunks=chunks, is_seg=is_seg,
+                          ome_zarr_version=ome_zarr_version, shards=shards),
         len(input_files), num_workers=num_workers, has_return_val=False, name="htm-import",
     )
     return input_names, metadata_paths
@@ -128,6 +132,7 @@ def add_images(
     unit: str = "micrometer",
     is_default_dataset: bool = False,
     is2d: Optional[bool] = None,
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Add images from a high-content microscopy experiment to a MoBIE dataset.
 
@@ -149,8 +154,14 @@ def add_images(
         is_default_dataset: Whether this is the default dataset.
             Only relevant if the dataset will be created.
         is2d: Whether this is a 2D datasets.
+        shards: The shard shape for zarr v3 sharding. Only supported for the ome.zarr v0.5 format
+            (pass file_format='ome.zarr@0.5').
     """
     assert len(files) == len(image_names), f"{len(files)}, {len(image_names)}"
+
+    # the ome.zarr / NGFF version may be encoded as a suffix on the file format (e.g. 'ome.zarr@0.5').
+    file_format, ome_zarr_version = utils.parse_file_format(file_format)
+    utils.check_shards(shards, file_format, ome_zarr_version)
 
     # require the dataset
     if is2d is None:
@@ -163,7 +174,8 @@ def add_images(
                                                     dataset_name, image_names,
                                                     file_format,  resolution, unit,
                                                     scale_factors, chunks,
-                                                    tmp_folder, target, max_jobs, is_seg=False)
+                                                    tmp_folder, target, max_jobs, is_seg=False,
+                                                    ome_zarr_version=ome_zarr_version, shards=shards)
 
     # add metadata for all the images
     if source_names:
@@ -187,6 +199,7 @@ def add_segmentations(
     unit: str = "micrometer",
     is_default_dataset: bool = False,
     is2d: Optional[bool] = None,
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Add segmentation data for a high-content microscopy experiment to a MoBIE dataset.
 
@@ -209,8 +222,14 @@ def add_segmentations(
         is_default_dataset: Whether this is the default dataset.
             Only relevant if the dataset will be created.
         is2d: Whether this is a 2D datasets.
+        shards: The shard shape for zarr v3 sharding. Only supported for the ome.zarr v0.5 format
+            (pass file_format='ome.zarr@0.5').
     """
     assert len(files) == len(segmentation_names)
+
+    # the ome.zarr / NGFF version may be encoded as a suffix on the file format (e.g. 'ome.zarr@0.5').
+    file_format, ome_zarr_version = utils.parse_file_format(file_format)
+    utils.check_shards(shards, file_format, ome_zarr_version)
 
     # require the dataset
     if is2d is None:
@@ -224,7 +243,8 @@ def add_segmentations(
                                                     dataset_name, segmentation_names,
                                                     file_format,  resolution, unit,
                                                     scale_factors, chunks,
-                                                    tmp_folder, target, max_jobs, is_seg=True)
+                                                    tmp_folder, target, max_jobs, is_seg=True,
+                                                    ome_zarr_version=ome_zarr_version, shards=shards)
 
     if add_default_tables:
         table_folders = _add_tables(file_format, metadata_paths,

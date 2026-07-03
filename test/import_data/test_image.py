@@ -7,6 +7,7 @@ from shutil import rmtree
 import bioimage_py as bp
 import imageio
 import numpy as np
+import z5py
 from elf.io import open_file
 from pybdv.util import get_key, relative_to_absolute_scale_factors
 from pybdv.downsample import sample_shape
@@ -56,14 +57,22 @@ class TestImportImage(unittest.TestCase):
                 scale_data.append(f[key][:])
         self._check_data(exp_data, scale_data, scales)
 
-    def check_data_ome_zarr(self, exp_data, scales, out_path, resolution, scale_factors):
+    def check_data_ome_zarr(self, exp_data, scales, out_path, resolution, scale_factors,
+                            ome_zarr_version="0.4"):
         out_path = self.out_path if out_path is None else out_path
         scale_data = []
         with open_file(out_path, "r") as f:
 
             metadata = f.attrs
-            self.assertIn("multiscales", metadata)
-            multiscales = metadata["multiscales"]
+            if ome_zarr_version == "0.5":
+                # NGFF v0.5: metadata is nested under 'ome', with the version at the 'ome' level.
+                self.assertIn("ome", metadata)
+                self.assertEqual(metadata["ome"]["version"], "0.5")
+                multiscales = metadata["ome"]["multiscales"]
+            else:
+                self.assertIn("multiscales", metadata)
+                multiscales = metadata["multiscales"]
+                self.assertEqual(multiscales[0].get("version"), "0.4")
             self.assertEqual(len(multiscales), 1)
             multiscales = multiscales[0]
 
@@ -72,10 +81,9 @@ class TestImportImage(unittest.TestCase):
             self.assertTrue(all(ax["unit"] == "micrometer" for ax in axes))
 
             datasets = multiscales["datasets"]
-            scale_factors = [len(axes) * [1.]] + scale_factors
-            scale_factors = relative_to_absolute_scale_factors(scale_factors)
-            self.assertEqual(len(scale_factors), len(datasets))
-            for ds, scale_factor in zip(datasets, scale_factors):
+            abs_scale_factors = relative_to_absolute_scale_factors([len(axes) * [1.]] + scale_factors)
+            self.assertEqual(len(abs_scale_factors), len(datasets))
+            for ds, scale_factor in zip(datasets, abs_scale_factors):
                 scale = ds["coordinateTransformations"][0]
                 self.assertEqual(scale["type"], "scale")
                 scale = scale["scale"]
@@ -86,10 +94,15 @@ class TestImportImage(unittest.TestCase):
                 key = f"s{scale}"
                 self.assertIn(key, f)
 
-                attrs_path = os.path.join(out_path, key, ".zarray")
-                with open(attrs_path, "r") as ff:
-                    dimension_separator = json.load(ff).get("dimension_separator", ".")
-                self.assertEqual(dimension_separator, "/")
+                if ome_zarr_version == "0.5":
+                    # zarr v3 stores per-node metadata in zarr.json (no .zarray).
+                    self.assertTrue(os.path.exists(os.path.join(out_path, key, "zarr.json")))
+                    self.assertFalse(os.path.exists(os.path.join(out_path, key, ".zarray")))
+                else:
+                    attrs_path = os.path.join(out_path, key, ".zarray")
+                    with open(attrs_path, "r") as ff:
+                        dimension_separator = json.load(ff).get("dimension_separator", ".")
+                    self.assertEqual(dimension_separator, "/")
 
                 scale_data.append(f[key][:])
         self._check_data(exp_data, scale_data, scales)
@@ -250,6 +263,71 @@ class TestImportImage(unittest.TestCase):
                           target="local", max_jobs=self.n_jobs,
                           file_format="ome.zarr")
         self.check_data_ome_zarr(data, scales, out_path, resolution, scales)
+
+    #
+    # ome.zarr v0.5 (zarr v3) + sharding
+    #
+
+    def test_import_ome_zarr_v05(self):
+        from mobie.import_data import import_image_data
+        test_path, key, data = self.create_h5_input_data()
+        scales = [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
+        resolution = (0.5, 0.5, 0.5)
+        out_path = os.path.join(self.test_folder, "imported_data.ome.zarr")
+        import_image_data(test_path, key, out_path,
+                          resolution=resolution, chunks=(32, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=self.n_jobs,
+                          file_format="ome.zarr", ome_zarr_version="0.5")
+        # zarr v3 writes a group zarr.json (no .zgroup).
+        self.assertTrue(os.path.exists(os.path.join(out_path, "zarr.json")))
+        self.check_data_ome_zarr(data, scales, out_path, resolution, scales, ome_zarr_version="0.5")
+
+    def test_import_ome_zarr_v05_2d(self):
+        from mobie.import_data import import_image_data
+        test_path, key, data = self.create_h5_input_data(shape=(128, 128))
+        scales = [[2, 2], [2, 2]]
+        resolution = (0.5, 0.5)
+        out_path = os.path.join(self.test_folder, "imported_data.ome.zarr")
+        import_image_data(test_path, key, out_path,
+                          resolution=resolution, chunks=(32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=self.n_jobs,
+                          file_format="ome.zarr", ome_zarr_version="0.5")
+        self.check_data_ome_zarr(data, scales, out_path, resolution, scales, ome_zarr_version="0.5")
+
+    def test_import_ome_zarr_v05_sharded(self):
+        from mobie.import_data import import_image_data
+        test_path, key, data = self.create_h5_input_data(shape=(64, 96, 96))
+        scales = [[2, 2, 2], [2, 2, 2]]
+        resolution = (0.5, 0.5, 0.5)
+        out_path = os.path.join(self.test_folder, "imported_data.ome.zarr")
+        import_image_data(test_path, key, out_path,
+                          resolution=resolution, chunks=(32, 32, 32),
+                          scale_factors=scales, tmp_folder=self.tmp_folder,
+                          target="local", max_jobs=self.n_jobs,
+                          file_format="ome.zarr", ome_zarr_version="0.5", shards=(64, 64, 64))
+        self.check_data_ome_zarr(data, scales, out_path, resolution, scales, ome_zarr_version="0.5")
+        with z5py.File(out_path, "r") as f:
+            # s0 (64,96,96): shards clipped per-dim to the smallest chunk-multiple covering the level.
+            self.assertEqual(tuple(f["s0"].shards), (64, 64, 64))
+            # s1 (32,48,48): chunks not clipped -> still sharded, shards clipped along the small z axis.
+            self.assertEqual(tuple(f["s1"].shards), (32, 64, 64))
+            # s2 (16,24,24): chunk gets clipped below the requested chunk -> sharding skipped.
+            self.assertIsNone(f["s2"].shards)
+
+    def test_shards_require_v05(self):
+        from mobie.import_data import import_image_data
+        test_path, key, _ = self.create_h5_input_data()
+        common = dict(resolution=(1, 1, 1), chunks=(32, 32, 32), scale_factors=[[2, 2, 2]],
+                      tmp_folder=self.tmp_folder, target="local", max_jobs=1, shards=(64, 64, 64))
+        # sharding for ome.zarr v0.4 (zarr v2) is not allowed
+        with self.assertRaises(ValueError):
+            import_image_data(test_path, key, self.out_path, file_format="ome.zarr", **common)
+        # sharding for a bdv format is not allowed
+        with self.assertRaises(ValueError):
+            import_image_data(test_path, key, os.path.join(self.test_folder, "s.n5"),
+                              file_format="bdv.n5", **common)
 
 
 if __name__ == "__main__":

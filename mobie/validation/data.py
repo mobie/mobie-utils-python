@@ -1,65 +1,72 @@
 """Validation functionality for data associate with MoBIE sources.
 """
 import json
+import math
 import os
 import warnings
 from concurrent import futures
+from itertools import product
 from shutil import rmtree
 from subprocess import run
 from typing import List, Optional
 
 import zarr
+import z5py
 import s3fs
 from botocore.exceptions import ClientError
 from tqdm import tqdm
 
 
-def validate_chunks_local(store, dataset, keys, n_threads):
+def validate_chunks_local(dataset, chunk_ids, n_threads):
     """@private
-    """
 
-    def validate_chunk(chunk_key):
-        key = os.path.join(dataset.path, chunk_key)
-        cdata = store[key]
+    Return the chunk-grid positions whose data cannot be read / decoded. `dataset` is an open
+    z5py dataset, so this works uniformly across zarr v2 (NGFF v0.4), zarr v3 (v0.5) and sharded v3.
+    """
+    chunks, shape = dataset.chunks, dataset.shape
+
+    def validate_chunk(chunk_id):
+        bb = tuple(slice(cid * ch, min((cid + 1) * ch, sh))
+                   for cid, ch, sh in zip(chunk_id, chunks, shape))
         try:
-            cdata = dataset._decode_chunk(cdata)
+            dataset[bb]
+            return None
         except Exception:
-            return chunk_key
+            return chunk_id
 
     with futures.ThreadPoolExecutor(n_threads) as tp:
-        corrupted_chunks = list(tqdm(tp.map(validate_chunk, keys)))
-    corrupted_chunks = [key for key in corrupted_chunks if key is not None]
-    return corrupted_chunks
+        corrupted_chunks = list(tqdm(tp.map(validate_chunk, chunk_ids), total=len(chunk_ids)))
+    return [chunk_id for chunk_id in corrupted_chunks if chunk_id is not None]
 
 
 def validate_local_dataset(
     path: str,
     dataset_name: str,
     n_threads: int,
-    keys: Optional[List[str]] = None,
-) -> List[str]:
+    keys: Optional[List[tuple]] = None,
+) -> List[tuple]:
     """Validate the chunks in a locally stored zarr array.
+
+    Reads the data via z5py, which handles the zarr v2 (NGFF v0.4), zarr v3 (v0.5) and sharded v3
+    layouts uniformly.
 
     Args:
         path: The path to the zarr root group.
         dataset_name: The internal name of the zarr dataset / array.
         n_threads: The number of threads to use for computation.
-        keys: Optional list of chunnk keys to be checked.
-            This can for example be used to check keys again that were
-            previously identified as being corrupted.
+        keys: Optional list of chunk-grid positions (tuples) to be checked. This can for example be
+            used to re-check positions that were previously identified as corrupted.
 
     Returns:
-        The list of corrupted chunks in the zarr array.
+        The list of corrupted chunk-grid positions in the zarr array.
     """
-    f = zarr.open(path, mode="r")
-    ds = f[dataset_name]
-    store = ds.store
-    if not store._is_array(ds.path):
-        raise ValueError("Expected a dataset")
-
-    if keys is None:
-        keys = list(set(store.listdir(ds.path)) - set([".zarray", ".zattrs"]))
-    return validate_chunks_local(store, ds, keys, n_threads)
+    with z5py.File(path, "r") as f:
+        ds = f[dataset_name]
+        if keys is None:
+            chunks, shape = ds.chunks, ds.shape
+            grid = [range(int(math.ceil(sh / ch))) for sh, ch in zip(shape, chunks)]
+            keys = list(product(*grid))
+        return validate_chunks_local(ds, keys, n_threads)
 
 
 def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
@@ -86,8 +93,10 @@ def validate_chunks_s3(store, dataset, keys, n_threads, max_tries=5):
         corrupted_chunks = list(tqdm(tp.map(validate_chunk, keys)))
     corrupted_chunks = [key for key in corrupted_chunks if key is not None]
 
-    if "attributes.json" in corrupted_chunks:
-        corrupted_chunks.remove("attributes.json")
+    # drop the non-chunk metadata sentinels: n5 / zarr v2 use 'attributes.json', zarr v3 'zarr.json'.
+    for sentinel in ("attributes.json", "zarr.json", ".zarray", ".zattrs", ".zgroup"):
+        if sentinel in corrupted_chunks:
+            corrupted_chunks.remove(sentinel)
 
     return corrupted_chunks
 
