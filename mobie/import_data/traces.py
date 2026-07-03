@@ -15,6 +15,8 @@ from pybdv.metadata import (write_h5_metadata,
 from pybdv.util import get_key
 from tqdm import tqdm
 
+from ..validation.utils import ngff_multiscales
+
 
 def is_ome_zarr(path):
     """@private
@@ -26,7 +28,7 @@ def get_key_ome_zarr(path):
     """@private
     """
     with open_file(path, "r") as f:
-        key = f.attrs["multiscales"][0]["datasets"][0]["path"]
+        key = ngff_multiscales(f.attrs)[0]["datasets"][0]["path"]
     return key
 
 

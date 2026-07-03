@@ -220,6 +220,7 @@ def add_image(
     channel: Optional[int] = None,
     skip_add_to_dataset: bool = False,
     use_memmap: bool = False,
+    shards: Optional[Sequence[int]] = None,
 ) -> None:
     """Add an image source to a MoBIE dataset.
 
@@ -257,7 +258,14 @@ def add_image(
         use_memmap: Whether to use memmap for loading the input data.
             This option is only supported for inputs in tif file format that can be loaded via `tifffile.memmap`.
             This does not work for images that are compressed or have an otherwise non-standard format.
+        shards: The shard shape for zarr v3 sharding. Only supported for the ome.zarr v0.5 format
+            (pass file_format='ome.zarr@0.5').
     """
+    # the ome.zarr / NGFF version may be encoded as a suffix on the file format (e.g. 'ome.zarr@0.5').
+    # split it off here so all downstream folder / metadata-key / dispatch logic sees the canonical name.
+    file_format, ome_zarr_version = utils.parse_file_format(file_format)
+    utils.check_shards(shards, file_format, ome_zarr_version)
+
     # TODO add 'setup_id' to the json schema for bdv formats to also support it there
     if channel is not None and file_format != "ome.zarr":
         raise NotImplementedError("Channel setting is currently only supported for ome.zarr")
@@ -296,7 +304,9 @@ def add_image(
                           max_jobs=max_jobs, unit=unit,
                           source_name=image_name,
                           file_format=file_format,
-                          channel=channel)
+                          channel=channel,
+                          ome_zarr_version=ome_zarr_version,
+                          shards=shards)
 
     if transformation is not None:
         utils.update_transformation_parameter(image_metadata_path, transformation, file_format)
@@ -323,4 +333,5 @@ def main():
               view=view, menu_name=args.menu_name,
               tmp_folder=args.tmp_folder, target=args.target, max_jobs=args.max_jobs,
               is_default_dataset=bool(args.is_default_dataset),
-              transformation=transformation, unit=args.unit)
+              transformation=transformation, unit=args.unit,
+              **utils.get_source_kwargs(args))

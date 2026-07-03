@@ -15,6 +15,7 @@ import mobie.metadata as metadata
 from bioimage_py.runner.config import RunnerConfig, SlurmConfig
 from elf.io import open_file
 from mobie.validation import validate_view_metadata
+from mobie.validation.utils import ngff_multiscales
 from mobie.xml_utils import update_xml_transformation_parameter
 from pybdv.util import get_key
 
@@ -28,6 +29,74 @@ FILE_FORMATS = [
 ]
 """List of supported file formats.
 """
+
+OME_ZARR_VERSIONS = ("0.4", "0.5")
+"""The supported ome.zarr / NGFF versions. 0.4 is written as zarr v2, 0.5 as zarr v3.
+"""
+
+DEFAULT_OME_ZARR_VERSION = "0.4"
+"""The ome.zarr / NGFF version used when the file format does not specify one.
+"""
+
+OME_ZARR_VERSION_SEP = "@"
+"""Separator for encoding the ome.zarr version in a file format string, e.g. 'ome.zarr@0.5'.
+"""
+
+
+def parse_file_format(file_format: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Split a (possibly versioned) file format into the canonical format and its ome.zarr version.
+
+    The ome.zarr version is encoded by appending '@<version>' to the file format, e.g.
+    'ome.zarr@0.5'. If no version is given, the default version ('0.4') is used for the ome.zarr
+    formats; other formats have no version.
+
+    Args:
+        file_format: The (possibly versioned) file format, e.g. 'ome.zarr', 'ome.zarr@0.5' or
+            'bdv.n5'. May be None (for sources without image data, e.g. spots).
+
+    Returns:
+        The canonical file format, without any version suffix.
+        The ome.zarr version, or None for non-ome.zarr formats.
+
+    Raises:
+        ValueError: If a version suffix is given for a non-ome.zarr format, or the version is
+            not supported.
+    """
+    if file_format is None:
+        return None, None
+
+    if OME_ZARR_VERSION_SEP in file_format:
+        base, version = file_format.split(OME_ZARR_VERSION_SEP, 1)
+        if not base.startswith("ome.zarr"):
+            raise ValueError(
+                f"A version suffix is only supported for the ome.zarr formats, got '{file_format}'."
+            )
+        if version not in OME_ZARR_VERSIONS:
+            raise ValueError(
+                f"Unsupported ome.zarr version '{version}'. Supported versions are {OME_ZARR_VERSIONS}."
+            )
+        return base, version
+
+    version = DEFAULT_OME_ZARR_VERSION if file_format.startswith("ome.zarr") else None
+    return file_format, version
+
+
+def check_shards(shards, file_format: Optional[str], ome_zarr_version: Optional[str]) -> None:
+    """Validate that sharding is only requested for the ome.zarr v0.5 (zarr v3) format.
+
+    Args:
+        shards: The requested shard shape, or None for no sharding.
+        file_format: The canonical file format (without version suffix).
+        ome_zarr_version: The ome.zarr version, as returned by `parse_file_format`.
+
+    Raises:
+        ValueError: If a shard is requested for any format other than ome.zarr v0.5.
+    """
+    if shards is not None and not (file_format == "ome.zarr" and ome_zarr_version == "0.5"):
+        raise ValueError(
+            "Sharding is only supported for the ome.zarr v0.5 (zarr v3) format. "
+            "Pass file_format='ome.zarr@0.5' to enable it."
+        )
 
 
 def get_data_key(file_format: str, scale: int, path: Optional[str] = None) -> str:
@@ -47,7 +116,7 @@ def get_data_key(file_format: str, scale: int, path: Optional[str] = None) -> st
     elif file_format == "ome.zarr":
         assert path is not None
         with open_file(path, "r") as f:
-            mscales = f.attrs["multiscales"][0]
+            mscales = ngff_multiscales(f.attrs)[0]
             key = mscales["datasets"][0]["path"]
     else:
         raise NotImplementedError(file_format)
@@ -205,6 +274,11 @@ def get_base_parser(description: str, transformation_file: bool = False):
     parser.add_argument("--chunks", type=str,
                         help="chunks of the data that is added, json-encoded",
                         required=True)
+    parser.add_argument("--file_format", type=str, default=None,
+                        help="the file format used to store the data internally, e.g. 'ome.zarr'. "
+                             "Append '@<version>' to select the ome.zarr / NGFF version, e.g. 'ome.zarr@0.5'.")
+    parser.add_argument("--shards", type=str, default=None,
+                        help="shard shape for zarr v3 sharding, json-encoded. Only valid for 'ome.zarr@0.5'.")
 
     parser.add_argument("--menu_name", type=str, default=None,
                         help="the menu name which will be used when grouping this source in the UI")
@@ -253,6 +327,22 @@ def parse_spatial_args(args, parse_transformation=True):
     else:
         transformation = json.loads(args.transformation)
     return resolution, scale_factors, chunks, transformation
+
+
+def get_source_kwargs(args):
+    """@private
+
+    Collect the optional source storage kwargs (file_format, shards) from parsed CLI args, including
+    each only when it was explicitly set so the add_* function defaults still apply otherwise.
+    """
+    kwargs = {}
+    file_format = getattr(args, "file_format", None)
+    if file_format is not None:
+        kwargs["file_format"] = file_format
+    shards = getattr(args, "shards", None)
+    if shards is not None:
+        kwargs["shards"] = json.loads(shards)
+    return kwargs
 
 
 def parse_view(args):

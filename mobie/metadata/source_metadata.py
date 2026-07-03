@@ -14,7 +14,7 @@ from .utils import get_table_metadata
 from .view_metadata import get_default_view
 from ..tables import read_table
 from ..validation import validate_source_metadata, validate_view_metadata
-from ..validation.utils import load_json_from_s3
+from ..validation.utils import load_json_from_s3, load_ngff_array_shape, load_ngff_group_attrs
 
 
 #
@@ -37,16 +37,26 @@ def _load_json_from_file(path):
 
 def _load_ome_zarr_metadata(dataset_folder, storage, data_format):
     if data_format == "ome.zarr":
-        attrs_path = os.path.join(dataset_folder, storage["relativePath"], ".zattrs")
-        attrs = _load_json_from_file(attrs_path)
+        zarr_path = os.path.join(dataset_folder, storage["relativePath"])
+
+        def read_json(name):
+            return _load_json_from_file(os.path.join(zarr_path, name))
     else:
         assert data_format == "ome.zarr.s3"
-        address = os.path.join(storage["s3Address"], ".zattrs")
-        try:
-            attrs = load_json_from_s3(address)
-        except Exception:
-            attrs = None
-    return None if attrs is None else attrs["multiscales"][0]
+        address = storage["s3Address"]
+
+        def read_json(name):
+            try:
+                return load_json_from_s3(os.path.join(address, name))
+            except Exception:
+                return None
+
+    # handle both the zarr v2 (.zattrs) and v3 (zarr.json) on-disk layouts.
+    attrs = load_ngff_group_attrs(read_json)
+    if attrs is None:
+        return None
+    multiscales = attrs["ome"]["multiscales"] if "ome" in attrs else attrs["multiscales"]
+    return multiscales[0]
 
 
 def _load_image_metadata(source_metadata, dataset_folder):
@@ -69,17 +79,19 @@ def get_shape(source_metadata, dataset_folder):
         shape = bdv_metadata.get_size(image_metadata, setup_id=0)
     elif data_format == "ome.zarr":
         dataset_path = image_metadata["datasets"][0]["path"]
-        array_path = os.path.join(
-            dataset_folder, source_metadata[data_format]["relativePath"], dataset_path, ".zarray"
-        )
-        array_metadata = _load_json_from_file(array_path)
-        shape = array_metadata["shape"]
+        array_dir = os.path.join(dataset_folder, source_metadata[data_format]["relativePath"], dataset_path)
+        # handle both the zarr v2 (.zarray) and v3 (zarr.json) on-disk layouts.
+        shape = load_ngff_array_shape(lambda name: _load_json_from_file(os.path.join(array_dir, name)))
     elif data_format == "ome.zarr.s3":
         dataset_path = image_metadata["datasets"][0]["path"]
-        address = source_metadata[data_format]["s3Address"]
-        array_address = os.path.join(address, dataset_path, ".zarray")
-        array_metadata = load_json_from_s3(array_address)
-        shape = array_metadata["shape"]
+        array_address = os.path.join(source_metadata[data_format]["s3Address"], dataset_path)
+
+        def _read_array_json(name):
+            try:
+                return load_json_from_s3(os.path.join(array_address, name))
+            except Exception:
+                return None
+        shape = load_ngff_array_shape(_read_array_json)
     else:
         raise ValueError(f"Unsupported data format {data_format}")
     return shape

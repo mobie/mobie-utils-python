@@ -19,6 +19,7 @@ class TestSourceUtils(unittest.TestCase):
     extra_seg_name = "extra-seg"
     shape = (16, 32, 32)
     chunks = (8, 16, 16)
+    file_format = "ome.zarr"
 
     def init_dataset(self):
         data_path = os.path.join(self.test_folder, "data.h5")
@@ -37,14 +38,14 @@ class TestSourceUtils(unittest.TestCase):
         mobie.add_image(
             data_path, data_key, self.root, self.dataset_name, self.raw_name,
             resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
-            tmp_folder=tmp_folder, max_jobs=max_jobs
+            tmp_folder=tmp_folder, max_jobs=max_jobs, file_format=self.file_format
         )
 
         tmp_folder = os.path.join(self.test_folder, "tmp-init-seg")
         mobie.add_segmentation(
             seg_path, data_key, self.root, self.dataset_name, self.seg_name,
             resolution=(1, 1, 1), chunks=self.chunks, scale_factors=scales,
-            tmp_folder=tmp_folder, max_jobs=max_jobs
+            tmp_folder=tmp_folder, max_jobs=max_jobs, file_format=self.file_format
         )
 
         display_settings = [
@@ -131,6 +132,11 @@ class TestSourceUtils(unittest.TestCase):
 
     def test_remove_segmentation_source(self):
         self._test_remove(self.seg_name)
+
+
+class TestSourceUtilsOmeZarrV05(TestSourceUtils):
+    # re-run the rename / remove tests against ome.zarr v0.5 (zarr v3) sources.
+    file_format = "ome.zarr@0.5"
 
 
 if __name__ == "__main__":

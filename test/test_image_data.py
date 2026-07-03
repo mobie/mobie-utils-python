@@ -171,6 +171,18 @@ class TestImageData(unittest.TestCase):
         shape = (64, 64, 64)
         self.init_h5_dataset(dataset_name, raw_name, shape, file_format="bdv.n5")
 
+    def test_ome_zarr_v05(self):
+        dataset_name = "test"
+        raw_name = "test-raw"
+        shape = (64, 64, 64)
+        # NGFF v0.5 (zarr v3), selected via the version suffix on the file format.
+        self.init_h5_dataset(dataset_name, raw_name, shape, file_format="ome.zarr@0.5")
+        ds_folder = os.path.join(self.root, dataset_name)
+        self.check_dataset(ds_folder, shape, raw_name)
+        # the source is stored under the canonical 'ome.zarr' key (no version suffix), as zarr v3.
+        raw_path = os.path.join(ds_folder, "images", "ome-zarr", f"{raw_name}.ome.zarr")
+        self.assertTrue(os.path.exists(os.path.join(raw_path, "zarr.json")))
+
     #
     # tests with existing dataset
     #
